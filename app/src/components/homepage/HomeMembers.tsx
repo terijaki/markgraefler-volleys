@@ -1,7 +1,7 @@
 import type { PublicMember } from "@webapp/server/functions/members";
 import { Avatar, Box, Container, Group, Stack, Text } from "@mantine/core";
+import { User as IconAvatar } from "lucide-react";
 import { shuffleArray } from "@utils/shuffleArray";
-import { FaUser as IconAvatar } from "react-icons/fa6";
 import { useMembers } from "../../hooks/dataQueries";
 import { useFileUrl } from "../../hooks/dataQueries";
 import SectionHeading from "../layout/SectionHeading";

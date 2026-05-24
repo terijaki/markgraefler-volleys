@@ -1,4 +1,4 @@
-import { FaInstagram } from "react-icons/fa6";
+import { Camera as InstagramIcon } from "lucide-react";
 import { Instagram } from "@project.config";
 
 export default function socialList() {
@@ -6,7 +6,7 @@ export default function socialList() {
     {
       name: "Instagram",
       href: `https://www.instagram.com/${Instagram.mainAccount}`,
-      icon: <FaInstagram />,
+      icon: <InstagramIcon />,
       target: "_blank",
       rel: "noreferrer",
     },

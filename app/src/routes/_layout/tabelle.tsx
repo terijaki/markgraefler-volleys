@@ -1,5 +1,6 @@
 import { Card, CardSection, Loader, SimpleGrid, Stack, Text } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
+import { List } from "lucide-react";
 import CardTitle from "@webapp/components/CardTitle";
 import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
@@ -129,6 +130,7 @@ function RouteComponent() {
     <PageWithHeading
       title="Tabellen"
       subtitle="Aktuelle Tabellen und letzte Spielergebnisse unserer Teams"
+      icon={List}
     >
       <Stack>
         {leagueUuids.length === 0 && <NoRankingsData />}

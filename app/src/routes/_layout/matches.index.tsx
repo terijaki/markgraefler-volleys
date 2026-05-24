@@ -6,8 +6,8 @@ import Matches from "@webapp/components/Matches";
 import { getSamsMatchesFn } from "@webapp/server/functions/sams";
 import { createWebcalLink } from "@webapp/utils/webcal";
 import dayjs from "dayjs";
+import { CalendarDays, Megaphone as IconSubscribe } from "lucide-react";
 import { Fragment } from "react";
-import { FaBullhorn as IconSubscribe } from "react-icons/fa6";
 
 export const Route = createFileRoute("/_layout/matches/")({
   loader: async () => {
@@ -29,6 +29,7 @@ function RouteComponent() {
     <PageWithHeading
       title="Spielplan"
       subtitle="Alle Ligaspiele der Markgräfler Volleys im Überblick"
+      icon={CalendarDays}
     >
       <Stack>
         <Card>
@@ -75,9 +76,7 @@ function MatchesContent({
     const timestampDate = matches.timestamp ? new Date(matches.timestamp) : undefined;
     return (
       <Card>
-        <Title order={2} c="mvPurple">
-          Ligaspiele
-        </Title>
+        <Title order={2}>Ligaspiele</Title>
         <Matches matches={matches.matches} timestamp={timestampDate} type="future" />
       </Card>
     );

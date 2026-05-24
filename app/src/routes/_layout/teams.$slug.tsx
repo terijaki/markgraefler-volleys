@@ -23,8 +23,8 @@ import { createWebcalLink } from "@webapp/utils/webcal";
 import dayjs from "dayjs";
 import de from "dayjs/locale/de";
 import weekday from "dayjs/plugin/weekday";
+import { Megaphone as IconSubscribe, Users } from "lucide-react";
 import { Suspense } from "react";
-import { FaBullhorn as IconSubscribe } from "react-icons/fa6";
 import {
   useFileUrls,
   useLocations,
@@ -80,7 +80,7 @@ function RouteComponent() {
 
   if (isLoading) {
     return (
-      <PageWithHeading title="Mannschaft">
+      <PageWithHeading title="Mannschaft" icon={Users}>
         <CenteredLoader text="Lade Mannschaftsdaten..." />
       </PageWithHeading>
     );
@@ -97,7 +97,7 @@ function RouteComponent() {
   }
 
   return (
-    <PageWithHeading title={team.name} subtitle={team.league || undefined}>
+    <PageWithHeading title={team.name} subtitle={team.league || undefined} icon={Users}>
       <Stack>
         <Suspense fallback={<CenteredLoader text="Lade Trainingszeiten..." />}>
           <TeamSchedule team={team} />

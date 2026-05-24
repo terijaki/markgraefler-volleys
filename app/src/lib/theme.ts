@@ -97,6 +97,11 @@ export const theme = createTheme({
   },
   defaultRadius: "md",
   components: {
+    Title: {
+      defaultProps: {
+        c: "mvPurple.8",
+      },
+    },
     Anchor: {
       defaultProps: {
         c: "mvGreen",

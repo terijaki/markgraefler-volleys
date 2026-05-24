@@ -1,7 +1,7 @@
 import { Anchor, Box, Container, Flex, Group, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { Club } from "@project.config";
+import { Mail } from "lucide-react";
 import Socials from "./Socials";
-import { FaRegEnvelope } from "react-icons/fa6";
 
 const legals = [
   { name: "Datenschutz", url: "/datenschutz" },
@@ -32,7 +32,7 @@ export default function Footer() {
                 </Text>
                 <Anchor size="sm" c="mvInk.9" underline="never">
                   <Group gap={6}>
-                    <FaRegEnvelope />
+                    <Mail />
                     <Text>{Club.email}</Text>
                   </Group>
                 </Anchor>

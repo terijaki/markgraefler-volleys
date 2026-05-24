@@ -1,6 +1,7 @@
 import { Club } from "@/project.config";
 import { Anchor, Card, Typography } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
+import { Contact } from "lucide-react";
 import CardTitle from "@webapp/components/CardTitle";
 import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/_layout/impressum")({
 
 function RouteComponent() {
   return (
-    <PageWithHeading title="Impressum">
+    <PageWithHeading title="Impressum" icon={Contact}>
       <Typography>
         <Card>
           <CardTitle>Angaben gemäß § 5 TMG</CardTitle>

@@ -678,7 +678,7 @@ function TeamsPage() {
                         label: `${team.name} (${team.leagueName || "Keine Liga"})`,
                       })) || []
                     }
-                    description="für Spielpläne, Ergebnisse und Tabelle"
+                    description="für Spielplan, Ergebnisse und Tabelle"
                     searchable
                     clearable
                   />
