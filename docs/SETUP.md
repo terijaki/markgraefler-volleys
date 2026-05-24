@@ -37,10 +37,10 @@ SENTRY_ENVIRONMENT="development"
 
 This project uses **AWS SSO** with two accounts:
 
-| Profile   | Account        | Purpose     |
-| --------- | -------------- | ----------- |
-| `mv-dev`  | `418553863544` | Development |
-| `mv-prod` | `041632640830` | Production  |
+| Profile         | Account        | Purpose     |
+| --------------- | -------------- | ----------- |
+| `mvolleys-dev`  | `926634327887` | Development |
+| `mvolleys-prod` | `883425316554` | Production  |
 
 ### Initial setup
 
@@ -52,15 +52,15 @@ sso_start_url = https://<your-sso-start-url>
 sso_region = eu-central-1
 sso_registration_scopes = sso:account:access
 
-[profile mv-dev]
+[profile mvolleys-dev]
 sso_session = <your-session-name>
-sso_account_id = 418553863544
+sso_account_id = 926634327887
 sso_role_name = DeveloperAdministratorAccess
 region = eu-central-1
 
-[profile mv-prod]
+[profile mvolleys-prod]
 sso_session = <your-session-name>
-sso_account_id = 041632640830
+sso_account_id = 883425316554
 sso_role_name = DeveloperAdministratorAccess
 region = eu-central-1
 ```
@@ -104,21 +104,43 @@ vpr cdk:deploy:prod # Deploy all stacks (prod, requires mv-prod credentials)
 
 ### How deployments work
 
-| Branch    | AWS account | Role secret         |
-| --------- | ----------- | ------------------- |
-| `main`    | prod        | `AWS_ROLE_ARN_PROD` |
-| any other | dev         | `AWS_ROLE_ARN_DEV`  |
+| Branch    | AWS account | Role ARN                                              |
+| --------- | ----------- | ----------------------------------------------------- |
+| `main`    | prod        | `arn:aws:iam::883425316554:role/GitHubActionsCDKRole` |
+| any other | dev         | `arn:aws:iam::926634327887:role/GitHubActionsCDKRole` |
 
-Deployments use OIDC — no long-lived access keys. The trust policies are in:
+Deployments use OIDC — no long-lived access keys. Each AWS account needs an IAM role named `GitHubActionsCDKRole` that GitHub Actions can assume.
 
-- `github-actions-trust-policy.json` — prod account (`041632640830`)
-- `github-actions-trust-policy-dev.json` — dev account (`418553863544`)
+Required IAM setup in each account:
 
-### Required repository secrets
+- Create the GitHub OIDC provider for `token.actions.githubusercontent.com` if it does not already exist.
+- Create the IAM role `GitHubActionsCDKRole` in that account.
+- Attach a trust policy that allows `sts:AssumeRoleWithWebIdentity` from the GitHub OIDC provider.
+- Restrict the trust policy to this repository with `token.actions.githubusercontent.com:sub = repo:terijaki/markgraefler-volleys:*`.
+- Allow `token.actions.githubusercontent.com:aud = sts.amazonaws.com`.
+- Grant the role the AWS permissions needed for CDK deploys, destroys, and any supporting reads or writes.
 
-| Secret              | Description                                             |
-| ------------------- | ------------------------------------------------------- |
-| `AWS_ROLE_ARN_DEV`  | ARN of the GitHub Actions OIDC role in the dev account  |
-| `AWS_ROLE_ARN_PROD` | ARN of the GitHub Actions OIDC role in the prod account |
+Current working policy set on `GitHubActionsCDKRole`:
+
+- `AWSCloudFormationFullAccess`
+- `IAMFullAccess`
+- `AWSLambda_FullAccess`
+- `AmazonAPIGatewayAdministrator`
+- `AmazonDynamoDBFullAccess`
+- `AmazonEventBridgeFullAccess`
+- `AmazonS3FullAccess`
+- `CloudFrontFullAccess`
+- `AmazonSSMReadOnlyAccess`
+
+The trust policy shape is documented in:
+
+- `github-actions-trust-policy.json` — prod account
+- `github-actions-trust-policy-dev.json` — dev account
+
+### Workflow configuration
+
+The workflow files reference the IAM role ARNs directly. The role ARN is configuration, not a secret; the trust policy and IAM permissions are what secure the OIDC flow.
+
+The role name is intentionally stable across accounts: `GitHubActionsCDKRole`. Only the account ID changes between prod and dev.
 
 Application and deployment environment values such as `SAMS_API_KEY`, `BETTER_AUTH_SECRET`, and `CDK_BUDGET_ALERT_EMAIL` are **not** stored as GitHub repository secrets. GitHub Actions assumes the appropriate AWS role via OIDC, then Varlock loads those values from AWS SSM Parameter Store / AWS Secrets Manager as defined by the environment schema.
