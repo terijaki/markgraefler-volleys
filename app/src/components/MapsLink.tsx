@@ -1,6 +1,6 @@
 import type { AnchorProps } from "@mantine/core";
 import { Anchor, Group, Text } from "@mantine/core";
-import { MapPin as IconLocation } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface MapsLinkProps extends Omit<AnchorProps, "href" | "component" | "target"> {
@@ -60,9 +60,11 @@ export default function MapsLink({ street, postal, city, name, ...anchorProps }:
       rel="noopener noreferrer"
       {...anchorProps}
     >
-      <Group gap={4} wrap="nowrap" align="baseline">
-        <IconLocation />
-        <Text lineClamp={2}>{displayName}</Text>
+      <Group gap={4} wrap="nowrap" align="center">
+        <MapPin size={14} style={{ flexShrink: 0 }} />
+        <Text lineClamp={1} style={{ wordBreak: "break-all" }}>
+          {displayName}
+        </Text>
       </Group>
     </Anchor>
   );

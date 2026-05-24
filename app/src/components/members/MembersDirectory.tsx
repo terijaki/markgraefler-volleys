@@ -1,5 +1,5 @@
 import type { PublicMember } from "@webapp/server/functions/members";
-import { Avatar, Badge, Box, Card, Group, SimpleGrid, Stack, Text } from "@mantine/core";
+import { Avatar, Badge, Card, Group, SimpleGrid, Stack, Text } from "@mantine/core";
 import { User as IconAvatar } from "lucide-react";
 import { useFileUrls, useMembers } from "../../hooks/dataQueries";
 
@@ -76,41 +76,50 @@ export default function MembersDirectory() {
         const avatarUrl = member.avatarS3Key ? avatarUrlByS3Key.get(member.avatarS3Key) : undefined;
 
         return (
-          <Box
+          <Card
             key={member.id}
             component={member.proxyEmail ? "a" : "div"}
             href={member.proxyEmail ? `mailto:${member.proxyEmail}` : undefined}
-            className="mv-focus"
-            style={{ textDecoration: "none", color: "inherit", height: "100%" }}
+            withBorder
+            orientation="horizontal"
+            className="mv-pressable"
           >
-            <Card withBorder radius="md" p="md" className="mv-card mv-pressable" h="100%">
-              <Stack gap="sm">
-                <Group align="flex-start" wrap="nowrap">
-                  <Avatar src={avatarUrl} alt={member.name} size={72} radius="xl">
-                    <IconAvatar size={20} />
-                  </Avatar>
-                  <Stack gap={2}>
-                    <Text fw={800} size="lg" c="mvPurple.8" lh={1.2}>
-                      {member.name}
+            <Card.Section
+              withBorder
+              style={{ width: 80, alignSelf: "stretch", display: "flex", flexShrink: 0 }}
+            >
+              <Avatar
+                src={avatarUrl}
+                alt={member.name}
+                radius={0}
+                style={{ width: "100%", height: "100%" }}
+              >
+                <IconAvatar size={20} />
+              </Avatar>
+            </Card.Section>
+            <Stack gap="sm" px="sm">
+              <Group align="flex-start" wrap="nowrap">
+                <Stack gap={2}>
+                  <Text fw={800} size="lg" c="mvPurple.8" lh={1.2}>
+                    {member.name}
+                  </Text>
+                  {member.proxyEmail && (
+                    <Text size="sm" c="dimmed" lineClamp={1}>
+                      {member.proxyEmail}
                     </Text>
-                    {member.proxyEmail && (
-                      <Text size="sm" c="dimmed" lineClamp={1}>
-                        {member.proxyEmail}
-                      </Text>
-                    )}
-                  </Stack>
-                </Group>
+                  )}
+                </Stack>
+              </Group>
 
-                <Group gap="xs">
-                  {functions.map((functionLabel) => (
-                    <Badge key={functionLabel} variant="light" color="mvPurple" radius="sm">
-                      {functionLabel}
-                    </Badge>
-                  ))}
-                </Group>
-              </Stack>
-            </Card>
-          </Box>
+              <Group gap="xs">
+                {functions.map((functionLabel) => (
+                  <Badge key={functionLabel} variant="light" color="mvPurple" radius="sm">
+                    {functionLabel}
+                  </Badge>
+                ))}
+              </Group>
+            </Stack>
+          </Card>
         );
       })}
     </SimpleGrid>

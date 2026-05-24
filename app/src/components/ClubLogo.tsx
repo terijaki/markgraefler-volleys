@@ -1,5 +1,5 @@
 import { Flex, Image } from "@mantine/core";
-import { Volleyball as Ball } from "lucide-react";
+import { Volleyball } from "lucide-react";
 import { useClubLogoUrl } from "../hooks/dataQueries";
 
 type ClubLogoProps = (
@@ -49,7 +49,7 @@ export default function ClubLogo({
 export function ClubLogoFallback({ size = 24 }: { size?: number }) {
   return (
     <Flex pos="relative" justify="center" align="center" w={size} h={size} c="mvSand">
-      <Ball />
+      <Volleyball strokeWidth={1.2} />
     </Flex>
   );
 }

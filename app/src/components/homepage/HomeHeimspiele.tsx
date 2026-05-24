@@ -156,7 +156,7 @@ function HomeMatchesList({ homeMatches }: { homeMatches: LeagueMatchesResponse["
 
           // NEW CARD PER DATE AND LOCATION COMBO
           return (
-            <Card key={dateLocationKey} className="mv-card mv-pressable" bg="white" c="mvInk.9">
+            <Card key={dateLocationKey} className="mv-pressable" bg="white" c="mvInk.9">
               <Stack>
                 <Flex
                   direction={{ base: "column", sm: "row" }}
@@ -250,7 +250,7 @@ function NoMatchesNoEvents({ matchCount = 0 }: { matchCount?: number }) {
 
   return (
     <Container py="md" size="lg">
-      <Stack c="mvInk.9" gap="xs" className="mv-card" p="lg" bg="white">
+      <Stack c="mvInk.9" gap="xs" p="lg" bg="white">
         <Title
           order={3}
           c="mvGreen.8"

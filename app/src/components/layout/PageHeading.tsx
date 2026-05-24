@@ -16,8 +16,8 @@ export default function PageHeading(props: {
       <Group gap="sm" wrap="nowrap" align="flex-start">
         <Box
           style={{
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             display: "grid",
             placeItems: "center",
             border: "2px solid var(--mantine-color-mvInk-9)",
@@ -27,7 +27,7 @@ export default function PageHeading(props: {
             marginTop: 2,
           }}
         >
-          <HeadingIcon size={16} />
+          <HeadingIcon size={20} strokeWidth={2} />
         </Box>
 
         <Stack gap={0} align="flex-start" style={{ minWidth: 0 }}>

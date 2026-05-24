@@ -41,7 +41,7 @@ export default function InstagramCard(post: BeholdPost) {
       href={permalink}
       target="_blank"
       rel="noopener noreferrer"
-      className="mv-card mv-pressable mv-focus"
+      className="mv-pressable mv-focus"
       radius="lg"
       mah={200}
       orientation="horizontal"

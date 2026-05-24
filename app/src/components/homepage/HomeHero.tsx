@@ -1,10 +1,29 @@
-import { Button, Container, Group, Stack, Text, Title } from "@mantine/core";
+import { Button, Container, Group, Space, Stack, Text, Title } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
+import type { ComponentProps, ReactNode } from "react";
 import HomeLiveTicker from "@webapp/components/homepage/HomeLiveTicker";
 import { useHomeLiveTickerData } from "@webapp/hooks/useHomeLiveTicker";
 
+type HeroLinkButtonProps = {
+  to: ComponentProps<typeof Link>["to"];
+  children: ReactNode;
+};
+
+function HeroLinkButton({ to, children }: HeroLinkButtonProps) {
+  return (
+    <Button component={Link} to={to} variant="subtle" className="mv-focus mv-pressable">
+      {children}
+    </Button>
+  );
+}
+
 export default function HomeHero() {
   const { ourMatches, hasMatchesToday, hasOpenMatches } = useHomeLiveTickerData();
+  const heroLinks = [
+    { to: "/teams", label: "Teams" },
+    { to: "/tabelle", label: "Tabellen" },
+    { to: "/matches", label: "Spielplan" },
+  ] as const;
 
   return (
     <Stack
@@ -20,7 +39,10 @@ export default function HomeHero() {
         <Stack gap="xl" style={{ position: "relative", zIndex: 2 }}>
           <Stack gap="md" maw={840}>
             <Stack gap="xs">
-              <Title order={1}>Markgräfler Volleys</Title>
+              <Space h="xl" hiddenFrom="sm" />
+              <Title order={1} visibleFrom="sm">
+                Markgräfler Volleys
+              </Title>
               <Title
                 order={2}
                 fz={{ base: 20, sm: 24 }}
@@ -47,36 +69,11 @@ export default function HomeHero() {
             </Text>
 
             <Group gap="sm" wrap="wrap" hiddenFrom="md">
-              <Button
-                component={Link}
-                to="/teams"
-                variant="light"
-                c="mvGreen.8"
-                className="mv-focus mv-pressable"
-                style={{ borderColor: "var(--mantine-color-mvInk-9)", background: "white" }}
-              >
-                Teams
-              </Button>
-              <Button
-                component={Link}
-                to="/tabelle"
-                variant="light"
-                c="mvGreen.8"
-                className="mv-focus mv-pressable"
-                style={{ borderColor: "var(--mantine-color-mvInk-9)", background: "white" }}
-              >
-                Tabellen
-              </Button>
-              <Button
-                component={Link}
-                to="/matches"
-                variant="light"
-                c="mvGreen.8"
-                className="mv-focus mv-pressable"
-                style={{ borderColor: "var(--mantine-color-mvInk-9)", background: "white" }}
-              >
-                Spielplan
-              </Button>
+              {heroLinks.map((link) => (
+                <HeroLinkButton key={link.to} to={link.to}>
+                  {link.label}
+                </HeroLinkButton>
+              ))}
             </Group>
           </Stack>
 

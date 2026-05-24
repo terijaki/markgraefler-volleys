@@ -1,4 +1,9 @@
-import { createTheme, type MantineColorsTuple } from "@mantine/core";
+import {
+  createTheme,
+  defaultVariantColorsResolver,
+  type MantineColorsTuple,
+  type VariantColorsResolver,
+} from "@mantine/core";
 
 const mvPurple: MantineColorsTuple = [
   "#f1ebf8",
@@ -78,10 +83,26 @@ const mvAmber: MantineColorsTuple = [
   "#322004",
 ];
 
+const variantColorResolver: VariantColorsResolver = (input) => {
+  const defaultResolvedColors = defaultVariantColorsResolver(input);
+
+  if (input.variant === "subtle") {
+    return {
+      background: "var(--mantine-color-mvGreen-6)",
+      hover: "var(--mantine-color-mvGreen-7)",
+      color: "var(--mantine-color-white)",
+      border: "calc(0.0625rem * var(--mantine-scale)) solid transparent",
+    };
+  }
+
+  return defaultResolvedColors;
+};
+
 export const theme = createTheme({
   colors: { mvPurple, mvGreen, mvInk, mvSand, mvBg, mvAmber },
   primaryShade: 6,
   primaryColor: "mvPurple",
+  variantColorResolver,
   fontFamily: "Manrope, Source Sans 3, Helvetica Neue, sans-serif",
   fontFamilyMonospace: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
   headings: {
@@ -114,7 +135,8 @@ export const theme = createTheme({
     },
     Button: {
       defaultProps: {
-        radius: "xl",
+        color: "mvPurple",
+        radius: "sm",
         size: "md",
       },
       styles: {
@@ -136,6 +158,10 @@ export const theme = createTheme({
           borderWidth: "2px",
           borderColor: "var(--mantine-color-mvInk-9)",
           boxShadow: "0 8px 0 rgba(28, 27, 31, 0.28)",
+        },
+        section: {
+          borderWidth: "2px",
+          borderColor: "var(--mantine-color-mvInk-9)",
         },
       },
     },

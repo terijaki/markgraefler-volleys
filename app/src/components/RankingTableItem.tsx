@@ -22,7 +22,7 @@ export default function RankingTableItem({
     <TableTr
       data-team-uuid={team.uuid}
       data-team-name={team.teamName}
-      bg={isHighlighted ? "mvInk" : undefined}
+      bg={isHighlighted ? "mvPurple.8" : undefined}
       c={isHighlighted ? "white" : undefined}
       style={{ cursor: teamLink ? "pointer" : undefined }}
       onClick={() => {

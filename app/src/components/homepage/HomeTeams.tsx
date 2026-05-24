@@ -36,7 +36,7 @@ export default function HomeTeams() {
 
             {hasTeamResults && (
               <Center>
-                <Text className="mv-card" p="sm" bg="white">
+                <Text p="sm" bg="white">
                   Zurzeit umfasst unser Verein {teamNumber}{" "}
                   {numberOfTeams > 1 ? "Mannschaften" : "Mannschaft"}:
                 </Text>

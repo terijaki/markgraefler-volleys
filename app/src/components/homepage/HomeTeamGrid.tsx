@@ -29,7 +29,6 @@ export default function HomeTeamGrid({ teams }: { teams: Team[] }) {
         <Group
           justify="center"
           align="center"
-          className="mv-card"
           p="md"
           bg="white"
           display="none" // temporarily hide filters until we have more teams

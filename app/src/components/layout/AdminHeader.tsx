@@ -43,9 +43,10 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
         <Group justify="space-between" h="100%">
           <UnstyledButton component={Link} to="/admin" onClick={close}>
             <Group gap="xs">
-              <Volleyball size={24} />
+              <Volleyball size={24} strokeWidth={1.4} />
               <Title
                 hiddenFrom="md"
+                c="white"
                 order={1}
                 size="h2"
                 fw={500}
@@ -57,6 +58,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
               <Title
                 visibleFrom="md"
                 hiddenFrom="lg"
+                c="white"
                 order={1}
                 size="h2"
                 fw={500}
@@ -67,6 +69,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
               </Title>
               <Title
                 visibleFrom="lg"
+                c="white"
                 order={1}
                 size="h2"
                 fw={500}

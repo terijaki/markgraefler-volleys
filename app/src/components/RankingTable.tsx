@@ -85,73 +85,75 @@ export default function RankingTable(props: RankingTable) {
           </Text>
         )}
       </Group>
-      <Table
-        striped
-        highlightOnHover
-        withRowBorders={false}
-        horizontalSpacing="xs"
-        verticalSpacing={0}
-      >
-        <TableThead>
-          <TableTr>
-            <TableTh ta="center">
-              <Text fw="bold" hiddenFrom="sm">
-                Nr
-              </Text>
-              <Text fw="bold" visibleFrom="sm">
-                Platz
-              </Text>
-            </TableTh>
-            <TableTh>
-              <Text fw="bold">Mannschaft</Text>
-            </TableTh>
-            <TableTh ta="center">
-              <Text fw="bold">Siege</Text>
-            </TableTh>
-            <TableTh ta="center" visibleFrom="sm">
-              <Text fw="bold">Sätze</Text>
-            </TableTh>
-            <TableTh ta="center">
-              <Text fw="bold" hiddenFrom="sm">
-                Pkt
-              </Text>
-              <Text fw="bold" visibleFrom="sm">
-                Punkte
-              </Text>
-            </TableTh>
-          </TableTr>
-        </TableThead>
-        <TableTbody>
-          {ranking.teams?.map((team) => {
-            const isClubsTeam = props.clubsTeams?.find((t) => t.sbvvTeamId === team.uuid);
+      <Card.Section pb="xs">
+        <Table
+          striped
+          highlightOnHover
+          withRowBorders={false}
+          horizontalSpacing="xs"
+          verticalSpacing={0}
+        >
+          <TableThead>
+            <TableTr>
+              <TableTh ta="center">
+                <Text fw="bold" hiddenFrom="sm">
+                  Nr
+                </Text>
+                <Text fw="bold" visibleFrom="sm">
+                  Platz
+                </Text>
+              </TableTh>
+              <TableTh>
+                <Text fw="bold">Mannschaft</Text>
+              </TableTh>
+              <TableTh ta="center">
+                <Text fw="bold">Siege</Text>
+              </TableTh>
+              <TableTh ta="center" visibleFrom="sm">
+                <Text fw="bold">Sätze</Text>
+              </TableTh>
+              <TableTh ta="center">
+                <Text fw="bold" hiddenFrom="sm">
+                  Pkt
+                </Text>
+                <Text fw="bold" visibleFrom="sm">
+                  Punkte
+                </Text>
+              </TableTh>
+            </TableTr>
+          </TableThead>
+          <TableTbody>
+            {ranking.teams?.map((team) => {
+              const isClubsTeam = props.clubsTeams?.find((t) => t.sbvvTeamId === team.uuid);
 
-            // If currentTeamId is set (eg. via team detail page), only highlight that specific team, other highlight all club teams
-            const shouldHighlight = props.currentTeamId
-              ? team.uuid === props.currentTeamId
-              : Boolean(isClubsTeam?.sbvvTeamId);
+              // If currentTeamId is set (eg. via team detail page), only highlight that specific team, other highlight all club teams
+              const shouldHighlight = props.currentTeamId
+                ? team.uuid === props.currentTeamId
+                : Boolean(isClubsTeam?.sbvvTeamId);
 
-            // Enable links only when linkToTeamPage is true (tabelle page) and team has a slug
-            const teamLink =
-              props.linkToTeamPage && isClubsTeam?.slug ? `/teams/${isClubsTeam.slug}` : null;
-            const clubSlug = slugify((team.teamName ?? "").replace(/\s+\d+$/, ""));
-            return (
-              <RankingTableItem
-                key={team.uuid}
-                team={team}
-                isHighlighted={shouldHighlight}
-                teamLink={teamLink}
-                clubLogo={
-                  <ClubLogo
-                    logoUrl={logoUrlMap?.[clubSlug]}
-                    label={team.teamName ?? undefined}
-                    light={shouldHighlight}
-                  />
-                }
-              />
-            );
-          })}
-        </TableTbody>
-      </Table>
+              // Enable links only when linkToTeamPage is true (tabelle page) and team has a slug
+              const teamLink =
+                props.linkToTeamPage && isClubsTeam?.slug ? `/teams/${isClubsTeam.slug}` : null;
+              const clubSlug = slugify((team.teamName ?? "").replace(/\s+\d+$/, ""));
+              return (
+                <RankingTableItem
+                  key={team.uuid}
+                  team={team}
+                  isHighlighted={shouldHighlight}
+                  teamLink={teamLink}
+                  clubLogo={
+                    <ClubLogo
+                      logoUrl={logoUrlMap?.[clubSlug]}
+                      label={team.teamName ?? undefined}
+                      light={shouldHighlight}
+                    />
+                  }
+                />
+              );
+            })}
+          </TableTbody>
+        </Table>
+      </Card.Section>
     </Card>
   );
 }
