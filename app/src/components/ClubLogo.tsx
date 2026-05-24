@@ -1,5 +1,5 @@
 import { Flex, Image } from "@mantine/core";
-import { CircleDot as Ball } from "lucide-react";
+import { Volleyball as Ball } from "lucide-react";
 import { useClubLogoUrl } from "../hooks/dataQueries";
 
 type ClubLogoProps = (

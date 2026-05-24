@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { CircleDot, LogOut } from "lucide-react";
+import { LogOut, Volleyball } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "../../lib/auth-client";
 import type { AdminSessionUser } from "../../server/functions/session-utils";
@@ -43,7 +43,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
         <Group justify="space-between" h="100%">
           <UnstyledButton component={Link} to="/admin" onClick={close}>
             <Group gap="xs">
-              <CircleDot size={24} />
+              <Volleyball size={24} />
               <Title
                 hiddenFrom="md"
                 order={1}
