@@ -37,10 +37,10 @@ SENTRY_ENVIRONMENT="development"
 
 This project uses **AWS SSO** with two accounts:
 
-| Profile   | Account        | Purpose     |
-| --------- | -------------- | ----------- |
-| `mv-dev`  | `418553863544` | Development |
-| `mv-prod` | `041632640830` | Production  |
+| Profile         | Account        | Purpose     |
+| --------------- | -------------- | ----------- |
+| `mvolleys-dev`  | `926634327887` | Development |
+| `mvolleys-prod` | `883425316554` | Production  |
 
 ### Initial setup
 
@@ -52,15 +52,15 @@ sso_start_url = https://<your-sso-start-url>
 sso_region = eu-central-1
 sso_registration_scopes = sso:account:access
 
-[profile mv-dev]
+[profile mvolleys-dev]
 sso_session = <your-session-name>
-sso_account_id = 418553863544
+sso_account_id = 926634327887
 sso_role_name = DeveloperAdministratorAccess
 region = eu-central-1
 
-[profile mv-prod]
+[profile mvolleys-prod]
 sso_session = <your-session-name>
-sso_account_id = 041632640830
+sso_account_id = 883425316554
 sso_role_name = DeveloperAdministratorAccess
 region = eu-central-1
 ```
@@ -111,8 +111,8 @@ vpr cdk:deploy:prod # Deploy all stacks (prod, requires mv-prod credentials)
 
 Deployments use OIDC — no long-lived access keys. The trust policies are in:
 
-- `github-actions-trust-policy.json` — prod account (`041632640830`)
-- `github-actions-trust-policy-dev.json` — dev account (`418553863544`)
+- `github-actions-trust-policy.json` — prod account (`883425316554`)
+- `github-actions-trust-policy-dev.json` — dev account (`926634327887`)
 
 ### Required repository secrets
 
