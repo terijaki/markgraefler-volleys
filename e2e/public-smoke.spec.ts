@@ -5,7 +5,9 @@ test.describe("public smoke", () => {
     const response = await page.goto("/", { waitUntil: "domcontentloaded" });
 
     expect(response?.ok()).toBeTruthy();
-    await expect(page.getByText(/Willkommen beim/i).first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Volleyball mit Teamgeist im Markgräflerland" }),
+    ).toBeVisible();
   });
 
   const legalPages = [
@@ -26,6 +28,6 @@ test.describe("public smoke", () => {
     const response = await page.goto("/impressum", { waitUntil: "domcontentloaded" });
 
     expect(response?.ok()).toBeTruthy();
-    await expect(page.getByText("Markgräfler Volleys")).toBeVisible();
+    await expect(page.getByText("Haftung für Inhalte")).toBeVisible();
   });
 });

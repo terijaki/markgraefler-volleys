@@ -120,6 +120,18 @@ Required IAM setup in each account:
 - Allow `token.actions.githubusercontent.com:aud = sts.amazonaws.com`.
 - Grant the role the AWS permissions needed for CDK deploys, destroys, and any supporting reads or writes.
 
+Current working policy set on `GitHubActionsCDKRole`:
+
+- `AWSCloudFormationFullAccess`
+- `IAMFullAccess`
+- `AWSLambda_FullAccess`
+- `AmazonAPIGatewayAdministrator`
+- `AmazonDynamoDBFullAccess`
+- `AmazonEventBridgeFullAccess`
+- `AmazonS3FullAccess`
+- `CloudFrontFullAccess`
+- `AmazonSSMReadOnlyAccess`
+
 The trust policy shape is documented in:
 
 - `github-actions-trust-policy.json` — prod account
