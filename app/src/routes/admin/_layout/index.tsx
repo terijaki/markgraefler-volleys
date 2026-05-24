@@ -19,7 +19,7 @@ export const Route = createFileRoute("/admin/_layout/")({
 function DashboardIndexPage() {
   return (
     <Stack gap="lg">
-      <Text c="dimmed" size="sm">
+      <Text size="sm">
         Die folgenden Bereiche stehen zur Verwaltung der Inhalte auf der Webseite zur Verfügung:
       </Text>
 

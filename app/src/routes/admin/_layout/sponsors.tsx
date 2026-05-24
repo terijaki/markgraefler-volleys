@@ -556,8 +556,8 @@ function SponsorsPage() {
           ))}
         </SimpleGrid>
       ) : (
-        <Text c="dimmed" ta="center" py="xl">
-          Keine Sponsoren vorhanden
+        <Text ta="center" py="xl">
+          Keine Sponsoren eingetragen
         </Text>
       )}
     </Stack>

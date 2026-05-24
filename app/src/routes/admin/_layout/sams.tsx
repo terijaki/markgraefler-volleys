@@ -171,7 +171,7 @@ function SamsDashboardPage() {
           <Stack gap={4} ml="auto">
             <Group gap="xs" align="center">
               {teamsLastSynced && (
-                <Text size="xs" c="dimmed">
+                <Text size="xs">
                   Zuletzt synchronisiert: {dayjs(teamsLastSynced).format("DD.MM.YY HH:mm")}
                 </Text>
               )}
@@ -264,7 +264,7 @@ function SamsDashboardPage() {
           <Stack gap={4} ml="auto">
             <Group gap="xs" align="center">
               {clubsLastSynced && (
-                <Text size="xs" c="dimmed">
+                <Text size="xs">
                   Zuletzt synchronisiert: {dayjs(clubsLastSynced).format("DD.MM.YY HH:mm")}
                 </Text>
               )}
