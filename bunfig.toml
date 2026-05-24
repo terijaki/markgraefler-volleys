@@ -1,0 +1,9 @@
+env = false
+[console]
+depth = 3
+
+[install]
+linker = "hoisted"
+auto = "disable"
+# Only install package versions published at least 2 days ago
+minimumReleaseAge = 172800

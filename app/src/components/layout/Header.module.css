@@ -1,0 +1,39 @@
+.headerRow {
+    container-type: inline-size;
+}
+
+.brandButton {
+    min-width: 0;
+    flex: 1;
+}
+
+.brandGroup {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.brandTitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.logoBadge {
+    display: grid;
+}
+
+.burger {
+    flex-shrink: 0;
+}
+
+@container (max-width: 460px) {
+    .logoBadge {
+        display: none;
+    }
+}
+
+@container (max-width: 360px) {
+    .brandTitle {
+        font-size: clamp(1.05rem, 6.2cqw, 1.4rem);
+        letter-spacing: 0.02em;
+    }
+}

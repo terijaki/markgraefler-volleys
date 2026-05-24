@@ -1,0 +1,201 @@
+name: CDK Deploy
+concurrency:
+  group: cdk-deploy
+  cancel-in-progress: false
+
+on:
+  push:
+    branches:
+      - main
+      - "**" # All branches
+    paths-ignore:
+      - "**.md" # Ignore markdown files
+      - ".github/copilot**" # Ignore copilot files
+      - ".vscode/**" # Ignore VSCode settings
+
+permissions:
+  id-token: write # Required for AWS OIDC
+  contents: write # Required for commenting on commits
+
+jobs:
+  deploy:
+    name: Deploy CDK Stack
+    runs-on: ubuntu-latest
+    outputs:
+      webapp_url: ${{ steps.resolve-webapp-url.outputs.webapp_url }}
+    env:
+      CDK_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN_PROD || secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: eu-central-1
+
+      - name: Load environment variables
+        uses: dmno-dev/varlock-action@v1.0.1
+
+      - name: Lint check
+        run: vp lint
+
+      - name: Run tests
+        run: vp test
+
+      - name: CDK Diff
+        run: vp exec cdk diff --all
+
+      - name: CDK Deploy
+        run: |
+          vp exec cdk deploy --require-approval never --all --outputs-file cdk-outputs.json
+
+      - name: Resolve deployed web app URL
+        id: resolve-webapp-url
+        env:
+          CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
+        run: |
+          WEBAPP_URL=$(vp exec tsx -e '
+            import { getSanitizedBranch } from "./utils/git.ts";
+            import { buildWebappUrl } from "./utils/webapp-url.ts";
+
+            const environment = process.env.CDK_ENVIRONMENT || "dev";
+            const branch = getSanitizedBranch();
+            process.stdout.write(buildWebappUrl(environment, branch));
+          ')
+
+          echo "webapp_url=$WEBAPP_URL" >> "$GITHUB_OUTPUT"
+          echo "Using computed URL: $WEBAPP_URL"
+
+      - name: Add deployment summary
+        run: |
+          echo "## ${{ github.ref == 'refs/heads/main' && '🚀' || '🔧' }} CDK Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | ${{ github.ref == 'refs/heads/main' && 'Production' || 'Development' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+
+          # Extract and display CDK outputs if available
+          if [ -f "cdk-outputs.json" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🔗 Endpoints" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Display outputs from both stacks
+            cat cdk-outputs.json | grep -o '"[^"]*Url"[^"]*"[^"]*"' | while read -r line; do
+              KEY=$(echo "$line" | sed 's/"\([^"]*\)".*/\1/')
+              VALUE=$(echo "$line" | sed 's/.*: "\(.*\)"/\1/')
+              echo "- **${KEY}:** ${VALUE}" >> $GITHUB_STEP_SUMMARY
+            done || true
+          fi
+
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 💡 Cleanup" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "These stacks will be automatically destroyed when the branch is deleted or PR is closed." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "To manually destroy these stacks:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "vp exec cdk destroy --all" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  e2e-tests:
+    name: E2E Tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Install Playwright browser
+        run: vp exec playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        id: playwright
+        env:
+          WEBAPP_URL: ${{ needs.deploy.outputs.webapp_url }}
+        run: vp run test:e2e
+
+      - name: Add E2E summary
+        if: always()
+        run: |
+          ICON="✅"
+          RESULT="Passed"
+          if [ "${{ steps.playwright.outcome }}" != "success" ]; then
+            ICON="❌"
+            RESULT="Failed"
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ${ICON} Playwright E2E Smoke" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | ${{ github.ref == 'refs/heads/main' && 'Production' || 'Development' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Base URL** | \`${{ needs.deploy.outputs.webapp_url }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Browser** | Desktop Chrome |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Result** | ${RESULT} |" >> $GITHUB_STEP_SUMMARY
+
+  comment-on-deployment:
+    if: always() && (needs.deploy.result == 'failure' || needs.e2e-tests.result == 'failure')
+    needs: [deploy, e2e-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Get workflow logs
+        id: logs
+        run: |
+          # Get the last 50 lines of logs which typically contain the error
+          LOGS=$(gh run view ${{ github.run_id }} --log | tail -100)
+          # Escape newlines and special characters for JSON
+          LOGS_ESCAPED=$(echo "$LOGS" | jq -Rs .)
+          echo "error_logs=$LOGS_ESCAPED" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on deployment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const logs = ${{ steps.logs.outputs.error_logs }};
+
+            let errorSection = '';
+            if (logs && logs.trim()) {
+              // Get last 30 lines of logs and truncate if too long
+              const logLines = logs.split('\n').slice(-30).join('\n');
+              const truncatedLogs = logLines.length > 1500 ? logLines.substring(0, 1500) + '...' : logLines;
+              errorSection = `\n\n### 📋 Recent Logs\n\`\`\`\n${truncatedLogs}\n\`\`\``;
+            }
+
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `🚨 **CDK Deploy Pipeline Failed (including post-deploy E2E)**\n\n[View workflow run](${workflowUrl})${errorSection}`
+            });

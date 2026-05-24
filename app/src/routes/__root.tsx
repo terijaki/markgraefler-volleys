@@ -1,0 +1,132 @@
+import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
+import "@mantine/dropzone/styles.css";
+import "@mantine/notifications/styles.css";
+import "@mantine/tiptap/styles.css";
+import "../globals.css";
+import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
+import { Notifications } from "@mantine/notifications";
+import { Club } from "@project.config";
+import * as Sentry from "@sentry/tanstackstart-react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import dayjs from "dayjs";
+import "dayjs/locale/de";
+import { useEffect } from "react";
+import type { RouterContext } from "../router";
+import { getSessionFn } from "../server/functions/session";
+import { theme } from "../lib/theme";
+
+dayjs.locale("de");
+
+const DEFAULT_DESCRIPTION =
+  "Willkommen beim Markgräfler Volleys - Dein Volleyballverein für alle Altersklassen mit Damen-, Herren- und Jugendteams.";
+const DEFAULT_IMAGE = `${Club.url}/assets/logos/logo-366273-500.png`;
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: async () => {
+    const session = await getSessionFn();
+    return { session };
+  },
+  head: () => ({
+    title: Club.name,
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "theme-color", content: "#7A58A4" },
+      { name: "description", content: DEFAULT_DESCRIPTION },
+      { name: "robots", content: "index, follow" },
+      { property: "og:type", content: "website" },
+      { property: "og:title", content: Club.name },
+      { property: "og:description", content: DEFAULT_DESCRIPTION },
+      { property: "og:image", content: DEFAULT_IMAGE },
+      { property: "og:url", content: Club.url },
+      { property: "og:site_name", content: Club.name },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: Club.name },
+      { name: "twitter:description", content: DEFAULT_DESCRIPTION },
+      { name: "twitter:image", content: DEFAULT_IMAGE },
+    ],
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap",
+      },
+      { rel: "icon", href: "/assets/logos/logo-366273-250.png", type: "image/png" },
+      {
+        rel: "icon",
+        href: "/assets/logos/logo-363B40-250.png",
+        type: "image/png",
+        media: "(prefers-color-scheme: dark)",
+      },
+      { rel: "apple-touch-icon", href: "/assets/logos/logo-366273-500.png" },
+      { rel: "manifest", href: "/assets/manifest.webmanifest" },
+      { rel: "canonical", href: Club.url },
+    ],
+  }),
+  component: RootDocument,
+  errorComponent: ({ error }) => {
+    useEffect(() => {
+      Sentry.captureException(error);
+    }, [error]);
+
+    return (
+      <html lang="de" {...mantineHtmlProps}>
+        <head>
+          <HeadContent />
+        </head>
+        <body>
+          <div style={{ padding: "2rem", fontFamily: "system-ui" }}>
+            <h1>Fehler</h1>
+            <p>{(error as Error).message}</p>
+          </div>
+          <Scripts />
+        </body>
+      </html>
+    );
+  },
+  notFoundComponent: () => (
+    <html lang="de" {...mantineHtmlProps}>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <div style={{ padding: "2rem", fontFamily: "system-ui" }}>
+          <h1>404 – Seite nicht gefunden</h1>
+        </div>
+        <Scripts />
+      </body>
+    </html>
+  ),
+});
+
+function RootDocument() {
+  const { queryClient } = Route.useRouteContext();
+
+  return (
+    <html lang="de" {...mantineHtmlProps}>
+      <head>
+        <ColorSchemeScript />
+        <HeadContent />
+      </head>
+      <body>
+        <QueryClientProvider client={queryClient}>
+          <MantineProvider theme={theme}>
+            <DatesProvider settings={{ locale: "de", firstDayOfWeek: 1, consistentWeeks: true }}>
+              <Notifications />
+              <Outlet />
+            </DatesProvider>
+          </MantineProvider>
+        </QueryClientProvider>
+        <Scripts />
+      </body>
+    </html>
+  );
+}

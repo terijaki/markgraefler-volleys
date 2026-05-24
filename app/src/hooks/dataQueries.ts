@@ -1,0 +1,199 @@
+/**
+ * Custom hooks for data fetching — replaces tRPC hooks and SAMS URL-based hooks.
+ * Uses server functions with React Query under the hood.
+ */
+
+import { useQuery } from "@tanstack/react-query";
+import type { LeagueMatchesResponse, RankingResponse } from "@/lambda/sams/types";
+import { listLocationsFn } from "../server/functions/locations";
+import { listMembersFn } from "../server/functions/members";
+
+// Server functions
+import {
+  getClubLogoUrlFn,
+  getClubLogoUrlsBatchFn,
+  getSamsMatchesFn,
+  getSamsRankingByLeagueUuidFn,
+  getSamsTickerFn,
+  listSamsTeamsFn,
+} from "../server/functions/sams";
+import { listSponsorsFn } from "../server/functions/sponsors";
+import { getTeamBySlugFn, listTeamsFn } from "../server/functions/teams";
+import { getFileUrlFn, getFileUrlsFn } from "../server/functions/upload";
+
+// ============================================================================
+// Teams
+// ============================================================================
+
+export const useTeams = () => {
+  return useQuery({
+    queryKey: ["teams"],
+    queryFn: () => listTeamsFn(),
+  });
+};
+
+export const useTeamBySlug = (slug: string) => {
+  return useQuery({
+    queryKey: ["teams", "slug", slug],
+    queryFn: () => getTeamBySlugFn({ data: { slug } }),
+    enabled: !!slug,
+  });
+};
+
+// ============================================================================
+// Members
+// ============================================================================
+
+export const useMembers = () => {
+  return useQuery({
+    queryKey: ["members"],
+    queryFn: () => listMembersFn(),
+  });
+};
+
+// ============================================================================
+// Sponsors
+// ============================================================================
+
+export const useSponsors = () => {
+  return useQuery({
+    queryKey: ["sponsors"],
+    queryFn: () => listSponsorsFn(),
+  });
+};
+
+// ============================================================================
+// Locations
+// ============================================================================
+
+export const useLocations = () => {
+  return useQuery({
+    queryKey: ["locations"],
+    queryFn: () => listLocationsFn(),
+  });
+};
+
+// ============================================================================
+// File / Upload URLs
+// ============================================================================
+
+export const useFileUrl = (s3Key?: string) => {
+  return useQuery({
+    queryKey: ["fileUrl", s3Key],
+    queryFn: () => {
+      if (!s3Key) {
+        throw new Error("s3Key is required");
+      }
+
+      return getFileUrlFn({ data: { s3Key } });
+    },
+    enabled: !!s3Key,
+  });
+};
+
+export const useFileUrls = (s3Keys?: string[]) => {
+  return useQuery({
+    queryKey: ["fileUrls", s3Keys],
+    queryFn: () => {
+      if (!s3Keys || s3Keys.length === 0) {
+        throw new Error("s3Keys are required");
+      }
+
+      return getFileUrlsFn({ data: { s3Keys } });
+    },
+    enabled: !!s3Keys && s3Keys.length > 0,
+  });
+};
+
+// ============================================================================
+// SAMS
+// ============================================================================
+
+export const useSamsTeams = () => {
+  return useQuery({
+    queryKey: ["samsTeams"],
+    queryFn: () => listSamsTeamsFn(),
+  });
+};
+
+export const useClubLogoUrl = ({
+  clubUuid,
+  clubSlug,
+}: {
+  clubUuid?: string;
+  clubSlug?: string;
+}) => {
+  const identifier = clubUuid || clubSlug;
+  return useQuery({
+    queryKey: ["clubLogoUrl", clubUuid ?? clubSlug],
+    queryFn: () => {
+      if (clubUuid) return getClubLogoUrlFn({ data: { clubUuid } });
+      if (clubSlug) return getClubLogoUrlFn({ data: { clubSlug } });
+      throw new Error("Either clubUuid or clubSlug is required");
+    },
+    enabled: !!identifier,
+  });
+};
+
+export const useClubLogoUrlsBatch = (clubSlugs: string[]) => {
+  return useQuery({
+    queryKey: ["clubLogoUrls", clubSlugs],
+    queryFn: () => getClubLogoUrlsBatchFn({ data: { clubSlugs } }),
+    enabled: clubSlugs.length > 0,
+  });
+};
+
+export const samsRankingQuery = (
+  leagueUuid: string,
+  options?: { initialData?: RankingResponse; initialDataUpdatedAt?: number },
+) => ({
+  queryKey: ["samsRanking", leagueUuid] as const,
+  queryFn: () => getSamsRankingByLeagueUuidFn({ data: leagueUuid }),
+  enabled: !!leagueUuid,
+  staleTime: 1000 * 60 * 10,
+  retry: 1 as const,
+  placeholderData: (previousData: RankingResponse | undefined) => previousData,
+  refetchOnWindowFocus: false as const,
+  initialData: options?.initialData,
+  initialDataUpdatedAt: options?.initialDataUpdatedAt,
+});
+
+export const useSamsMatches = ({
+  league,
+  season,
+  sportsclub,
+  team,
+  limit,
+  range,
+  initialData,
+  initialDataUpdatedAt,
+}: {
+  league?: string;
+  season?: string;
+  sportsclub?: string;
+  team?: string;
+  limit?: number;
+  range?: "past" | "future";
+  initialData?: LeagueMatchesResponse;
+  initialDataUpdatedAt?: number;
+} = {}) => {
+  return useQuery({
+    queryKey: ["samsMatches", league, season, sportsclub, team, limit, range],
+    queryFn: () => getSamsMatchesFn({ data: { league, season, sportsclub, team, limit, range } }),
+    retry: 1,
+    staleTime: 1000 * 60 * 2,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+    initialData,
+    initialDataUpdatedAt,
+  });
+};
+
+export const useLiveTicker = () => {
+  return useQuery({
+    queryKey: ["samsLiveTicker"],
+    queryFn: () => getSamsTickerFn(),
+    refetchInterval: 10_000,
+    staleTime: 9_000,
+  });
+};

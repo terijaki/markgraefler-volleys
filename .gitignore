@@ -1,0 +1,41 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+
+# cache
+.temp/
+temp/
+
+# misc
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# include varlock
+!.env.schema
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# aws
+cdk.out
+cdk-outputs.json
+cdk.context.json
+
+# hey-api
+openapi-ts-error-*.log
+
+# tanstack
+.tanstack
+.output
+
+# vite
+apps/**/dist
+
+# playwright
+playwright-report/
+test-results/
