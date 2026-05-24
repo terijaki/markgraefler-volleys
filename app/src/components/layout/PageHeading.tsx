@@ -1,61 +1,15 @@
 import { Box, Divider, Group, Stack, Text, Title } from "@mantine/core";
-import {
-  FaAddressCard,
-  FaCalendarDays,
-  FaCircleDot,
-  FaEnvelope,
-  FaPalette,
-  FaPeopleGroup,
-  FaShieldHalved,
-  FaTableList,
-  FaVolleyball,
-} from "react-icons/fa6";
+import { CircleDot } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-function getHeadingIcon(title: string) {
-  const normalizedTitle = title.toLowerCase();
-
-  if (normalizedTitle.includes("tabelle") || normalizedTitle.includes("ranking")) {
-    return FaTableList;
-  }
-
-  if (
-    normalizedTitle.includes("spiel") ||
-    normalizedTitle.includes("match") ||
-    normalizedTitle.includes("kalender")
-  ) {
-    return FaCalendarDays;
-  }
-
-  if (normalizedTitle.includes("mannschaft") || normalizedTitle.includes("team")) {
-    return FaPeopleGroup;
-  }
-
-  if (normalizedTitle.includes("kontakt")) {
-    return FaEnvelope;
-  }
-
-  if (normalizedTitle.includes("impressum")) {
-    return FaAddressCard;
-  }
-
-  if (normalizedTitle.includes("datenschutz")) {
-    return FaShieldHalved;
-  }
-
-  if (normalizedTitle.includes("brand") || normalizedTitle.includes("logo")) {
-    return FaPalette;
-  }
-
-  if (normalizedTitle.includes("volleys") || normalizedTitle.includes("verein")) {
-    return FaVolleyball;
-  }
-
-  return FaCircleDot;
-}
-
-export default function PageHeading(props: { title: string; subtitle?: string; date?: Date }) {
+export default function PageHeading(props: {
+  title: string;
+  subtitle?: string;
+  date?: Date;
+  icon?: LucideIcon;
+}) {
   const isLongTitle = props.title.length > 40;
-  const HeadingIcon = getHeadingIcon(props.title);
+  const HeadingIcon = props.icon ?? CircleDot;
 
   return (
     <Stack justify="center" align="flex-start" gap={0} c="mvInk.9" py={4}>
@@ -78,6 +32,7 @@ export default function PageHeading(props: { title: string; subtitle?: string; d
 
         <Stack gap={0} align="flex-start" style={{ minWidth: 0 }}>
           <Title
+            c="mvInk.8"
             ta="left"
             textWrap="balance"
             order={isLongTitle ? 2 : 1}

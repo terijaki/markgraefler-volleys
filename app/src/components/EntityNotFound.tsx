@@ -39,11 +39,11 @@ export default function EntityNotFound({
   const secondsLeft = Number(((DURATION * (100 - progress)) / 100000).toFixed(0));
 
   return (
-    <PageWithHeading title={entityName}>
+    <PageWithHeading title={entityName} icon={TextSearch}>
       <Container>
         <Stack gap="xl">
           <Card ta="center">
-            <Title c="mvPurple.6">
+            <Title>
               <TextSearch size={32} />
             </Title>
             <CardTitle>{title}</CardTitle>

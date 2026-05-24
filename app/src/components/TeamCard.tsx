@@ -3,15 +3,8 @@ import { Club } from "@project.config";
 import dayjs from "dayjs";
 import de from "dayjs/locale/de";
 import weekday from "dayjs/plugin/weekday";
+import { CalendarDays, ChevronDown, Clock, Mail, User, Users } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
-import {
-  FaCalendarDays,
-  FaClock,
-  FaEnvelope,
-  FaUser,
-  FaUserGroup,
-  FaChevronDown,
-} from "react-icons/fa6";
 import type { Team } from "@/lib/db/types";
 import { useLocations, useMembers } from "../hooks/dataQueries";
 import { ButtonLink } from "./CustomLink";
@@ -100,7 +93,7 @@ export default function TeamCard(props: TeamCardProps) {
             display: disableAccordion ? "none" : undefined,
           },
         }}
-        chevron={disableAccordion ? null : <FaChevronDown />}
+        chevron={disableAccordion ? null : <ChevronDown />}
       >
         <Accordion.Item value={id} style={{ border: "none" }}>
           {disableAccordion ? (
@@ -111,13 +104,13 @@ export default function TeamCard(props: TeamCardProps) {
                 paddingBlock: "var(--mantine-spacing-md)",
               }}
             >
-              <Title order={3} c="mvPurple" fw={800}>
+              <Title order={3} fw={800}>
                 {league ? `${name} - ${league}` : name}
               </Title>
             </Box>
           ) : (
             <Accordion.Control style={{ backgroundColor: "transparent" }}>
-              <Title order={3} c="mvPurple" fw={800}>
+              <Title order={3} fw={800}>
                 {league ? `${name} - ${league}` : name}
               </Title>
             </Accordion.Control>
@@ -139,7 +132,7 @@ export default function TeamCard(props: TeamCardProps) {
               {trainingSchedules && trainingSchedules.length > 0 && (
                 <Stack gap={0}>
                   <Group gap="xs" fw="bold">
-                    <FaClock />
+                    <Clock />
                     Trainingszeiten:
                   </Group>
                   {trainingSchedules.map((schedule) => {
@@ -171,7 +164,7 @@ export default function TeamCard(props: TeamCardProps) {
               {coaches && coaches.length > 0 && (
                 <Stack gap={0}>
                   <Group gap="xs" fw="bold">
-                    {coaches.length === 1 ? <FaUser /> : <FaUserGroup />}
+                    {coaches.length === 1 ? <User /> : <Users />}
                     Trainer:
                   </Group>
                   <Box>
@@ -202,7 +195,7 @@ export default function TeamCard(props: TeamCardProps) {
               {contactPeople && contactPeople.length > 0 && (
                 <Stack gap={0}>
                   <Group gap="xs" fw="bold">
-                    {contactPeople.length === 1 ? <FaUser /> : <FaUserGroup />}
+                    {contactPeople.length === 1 ? <User /> : <Users />}
                     {contactPeople.length === 1 ? "Ansprechperson" : "Ansprechpersonen"}:
                   </Group>
                   <Box>
@@ -237,7 +230,7 @@ export default function TeamCard(props: TeamCardProps) {
                     component="a"
                     href={`mailto:${Array.from(emailAddresses.values()).join(",")}?subject=${name} (${Club.shortName})`}
                     color="mvGreen"
-                    leftSection={<FaEnvelope />}
+                    leftSection={<Mail />}
                     className="mv-focus mv-pressable"
                   >
                     Kontaktieren
@@ -245,11 +238,7 @@ export default function TeamCard(props: TeamCardProps) {
                 )}
 
                 {sbvvTeamId && (
-                  <ButtonLink
-                    to={"/teams/$slug"}
-                    params={{ slug }}
-                    leftSection={<FaCalendarDays />}
-                  >
+                  <ButtonLink to={"/teams/$slug"} params={{ slug }} leftSection={<CalendarDays />}>
                     Spielplan, Tabelle & Kader
                   </ButtonLink>
                 )}

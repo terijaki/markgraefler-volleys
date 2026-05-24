@@ -132,7 +132,7 @@ export class WebAppStack extends cdk.Stack {
 
     // ── Lambda Function (Nitro aws-lambda output) ────────────────────────────
     const logGroup = new cdk.aws_logs.LogGroup(this, "WebAppLogGroup", {
-      logGroupName: `/vcm/${environment}${branchSuffix}/webapp/webapp`,
+      logGroupName: `/mv/${environment}${branchSuffix}/webapp/webapp`,
       retention: cdk.aws_logs.RetentionDays.TWO_MONTHS,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
@@ -284,7 +284,9 @@ export class WebAppStack extends cdk.Stack {
         },
       },
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
-      comment: isProd ? "VCM WebApp (Prod)" : `VCM WebApp (${environment}${branchSuffix})`,
+      comment: isProd
+        ? "Markgräfler Volleys WebApp (Prod)"
+        : `Markgräfler Volleys WebApp (${environment}${branchSuffix})`,
       ...(props.cloudFrontCertificate && props.hostedZone
         ? {
             domainNames: [webappDomain],
@@ -324,7 +326,7 @@ export class WebAppStack extends cdk.Stack {
     // ── Outputs ────────────────────────────────────────────────────────────
     new cdk.CfnOutput(this, "WebAppUrl", {
       value: this.webappUrl,
-      description: "VCM WebApp URL",
+      description: "Markgräfler Volleys WebApp URL",
       exportName: `mv-webapp-url-${environment}${branchSuffix}`,
     });
   }

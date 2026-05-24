@@ -73,7 +73,7 @@ describe("MvNodejsFunction", () => {
     it("uses environment without branch suffix for log group name", () => {
       const template = createTemplate();
       template.hasResourceProperties("AWS::Logs::LogGroup", {
-        LogGroupName: "/vcm/dev/sams/my-func",
+        LogGroupName: "/mv/dev/sams/my-func",
       });
     });
   });
@@ -93,7 +93,7 @@ describe("MvNodejsFunction", () => {
     it("appends branch suffix to log group name", () => {
       const template = createTemplate();
       template.hasResourceProperties("AWS::Logs::LogGroup", {
-        LogGroupName: "/vcm/dev-feature-xyz/sams/my-func",
+        LogGroupName: "/mv/dev-feature-xyz/sams/my-func",
       });
     });
   });
@@ -113,7 +113,7 @@ describe("MvNodejsFunction", () => {
     it("uses prod environment in log group name without branch suffix", () => {
       const template = createTemplate();
       template.hasResourceProperties("AWS::Logs::LogGroup", {
-        LogGroupName: "/vcm/prod/sams/my-func",
+        LogGroupName: "/mv/prod/sams/my-func",
       });
     });
   });

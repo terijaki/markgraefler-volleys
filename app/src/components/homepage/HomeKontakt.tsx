@@ -11,8 +11,8 @@ import {
   Title,
 } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
+import { Mail } from "lucide-react";
 import type { HTMLAttributeAnchorTarget } from "react";
-import { FaEnvelope } from "react-icons/fa6";
 import SectionHeading from "../layout/SectionHeading";
 import ScrollAnchor from "./ScrollAnchor";
 
@@ -51,7 +51,7 @@ export default function HomeKontakt() {
                   href={"mailto:info@markgraefler-volleys.de"}
                   target={"_blank"}
                   label="info@markgraefler-volleys.de"
-                  icon={<FaEnvelope />}
+                  icon={<Mail />}
                 />
               </Text>
             </ContactItem>
@@ -66,9 +66,7 @@ function ContactItem({ title, children }: { title: string; children: React.React
   return (
     <Card className="mv-card mv-pressable" bg="white">
       <Stack gap={0}>
-        <Title order={5} c="mvPurple.8">
-          {title}
-        </Title>
+        <Title order={5}>{title}</Title>
         <Box>{children}</Box>
       </Stack>
     </Card>

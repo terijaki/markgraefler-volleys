@@ -1,4 +1,5 @@
 import { Container, Stack } from "@mantine/core";
+import type { LucideIcon } from "lucide-react";
 import CenteredLoader from "../CenteredLoader";
 import PageHeading from "./PageHeading";
 
@@ -16,6 +17,7 @@ interface PageWithHeadingProps extends PageMetadataProps {
   // PageHeading props
   subtitle?: string;
   date?: Date;
+  icon?: LucideIcon;
   // PageWithHeading specific
   isLoading?: boolean;
   children: React.ReactNode;
@@ -27,12 +29,13 @@ export default function PageWithHeading({
   title,
   subtitle,
   date,
+  icon,
 }: PageWithHeadingProps) {
   return (
     <Stack pb="md" bg="mvBg" align="stretch">
       <Container size="xl" px={{ base: "lg", md: "xl" }} pt="xl" w="100%">
         <Stack gap="sm">
-          <PageHeading title={title ?? ""} subtitle={subtitle} date={date} />
+          <PageHeading title={title ?? ""} subtitle={subtitle} date={date} icon={icon} />
           {isLoading ? <CenteredLoader text="Lade Buchungen..." /> : children}
         </Stack>
       </Container>

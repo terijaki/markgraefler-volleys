@@ -12,9 +12,8 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { CircleDot, LogOut } from "lucide-react";
 import { useState } from "react";
-import { FaVolleyball } from "react-icons/fa6";
 import { authClient } from "../../lib/auth-client";
 import type { AdminSessionUser } from "../../server/functions/session-utils";
 import { getAdminRoutesWithLabels } from "../../utils/adminNavLinks";
@@ -44,7 +43,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
         <Group justify="space-between" h="100%">
           <UnstyledButton component={Link} to="/admin" onClick={close}>
             <Group gap="xs">
-              <FaVolleyball size={24} />
+              <CircleDot size={24} />
               <Title
                 hiddenFrom="md"
                 order={1}
@@ -53,7 +52,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 tt="uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
-                VCM Admin
+                MV Admin
               </Title>
               <Title
                 visibleFrom="md"
@@ -64,7 +63,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 tt="uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
-                VCM
+                MV
               </Title>
               <Title
                 visibleFrom="lg"
@@ -74,7 +73,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 tt="uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
-                VCM Admin
+                MV Admin
               </Title>
             </Group>
           </UnstyledButton>

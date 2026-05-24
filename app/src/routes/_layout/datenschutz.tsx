@@ -1,5 +1,6 @@
 import { Anchor, Card, List, ListItem, Stack, Text, Typography } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
+import { Shield } from "lucide-react";
 import CardTitle from "@webapp/components/CardTitle";
 import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 
@@ -9,7 +10,7 @@ export const Route = createFileRoute("/_layout/datenschutz")({
 
 function RouteComponent() {
   return (
-    <PageWithHeading title="Datenschutzerklärung">
+    <PageWithHeading title="Datenschutzerklärung" icon={Shield}>
       <Typography>
         <Stack gap="xl">
           <Card>

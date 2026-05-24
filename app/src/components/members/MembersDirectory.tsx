@@ -1,6 +1,6 @@
 import type { PublicMember } from "@webapp/server/functions/members";
 import { Avatar, Badge, Box, Card, Group, SimpleGrid, Stack, Text } from "@mantine/core";
-import { FaUser as IconAvatar } from "react-icons/fa6";
+import { User as IconAvatar } from "lucide-react";
 import { useFileUrls, useMembers } from "../../hooks/dataQueries";
 
 const boardLabel = "Vorstand";

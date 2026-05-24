@@ -26,7 +26,7 @@ function buildLogGroupName(namespace: string, baseName: string): string {
   const branch = getSanitizedBranch();
   const branchSuffix = branch ? `-${branch}` : "";
 
-  return `/vcm/${environment}${branchSuffix}/${namespace}/${baseName}`;
+  return `/mv/${environment}${branchSuffix}/${namespace}/${baseName}`;
 }
 
 /** Shared NodejsFunction defaults with managed CloudWatch log group. */

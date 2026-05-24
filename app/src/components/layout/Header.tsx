@@ -13,15 +13,10 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { Mail as IconContact } from "lucide-react";
 import type { ReactNode } from "react";
 import { Club } from "@project.config";
 import classes from "./Header.module.css";
-import {
-  FaCalendarDays as IconMatches,
-  FaEnvelope as IconContact,
-  FaTableList as IconTable,
-  FaUsers as IconTeams,
-} from "react-icons/fa6";
 import { navbarLinks } from "../../utils/navbarLinks";
 import Socials from "../layout/Socials";
 
@@ -77,18 +72,6 @@ function HeaderPillAction({
   );
 }
 
-function getMobileNavIcon(name: NavbarLinkItem["name"]) {
-  if (name === "Mannschaften") {
-    return <IconTeams />;
-  }
-
-  if (name === "Tabelle") {
-    return <IconTable />;
-  }
-
-  return <IconMatches />;
-}
-
 function HeaderNavLink({
   item,
   onClick,
@@ -113,7 +96,7 @@ function HeaderNavLink({
       radius="xl"
       fw={700}
       justify={mobile ? "flex-start" : "center"}
-      leftSection={mobile ? getMobileNavIcon(item.name) : undefined}
+      leftSection={mobile ? <item.icon /> : undefined}
       variant="default"
       bg={mobile ? "white" : isActive ? "mvPurple.6" : undefined}
       bd="2px solid var(--mantine-color-mvInk-9)"

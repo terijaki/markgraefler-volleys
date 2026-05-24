@@ -126,12 +126,12 @@ function HomeMatchesList({ homeMatches }: { homeMatches: LeagueMatchesResponse["
   return (
     <Stack>
       <Stack gap={4} align="center">
-        <Title order={2} c="mvPurple.8">
-          {homeMatches.length > 0 ? "Naechste Heimspieltage" : "Bevorstehende Veranstaltungen"}
+        <Title order={2}>
+          {homeMatches.length > 0 ? "Nächste Heimspieltage" : "Bevorstehende Veranstaltungen"}
         </Title>
         <Text c="mvInk.9" ta="center" maw={760}>
-          In den kommenden Tagen spielen wir in Muellheim und freuen uns auf lautstarke
-          Unterstuetzung.
+          In den kommenden Tagen spielen wir in Müllheim/Staufen und freuen uns auf lautstarke
+          Unterstützung.
         </Text>
       </Stack>
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">

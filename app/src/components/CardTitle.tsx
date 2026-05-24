@@ -5,11 +5,11 @@ export default function CardTitle(props: TitleProps) {
     fontSize: "clamp(1.2rem, 1.8vw, 1.65rem)",
     lineHeight: 1.14,
     letterSpacing: "-0.014em",
-    ...(props.style ?? {}),
+    ...props.style,
   };
 
   return (
-    <Title order={4} fw={800} c={props.c ?? "mvPurple.8"} {...props} style={mergedStyle}>
+    <Title order={4} fw={800} c={props.c} {...props} style={mergedStyle}>
       {props.children}
     </Title>
   );

@@ -1,7 +1,7 @@
 import type { AnchorProps } from "@mantine/core";
 import { Anchor, Group, Text } from "@mantine/core";
+import { MapPin as IconLocation } from "lucide-react";
 import { useEffect, useState } from "react";
-import { FaLocationDot as IconLocation } from "react-icons/fa6";
 
 interface MapsLinkProps extends Omit<AnchorProps, "href" | "component" | "target"> {
   street?: string | null;
