@@ -135,6 +135,7 @@ jobs:
 
       - name: Run Playwright smoke tests
         id: playwright
+        timeout-minutes: 15
         env:
           WEBAPP_URL: ${{ needs.deploy.outputs.webapp_url }}
         run: vp run test:e2e
