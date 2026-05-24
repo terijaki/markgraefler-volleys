@@ -42,7 +42,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ github.ref == 'refs/heads/main' && 'arn:aws:iam::041632640830:role/GitHubActionsCDKRole' || 'arn:aws:iam::926634327887:role/GitHubActionsCDKRole' }}
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && 'arn:aws:iam::883425316554:role/GitHubActionsCDKRole' || 'arn:aws:iam::926634327887:role/GitHubActionsCDKRole' }}
           aws-region: eu-central-1
 
       - name: Load environment variables

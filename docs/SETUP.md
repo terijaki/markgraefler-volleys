@@ -106,7 +106,7 @@ vpr cdk:deploy:prod # Deploy all stacks (prod, requires mv-prod credentials)
 
 | Branch    | AWS account | Role ARN                                              |
 | --------- | ----------- | ----------------------------------------------------- |
-| `main`    | prod        | `arn:aws:iam::041632640830:role/GitHubActionsCDKRole` |
+| `main`    | prod        | `arn:aws:iam::883425316554:role/GitHubActionsCDKRole` |
 | any other | dev         | `arn:aws:iam::926634327887:role/GitHubActionsCDKRole` |
 
 Deployments use OIDC — no long-lived access keys. Each AWS account needs an IAM role named `GitHubActionsCDKRole` that GitHub Actions can assume.
