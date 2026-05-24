@@ -71,7 +71,7 @@ export default function TeamCard(props: TeamCardProps) {
       data-team-id={id}
       bg="white"
       p={0}
-      className="mv-card mv-pressable"
+      className="mv-pressable"
       style={{ opacity: fullOpacity ? 1 : 0.75 }}
     >
       <Accordion

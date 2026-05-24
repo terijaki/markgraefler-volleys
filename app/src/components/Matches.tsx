@@ -1,11 +1,11 @@
 import { Box, Flex, Grid, GridCol, Group, Stack, Text } from "@mantine/core";
 import dayjs from "dayjs";
 import "dayjs/locale/de";
-import { BarChart3 as IconResult } from "lucide-react";
 import type { LeagueMatchesResponse } from "@/lambda/sams/types";
 import { getOwnedSamsTeamUuids } from "@/utils/sams";
 import { useSamsTeams } from "../hooks/dataQueries";
 import MapsLink from "./MapsLink";
+import { Trophy } from "lucide-react";
 
 dayjs.locale("de");
 
@@ -118,7 +118,7 @@ export default function Matches({
                       </Text>
                     </Text>
                     {!uniqueLeague && leagueName && (
-                      <Text c="mvSand" size="sm">
+                      <Text c="mvSand.7" size="sm">
                         {leagueName}
                       </Text>
                     )}
@@ -133,15 +133,20 @@ export default function Matches({
                       direction={{ base: "row", sm: "column" }}
                       align={{ base: "center", sm: "flex-start" }}
                     >
-                      <Group gap={4} c={winForClubOrTeam ? "mvGreen" : undefined}>
-                        <IconResult />
-                        <Text span size="sm" fw="bold" hiddenFrom="sm">
+                      <Group gap={4} c={winForClubOrTeam ? "mvPurple" : "mvAmber"}>
+                        <Trophy
+                          fill={
+                            winForClubOrTeam
+                              ? "var(--mantine-color-mvPurple-3)"
+                              : "var(--mantine-color-mvAmber-3)"
+                          }
+                        />
+                        <Text span size="lg" fw="bold" hiddenFrom="sm">
                           {match.results.setPoints}
                         </Text>
                         <Text span size="lg" fw="bold" visibleFrom="sm">
                           {match.results.setPoints}
                         </Text>
-                        {winForClubOrTeam && <Text span>🏆</Text>}
                       </Group>
                       {match.results.sets && match.results.sets.length > 0 && (
                         <Text span c="dimmed" size="xs">

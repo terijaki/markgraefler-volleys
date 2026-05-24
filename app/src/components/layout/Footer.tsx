@@ -1,23 +1,139 @@
-import { Anchor, Box, Container, Flex, Group, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Card, Container, Flex, Group, Stack, Text, Title } from "@mantine/core";
 import { Club } from "@project.config";
+import { Link } from "@tanstack/react-router";
+import type { LinkProps } from "@tanstack/react-router";
 import { Mail } from "lucide-react";
+import type { ReactNode } from "react";
 import Socials from "./Socials";
 
-const legals = [
-  { name: "Datenschutz", url: "/datenschutz" },
-  { name: "Impressum", url: "/impressum" },
-];
-const infos = [
-  { name: "Funktionäre", url: "/member" },
-  { name: "Brand & Logos", url: "/brand" },
-];
+type FooterLinkBase = {
+  name: string;
+  icon?: ReactNode;
+};
+
+type FooterHrefLink = FooterLinkBase & {
+  kind: "href";
+  href: string;
+  target?: string;
+  rel?: string;
+};
+
+type FooterRouteLink = FooterLinkBase & {
+  kind: "route";
+  to: LinkProps["to"];
+};
+
+type FooterLink = FooterHrefLink | FooterRouteLink;
+
+const socialLinks: FooterHrefLink[] = Socials().map(
+  (social): FooterHrefLink => ({
+    kind: "href",
+    name: social.name,
+    href: social.href,
+    icon: social.icon,
+    target: social.target,
+    rel: social.rel,
+  }),
+);
+
+const contactLinks = [
+  {
+    kind: "href",
+    name: Club.email,
+    href: `mailto:${Club.email}`,
+    icon: <Mail />,
+  },
+  ...socialLinks,
+] satisfies FooterLink[];
+
+const infoLinks = [
+  {
+    kind: "route",
+    name: "Funktionäre",
+    to: "/member",
+  },
+  {
+    kind: "route",
+    name: "Brand & Logos",
+    to: "/brand",
+  },
+] satisfies FooterRouteLink[];
+
+const legalLinks = [
+  {
+    kind: "route",
+    name: "Datenschutz",
+    to: "/datenschutz",
+  },
+  {
+    kind: "route",
+    name: "Impressum",
+    to: "/impressum",
+  },
+] satisfies FooterRouteLink[];
+
+type FooterSectionProps = {
+  title: string;
+  links: FooterLink[];
+};
+
+function FooterSection({ title, links }: FooterSectionProps) {
+  return (
+    <Stack gap={4}>
+      <Text fw={800} c="mvGreen.8">
+        {title}
+      </Text>
+      <Flex columnGap="sm" rowGap={4} wrap="wrap" direction={{ base: "row", sm: "column" }}>
+        {links.map((link) => {
+          const label = link.icon ? (
+            <Group gap={6} wrap="nowrap">
+              {link.icon}
+              <Text style={{ textWrap: "nowrap" }}>{link.name}</Text>
+            </Group>
+          ) : (
+            link.name
+          );
+
+          if (link.kind === "href") {
+            return (
+              <Anchor
+                key={link.name}
+                href={link.href}
+                target={link.target}
+                rel={link.rel}
+                size="sm"
+                c="mvInk.9"
+                underline="never"
+              >
+                {label}
+              </Anchor>
+            );
+          }
+
+          return (
+            <Anchor
+              key={link.name}
+              component={Link}
+              to={link.to}
+              size="sm"
+              c="mvInk.9"
+              underline="never"
+            >
+              {label}
+            </Anchor>
+          );
+        })}
+      </Flex>
+    </Stack>
+  );
+}
 
 export default function Footer() {
   return (
     <Container fluid m={0} py="xl" px={0} className="mv-curve-divider" id="kontakt">
       <Container size="xl" px={{ base: "lg", md: "xl" }}>
-        <Box className="mv-card" p="lg" bg="white">
-          <Stack gap="xl">
+        <Card>
+          <Stack gap="md">
             <Stack gap={4}>
               <Title order={4} c="mvPurple.8">
                 {Club.shortName}
@@ -25,77 +141,13 @@ export default function Footer() {
               <Text size="sm">Eine Spielgemeinschaft des VC Müllheim und TV Staufen.</Text>
             </Stack>
 
-            <SimpleGrid cols={{ base: 1, xs: 2, sm: 3 }} spacing="xl">
-              <Stack gap="xs">
-                <Text fw={800} c="mvGreen.8">
-                  Kontakt
-                </Text>
-                <Anchor size="sm" c="mvInk.9" underline="never">
-                  <Group gap={6}>
-                    <Mail />
-                    <Text>{Club.email}</Text>
-                  </Group>
-                </Anchor>
-                {Socials().map((social) => (
-                  <Anchor key={social.name} {...social} size="sm" c="mvInk.9" underline="never">
-                    <Group gap={6}>
-                      {social.icon}
-                      <Text>{social.name}</Text>
-                    </Group>
-                  </Anchor>
-                ))}
-              </Stack>
-
-              <Stack gap="xs">
-                <Text fw={800} c="mvGreen.8">
-                  Info
-                </Text>
-                <Flex
-                  columnGap="sm"
-                  rowGap="xs"
-                  wrap="wrap"
-                  direction={{ base: "row", sm: "column" }}
-                >
-                  {infos.map((legal) => (
-                    <Anchor
-                      key={legal.name}
-                      href={legal.url}
-                      size="sm"
-                      c="mvInk.9"
-                      underline="never"
-                    >
-                      {legal.name}
-                    </Anchor>
-                  ))}
-                </Flex>
-              </Stack>
-
-              <Stack gap="xs">
-                <Text fw={800} c="mvGreen.8">
-                  Rechtliches
-                </Text>
-                <Flex
-                  columnGap="sm"
-                  rowGap="xs"
-                  wrap="wrap"
-                  direction={{ base: "row", sm: "column" }}
-                >
-                  {legals.map((legal) => (
-                    <Anchor
-                      key={legal.name}
-                      href={legal.url}
-                      size="sm"
-                      c="mvInk.9"
-                      underline="never"
-                    >
-                      {legal.name}
-                    </Anchor>
-                  ))}
-                </Flex>
-              </Stack>
-            </SimpleGrid>
+            <Flex justify="flex-start" columnGap="xl" rowGap="md" direction="row" wrap="wrap">
+              <FooterSection title="Kontakt" links={contactLinks} />
+              <FooterSection title="Info" links={infoLinks} />
+              <FooterSection title="Rechtliches" links={legalLinks} />
+            </Flex>
           </Stack>
-        </Box>
+        </Card>
       </Container>
     </Container>
   );

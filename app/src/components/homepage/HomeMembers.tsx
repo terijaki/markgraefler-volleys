@@ -24,7 +24,7 @@ export default function HomeMembers() {
     <Box className="mv-section">
       <Container size="xl" py="xl" px={{ base: "lg", md: "xl" }}>
         <ScrollAnchor name="verein" />
-        <Stack gap="md" className="mv-card" p="lg" bg="white">
+        <Stack gap="md" p="lg" bg="white">
           <SectionHeading text="Menschen hinter dem Verein" color="mvGreen" />
           {displayMembers.length > 0 && <MemberList members={displayMembers} />}
         </Stack>
@@ -58,7 +58,7 @@ function CompactMemberItem({ member }: { member: PublicMember }) {
         gap="xs"
         px="sm"
         py={7}
-        className="mv-card mv-pressable"
+        className="mv-pressable"
         style={{
           borderRadius: 999,
           background: "white",

@@ -56,7 +56,7 @@ function LiveMatchCard({ match }: { match: LiveTickerDisplayMatch }) {
   );
 
   return (
-    <Card className="mv-card mv-pressable mv-stagger" data-delay={1} bg="white" c="mvInk.9">
+    <Card className="mv-pressable mv-stagger" data-delay={1} bg="white" c="mvInk.9">
       <Stack gap="md">
         <Group justify="flex-end">
           {match.isFinished ? (

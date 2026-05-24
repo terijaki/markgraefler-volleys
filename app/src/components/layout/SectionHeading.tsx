@@ -9,7 +9,7 @@ export default function SectionHeading({
 }) {
   return (
     <Center c={color} pb="sm">
-      <Stack gap={8} w="100%" align="center">
+      <Stack gap="xs">
         <Title
           order={2}
           fw={800}

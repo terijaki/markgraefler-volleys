@@ -28,26 +28,9 @@ body {
   background: var(--mantine-color-mvSand-5);
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  letter-spacing: -0.02em;
-  text-wrap: balance;
-}
 
-.mv-card {
-  background: var(--mantine-color-white);
-  border: var(--mv-border);
-  border-radius: var(--mv-radius-card);
-  box-shadow: var(--mv-shadow-card);
-}
 
-.mv-card-float {
-  box-shadow: var(--mv-shadow-float);
-}
+
 
 .mv-pressable {
   transition:

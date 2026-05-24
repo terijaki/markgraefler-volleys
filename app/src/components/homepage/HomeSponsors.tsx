@@ -3,6 +3,7 @@ import {
   Anchor,
   Box,
   Button,
+  Card,
   Container,
   Flex,
   Group,
@@ -26,10 +27,12 @@ export default function HomeSponsors({ showFallback }: { showFallback?: boolean 
     <Box className="mv-section">
       <ScrollAnchor name="sponsors" />
       <Container size="xl" py="xl" px={{ base: "lg", md: "xl" }}>
-        <Stack gap="xs" className="mv-card" p="lg" bg="white">
+        <Card>
           <SectionHeading text={sponsors.length === 1 ? "Sponsor" : "Sponsoren"} color="mvGreen" />
-          <Sponsors sponsors={sponsors} showFallback={showFallback} />
-        </Stack>
+          <Card.Section>
+            <Sponsors sponsors={sponsors} showFallback={showFallback} />
+          </Card.Section>
+        </Card>
       </Container>
     </Box>
   );
@@ -41,8 +44,8 @@ function Sponsors({ sponsors, showFallback }: { sponsors: Sponsor[]; showFallbac
       <Container size="sm">
         <Stack justify="center" align="center">
           <Text style={{ textWrap: "balance" }} ta="center">
-            Um moeglichst viele gemeinnuetzige Aktivitaeten fuer alle Altersbereiche anbieten zu
-            koennen, suchen wir Sponsoring-Partnerschaften.
+            Um möglichst viele gemeinnützige Aktivitäten für alle Altersbereiche anbieten zu können,
+            suchen wir Sponsoring-Partnerschaften.
           </Text>
           <Box>
             <Button
@@ -113,19 +116,7 @@ function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
   }
 
   const visual = (
-    <Flex
-      w="100%"
-      mih={104}
-      px="md"
-      py="sm"
-      maw="100%"
-      align="center"
-      justify="center"
-      style={{
-        background:
-          "linear-gradient(180deg, color-mix(in srgb, white 70%, transparent) 0%, color-mix(in srgb, var(--mantine-color-mvSand-5) 10%, transparent) 100%)",
-      }}
-    >
+    <Card.Section withBorder mb="xs">
       {logoUrl ? (
         <Image
           src={logoUrl}
@@ -137,34 +128,26 @@ function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
           {name}
         </Text>
       )}
-    </Flex>
+    </Card.Section>
   );
 
   const content = (
-    <Stack
-      w={220}
-      maw={"50vw"}
-      gap="sm"
-      align="center"
-      justify="flex-start"
-      className="mv-card mv-pressable"
-      p="md"
-      bg="white"
-    >
+    <Card className="mv-pressable">
       {visual}
       {description ? (
         <Text
           size="sm"
           c="mvInk.9"
-          maw="100%"
           ta="center"
           style={{ textWrap: "balance", minHeight: "3.3em" }}
           lineClamp={2}
+          w={220}
+          fw={500}
         >
           {description}
         </Text>
       ) : null}
-    </Stack>
+    </Card>
   );
 
   if (websiteUrl) {

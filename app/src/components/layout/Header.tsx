@@ -10,6 +10,7 @@ import {
   Stack,
   Title,
   UnstyledButton,
+  Card,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -117,8 +118,8 @@ export default function Header() {
     <AppShell.Header bg="transparent" withBorder={false}>
       <Box h={32} bg="mvBg" mb={-16} />
       <Container size="xl" px="sm" pb="sm">
-        <Box
-          className="mv-card"
+        <Card
+          p={0}
           bg="mvSand.0"
           style={{
             borderRadius: "20px",
@@ -128,25 +129,26 @@ export default function Header() {
           <Group justify="space-between" h={58} px="md" wrap="nowrap" className={classes.headerRow}>
             <UnstyledButton component={Link} to="/" onClick={close} className={classes.brandButton}>
               <Group gap="xs" wrap="nowrap" className={classes.brandGroup}>
-                <Box
-                  className={`mv-card ${classes.logoBadge}`}
+                <Card
+                  className={classes.logoBadge}
+                  p={0}
+                  bdrs={12}
+                  w={36}
+                  h={36}
+                  bg="white"
                   style={{
-                    borderRadius: "12px",
-                    width: 36,
-                    height: 36,
                     placeItems: "center",
-                    background: "white",
                     boxShadow: "0 4px 0 rgba(28, 27, 31, 0.28)",
                   }}
                 >
                   <Image
                     src="/assets/logos/logo.png"
-                    alt="Markgraefler Volleys Logo"
+                    alt="Markgräfler Volleys Logo"
                     w={24}
                     h={24}
                     fit="contain"
                   />
-                </Box>
+                </Card>
                 <Title
                   order={1}
                   size="h3"
@@ -154,10 +156,8 @@ export default function Header() {
                   tt="uppercase"
                   className={classes.brandTitle}
                   style={{
-                    letterSpacing: "0.045em",
                     color: "var(--mantine-color-mvInk-9)",
                     whiteSpace: "nowrap",
-                    lineHeight: 1,
                   }}
                 >
                   {Club.shortName}
@@ -217,7 +217,7 @@ export default function Header() {
               </Stack>
             </Group>
           </Collapse>
-        </Box>
+        </Card>
       </Container>
     </AppShell.Header>
   );
