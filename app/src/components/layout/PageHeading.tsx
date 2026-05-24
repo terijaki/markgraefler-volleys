@@ -53,11 +53,7 @@ function getHeadingIcon(title: string) {
   return FaCircleDot;
 }
 
-export default function PageHeading(props: {
-  title: string;
-  subtitle?: string;
-  date?: Date;
-}) {
+export default function PageHeading(props: { title: string; subtitle?: string; date?: Date }) {
   const isLongTitle = props.title.length > 40;
   const HeadingIcon = getHeadingIcon(props.title);
 
