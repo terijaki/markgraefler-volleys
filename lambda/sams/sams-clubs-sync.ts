@@ -34,7 +34,7 @@ async function uploadLogoToS3(
   try {
     const response = await fetch(logoUrl, {
       signal: AbortSignal.timeout(15_000),
-      headers: { "User-Agent": "VCM ClubSync/1.0" },
+      headers: { "User-Agent": "MV ClubSync/1.0" },
     });
     if (!response.ok) {
       console.warn(`⚠️ Logo fetch failed for ${sportsclubUuid}: HTTP ${response.status}`);

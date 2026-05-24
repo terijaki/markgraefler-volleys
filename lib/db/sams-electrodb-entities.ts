@@ -26,7 +26,7 @@ export const SamsTableIndexes = {
 export const SamsClubEntity = new Entity({
   model: {
     entity: "samsclub",
-    service: "vcm",
+    service: "mv",
     version: "1",
   },
   attributes: {
@@ -61,7 +61,7 @@ export const SamsClubEntity = new Entity({
 export const SamsTeamEntity = new Entity({
   model: {
     entity: "samsteam",
-    service: "vcm",
+    service: "mv",
     version: "1",
   },
   attributes: {

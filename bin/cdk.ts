@@ -95,7 +95,7 @@ new SocialMediaStack(app, socialMediaStackName, {
 
 const webappStack = new WebAppStack(app, webappStackName, {
   ...commonStackProps,
-  description: `VCM WebApp + Admin (${envLabel})`,
+  description: `MV WebApp + Admin (${envLabel})`,
   contentTableName: contentDbStack.contentTableName,
   mediaBucketName: mediaStack.bucketName,
   mediaCloudFrontUrl: mediaStack.cloudFrontUrl,

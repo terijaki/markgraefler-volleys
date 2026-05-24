@@ -96,7 +96,7 @@ export class MediaStack extends cdk.Stack {
         compress: true,
       },
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // Use only North America and Europe
-      comment: isProd ? "VCM Media Distribution (Prod)" : "VCM Media Distribution (Dev)",
+      comment: isProd ? "MV Media Distribution (Prod)" : "MV Media Distribution (Dev)",
       ...(props?.cloudFrontCertificate && props?.hostedZone
         ? {
             domainNames: [mediaDomain],

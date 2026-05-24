@@ -35,7 +35,7 @@ export const ContentTableIndexes = {
 export const TeamEntity = new Entity({
   model: {
     entity: "team",
-    service: "vcm",
+    service: "mv",
     version: "1",
   },
   attributes: {
@@ -80,7 +80,7 @@ export const TeamEntity = new Entity({
 export const MemberEntity = new Entity({
   model: {
     entity: "member",
-    service: "vcm",
+    service: "mv",
     version: "1",
   },
   attributes: {
@@ -128,7 +128,7 @@ export const MemberEntity = new Entity({
 export const MediaEntity = new Entity({
   model: {
     entity: "media",
-    service: "vcm",
+    service: "mv",
     version: "1",
   },
   attributes: {
@@ -162,7 +162,7 @@ export const MediaEntity = new Entity({
 export const SponsorEntity = new Entity({
   model: {
     entity: "sponsor",
-    service: "vcm",
+    service: "mv",
     version: "1",
   },
   attributes: {
@@ -196,7 +196,7 @@ export const SponsorEntity = new Entity({
 export const LocationEntity = new Entity({
   model: {
     entity: "location",
-    service: "vcm",
+    service: "mv",
     version: "1",
   },
   attributes: {

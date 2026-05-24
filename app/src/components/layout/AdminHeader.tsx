@@ -53,7 +53,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 tt="uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
-                VCM Admin
+                MV Admin
               </Title>
               <Title
                 visibleFrom="md"
@@ -64,7 +64,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 tt="uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
-                VCM
+                MV
               </Title>
               <Title
                 visibleFrom="lg"
@@ -74,7 +74,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 tt="uppercase"
                 style={{ letterSpacing: "0.1em" }}
               >
-                VCM Admin
+                MV Admin
               </Title>
             </Group>
           </UnstyledButton>
