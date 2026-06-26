@@ -28,10 +28,6 @@ body {
   background: var(--mantine-color-mvSand-5);
 }
 
-
-
-
-
 .mv-pressable {
   transition:
     transform var(--mv-ease-fast),
