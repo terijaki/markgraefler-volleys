@@ -194,7 +194,7 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
 // ── SAMS API proxy — Matches ─────────────────────────────────────────────────
 
 export const getSamsMatchesFn = createServerFn()
-  .inputValidator(
+  .validator(
     z
       .object({
         league: z.string().optional(),
@@ -283,7 +283,7 @@ export const getSamsMatchesFn = createServerFn()
 // ── SAMS API proxy — Rankings ────────────────────────────────────────────────
 
 export const getSamsRankingsByLeagueUuidsFn = createServerFn()
-  .inputValidator(z.object({ leagueUuids: z.array(z.string()) }))
+  .validator(z.object({ leagueUuids: z.array(z.string()) }))
   .handler(async ({ data }) => {
     return Promise.all(
       data.leagueUuids.map((leagueUuid) => fetchSamsRankingsByLeagueUuid(leagueUuid)),
@@ -291,7 +291,7 @@ export const getSamsRankingsByLeagueUuidsFn = createServerFn()
   });
 
 export const getSamsRankingByLeagueUuidFn = createServerFn()
-  .inputValidator(z.string())
+  .validator(z.string())
   .handler(async ({ data }) => fetchSamsRankingsByLeagueUuid(data));
 
 /**
@@ -300,7 +300,7 @@ export const getSamsRankingByLeagueUuidFn = createServerFn()
  * React Query handles freshness via its queryFn (getSamsRankingsByLeagueUuidsFn).
  */
 export const peekSamsRankingsCacheFn = createServerFn()
-  .inputValidator(z.object({ leagueUuids: z.array(z.string()) }))
+  .validator(z.object({ leagueUuids: z.array(z.string()) }))
   .handler(async ({ data }) => {
     const results = await Promise.all(
       data.leagueUuids.map((leagueUuid) => {
@@ -317,7 +317,7 @@ export const peekSamsRankingsCacheFn = createServerFn()
  * Use in route loaders to keep navigation fast — React Query will fetch live data client-side.
  */
 export const peekSamsMatchesCacheFn = createServerFn()
-  .inputValidator(
+  .validator(
     z
       .object({
         league: z.string().optional(),
@@ -381,7 +381,7 @@ export const listSamsTeamsFn = createServerFn().handler(async () => {
 });
 
 export const getClubLogoUrlFn = createServerFn()
-  .inputValidator(
+  .validator(
     z.union([
       z.object({ clubUuid: z.string().min(1), clubSlug: z.undefined().optional() }),
       z.object({ clubSlug: z.string().min(1), clubUuid: z.undefined().optional() }),
@@ -397,7 +397,7 @@ export const getClubLogoUrlFn = createServerFn()
   });
 
 export const getClubLogoUrlsBatchFn = createServerFn()
-  .inputValidator(z.object({ clubSlugs: z.array(z.string().min(1)) }))
+  .validator(z.object({ clubSlugs: z.array(z.string().min(1)) }))
   .handler(async ({ data }) => {
     const cfUrl = MEDIA_CLOUDFRONT_URL();
     const entries = await Promise.all(
