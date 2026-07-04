@@ -156,11 +156,17 @@ describe("WebAppStack", () => {
 
     template.hasResourceProperties("AWS::CloudFront::CachePolicy", {
       CachePolicyConfig: {
-        Comment: "Dev: passthrough (no cache) for SSR + API",
+        Comment: "SSR + API: cache duration driven by origin Cache-Control (see Nitro routeRules)",
         DefaultTTL: 0,
         MinTTL: 0,
-        MaxTTL: 60,
+        MaxTTL: 86400,
         ParametersInCacheKeyAndForwardedToOrigin: {
+          CookiesConfig: {
+            CookieBehavior: "none",
+          },
+          HeadersConfig: {
+            HeaderBehavior: "none",
+          },
           QueryStringsConfig: {
             QueryStringBehavior: "all",
           },

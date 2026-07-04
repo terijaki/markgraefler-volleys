@@ -226,19 +226,23 @@ export class WebAppStack extends cdk.Stack {
       comment: "Long-lived cache for hashed static assets",
     });
 
-    // SSR/API: no cache by default — let the app set Cache-Control headers
-    // Query strings must be in the cache key so /api/sams/logos?clubSlug=X
-    // is cached separately from /api/sams/logos?clubSlug=Y.
-    const ssrCachePolicy = isProd
-      ? cloudfront.CachePolicy.CACHING_DISABLED
-      : new cloudfront.CachePolicy(this, "SsrCachePolicy", {
-          cachePolicyName: `mv-webapp-ssr-${environment}${branchSuffix}`,
-          defaultTtl: cdk.Duration.seconds(0),
-          minTtl: cdk.Duration.seconds(0),
-          maxTtl: cdk.Duration.seconds(60),
-          comment: "Dev: passthrough (no cache) for SSR + API",
-          queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
-        });
+    // SSR/API: respects the origin's `Cache-Control` header (set via Nitro `routeRules` in
+    // vite.config.ts) within these TTL bounds. Public, non-personalized pages set a short
+    // `s-maxage` so CloudFront can absorb most traffic without invoking the Lambda —
+    // this is what keeps traffic spikes from throttling the WebApp Lambda. Pages that don't
+    // set an explicit Cache-Control (e.g. /admin/**, /api/**) fall back to `defaultTtl: 0`,
+    // i.e. never cached. Query strings must be in the cache key so
+    // /api/sams/logos?clubSlug=X is cached separately from /api/sams/logos?clubSlug=Y.
+    const ssrCachePolicy = new cloudfront.CachePolicy(this, "SsrCachePolicy", {
+      cachePolicyName: `mv-webapp-ssr-${environment}${branchSuffix}`,
+      defaultTtl: cdk.Duration.seconds(0),
+      minTtl: cdk.Duration.seconds(0),
+      maxTtl: cdk.Duration.days(1),
+      comment: "SSR + API: cache duration driven by origin Cache-Control (see Nitro routeRules)",
+      headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+    });
 
     // ── CloudFront distribution ────────────────────────────────────────────
     const lambdaOrigin = new origins.FunctionUrlOrigin(fnUrl);
