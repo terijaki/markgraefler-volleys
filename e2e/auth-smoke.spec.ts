@@ -27,11 +27,11 @@ test.describe("auth smoke", () => {
 
     await expect(
       page.getByText(
-        "Wenn die E-Mail-Adresse (e2e-test@markgraefler-volleys.de) registriert ist, wurde ein Anmeldecode verschickt.",
+        "Wenn die von dir eingegebene E-Mail-Adresse (e2e-test@markgraefler-volleys.de) registriert ist, wurde ein Anmeldecode verschickt.",
       ),
     ).toBeVisible();
     await expect(
-      page.getByText("Bitte gib den 6-stelligen Code ein, der dir zugeschickt wurde."),
+      page.getByText("Bitte gib den 6-stelligen Code aus der E-Mail ein."),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Anmelden" })).toBeVisible();
   });
