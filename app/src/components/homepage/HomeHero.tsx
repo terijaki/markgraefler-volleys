@@ -31,10 +31,10 @@ export default function HomeHero() {
       gap="xl"
       align="stretch"
       px={{ base: "sm", md: "xl" }}
-      mt="lg"
       mb="xl"
       c="mvInk.9"
     >
+      <Space h="lg" visibleFrom="sm" />
       <Stack gap="md" maw={840}>
         <Stack gap="xs">
           <Space h="xl" hiddenFrom="sm" />

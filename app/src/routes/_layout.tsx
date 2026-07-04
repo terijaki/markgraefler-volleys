@@ -21,6 +21,7 @@ import CenteredLoader from "../components/CenteredLoader";
 import Footer from "../components/layout/Footer";
 import Header, { HEADER_HEIGHT } from "../components/layout/Header";
 import PageWithHeading from "../components/layout/PageWithHeading";
+import { useMediaQuery } from "@mantine/hooks";
 
 export const Route = createFileRoute("/_layout")({
   component: PublicLayout,
@@ -91,13 +92,14 @@ function PublicLayout() {
 }
 
 function MainLayout({ children }: { children: React.ReactNode }) {
+  const isMobile = useMediaQuery("(max-width: 32em)");
   return (
     <AppShell header={{ height: HEADER_HEIGHT, offset: true }} withBorder={false} bg="mvBg">
       <Header />
       <AppShellMain bg="mvBg">
         <Container
           size="xl"
-          px="xl"
+          px={isMobile ? "lg" : "xl"}
           py="xl"
           display="flex"
           mih={`calc(100vh - ${HEADER_HEIGHT}px)`}
