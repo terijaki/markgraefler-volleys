@@ -95,10 +95,18 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     <AppShell header={{ height: HEADER_HEIGHT, offset: true }} withBorder={false} bg="mvBg">
       <Header />
       <AppShellMain bg="mvBg">
-        <Stack justify="space-between" style={{ minHeight: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
-          {children}
-          <Footer />
-        </Stack>
+        <Container
+          size="xl"
+          px="xl"
+          py="xl"
+          display="flex"
+          mih={`calc(100vh - ${HEADER_HEIGHT}px)`}
+        >
+          <Stack justify="space-between" maw="100%">
+            {children}
+            <Footer />
+          </Stack>
+        </Container>
       </AppShellMain>
     </AppShell>
   );

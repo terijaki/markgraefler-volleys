@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Card,
-  Container,
   Flex,
   Group,
   Image,
@@ -16,7 +15,6 @@ import {
 import { Club } from "@project.config";
 import { useFileUrl, useSponsors } from "../../hooks/dataQueries";
 import SectionHeading from "../layout/SectionHeading";
-import ScrollAnchor from "./ScrollAnchor";
 
 export default function HomeSponsors({ showFallback }: { showFallback?: boolean }) {
   const { data } = useSponsors();
@@ -24,41 +22,34 @@ export default function HomeSponsors({ showFallback }: { showFallback?: boolean 
   if (sponsors.length === 0 && !showFallback) return null;
 
   return (
-    <Box className="mv-section">
-      <ScrollAnchor name="sponsors" />
-      <Container size="xl" py="xl" px={{ base: "lg", md: "xl" }}>
-        <Card>
-          <SectionHeading text={sponsors.length === 1 ? "Sponsor" : "Sponsoren"} color="mvGreen" />
-          <Card.Section>
-            <Sponsors sponsors={sponsors} showFallback={showFallback} />
-          </Card.Section>
-        </Card>
-      </Container>
-    </Box>
+    <Card mb="md">
+      <SectionHeading text={sponsors.length === 1 ? "Sponsor" : "Sponsoren"} color="mvGreen" />
+      <Card.Section>
+        <Sponsors sponsors={sponsors} showFallback={showFallback} />
+      </Card.Section>
+    </Card>
   );
 }
 
 function Sponsors({ sponsors, showFallback }: { sponsors: Sponsor[]; showFallback?: boolean }) {
   if (showFallback && (!sponsors || sponsors.length === 0))
     return (
-      <Container size="sm">
-        <Stack justify="center" align="center">
-          <Text style={{ textWrap: "balance" }} ta="center">
-            Um möglichst viele gemeinnützige Aktivitäten für alle Altersbereiche anbieten zu können,
-            suchen wir Sponsoring-Partnerschaften.
-          </Text>
-          <Box>
-            <Button
-              component="a"
-              href={`mailto:philipp@markgraefler-volleys.de?subject=Sponsoring ${Club.shortName}`}
-              variant="white"
-              className="mv-focus mv-pressable"
-            >
-              Förderverein kontaktieren
-            </Button>
-          </Box>
-        </Stack>
-      </Container>
+      <Stack justify="center" align="center">
+        <Text style={{ textWrap: "balance" }} ta="center">
+          Um möglichst viele gemeinnützige Aktivitäten für alle Altersbereiche anbieten zu können,
+          suchen wir Sponsoring-Partnerschaften.
+        </Text>
+        <Box>
+          <Button
+            component="a"
+            href={`mailto:philipp@markgraefler-volleys.de?subject=Sponsoring ${Club.shortName}`}
+            variant="white"
+            className="mv-focus mv-pressable"
+          >
+            Förderverein kontaktieren
+          </Button>
+        </Box>
+      </Stack>
     );
 
   return (

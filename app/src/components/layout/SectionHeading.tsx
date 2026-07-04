@@ -10,19 +10,10 @@ export default function SectionHeading({
   return (
     <Center c={color} pb="sm">
       <Stack gap="xs">
-        <Title
-          order={2}
-          fw={800}
-          ta="center"
-          style={{
-            fontSize: "clamp(1.4rem, 2.5vw, 2.1rem)",
-            lineHeight: 1.08,
-            letterSpacing: "-0.018em",
-          }}
-        >
+        <Title order={2} fw={800} ta="center">
           {text}
         </Title>
-        <Divider w={132} size="md" color={color} opacity={0.34} />
+        <Divider size="md" color={color} opacity={0.5} />
       </Stack>
     </Center>
   );

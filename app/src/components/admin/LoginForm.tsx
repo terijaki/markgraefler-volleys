@@ -1,4 +1,14 @@
-import { Alert, Button, PinInput, Stack, Text, TextInput, Title } from "@mantine/core";
+import {
+  Alert,
+  Button,
+  Card,
+  Container,
+  PinInput,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import type { EMAIL_OTP_ERROR_CODES } from "better-auth/client/plugins";
 import { useState } from "react";
@@ -44,7 +54,7 @@ export function LoginForm({ redirectTo = "/admin" }: LoginFormProps) {
       setOtpEmail(normalizedEmail);
       setOtpSent(true);
       setInfo(
-        `Wenn die E-Mail-Adresse (${normalizedEmail}) registriert ist, wurde ein Anmeldecode verschickt.`,
+        `Wenn die von dir eingegebene E-Mail-Adresse (${normalizedEmail}) registriert ist, wurde ein Anmeldecode verschickt.`,
       );
     } catch {
       setError("Der Anmeldecode konnte gerade nicht angefordert werden. Bitte versuche es erneut.");
@@ -78,93 +88,99 @@ export function LoginForm({ redirectTo = "/admin" }: LoginFormProps) {
   };
 
   return (
-    <Stack gap="md" miw={360} maw={500} p="xl">
-      <Title order={2} ta="center">
-        Markgräfler Volleys Anmeldung
-      </Title>
+    <Container size="sm">
+      <Card>
+        <Stack gap="md" p="xl">
+          <Title order={2} ta="center">
+            Markgräfler Volleys Anmeldung
+          </Title>
 
-      {error && (
-        <Alert color="red" variant="light">
-          {error}
-        </Alert>
-      )}
-      {info && (
-        <Alert color="blue" variant="light">
-          {info}
-        </Alert>
-      )}
+          {error && (
+            <Alert color="red" variant="light">
+              {error}
+            </Alert>
+          )}
+          {info && <Text size="sm">{info}</Text>}
 
-      {!otpSent ? (
-        <>
-          <Text c="dimmed" ta="center" size="sm">
-            Gib deine E-Mail-Adresse ein, um einen Anmeldecode zu erhalten.
-          </Text>
-          <TextInput
-            label="E-Mail-Adresse"
-            placeholder="erika@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.currentTarget.value)}
-            onKeyDown={(event) => event.key === "Enter" && void handleSendOtp()}
-            type="email"
-            disabled={submitting}
-            autoFocus
-          />
-          <Button
-            onClick={() => void handleSendOtp()}
-            loading={submitting}
-            disabled={!email.trim()}
-            fullWidth
-          >
-            Anmeldecode senden
-          </Button>
-        </>
-      ) : (
-        <>
-          <Text c="dimmed" ta="center" size="sm">
-            Bitte gib den 6-stelligen Code ein, der dir zugeschickt wurde.
-          </Text>
-          <Stack align="center" gap="md">
-            <PinInput
-              length={6}
-              type="number"
-              value={otp}
-              onChange={setOtp}
-              onComplete={(value) => void handleVerifyOtp(value)}
-              disabled={submitting}
-              error={!!error}
-              autoFocus
-              oneTimeCode
-              inputMode="numeric"
-              ariaLabel="Anmeldecode"
-              fw="bolder"
-              placeholder="_"
-              size="md"
-            />
-          </Stack>
-          <Button
-            onClick={() => void handleVerifyOtp()}
-            loading={submitting}
-            disabled={otp.length < 6}
-            fullWidth
-          >
-            Anmelden
-          </Button>
-          <Button
-            variant="subtle"
-            color="gray"
-            onClick={() => {
-              setOtpSent(false);
-              setOtp("");
-              setError(null);
-              setInfo(null);
-              setEmail(otpEmail || "");
-            }}
-            disabled={submitting}
-          >
-            Neu versuchen
-          </Button>
-        </>
-      )}
-    </Stack>
+          {!otpSent ? (
+            <Stack gap="lg">
+              <Stack gap={0}>
+                <Text size="sm" fw="bold">
+                  Gib deine E-Mail-Adresse ein, um einen Anmeldecode zu erhalten.
+                </Text>
+                <Text size="sm">
+                  Bitte beachte, dass du dich nur mit einer E-Mail-Adresse anmelden kannst, die
+                  bereits registriert ist.
+                </Text>
+              </Stack>
+              <TextInput
+                label="E-Mail-Adresse"
+                placeholder="erika@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.currentTarget.value)}
+                onKeyDown={(event) => event.key === "Enter" && void handleSendOtp()}
+                type="email"
+                disabled={submitting}
+                autoFocus
+              />
+              <Button
+                onClick={() => void handleSendOtp()}
+                loading={submitting}
+                disabled={!email.trim()}
+                fullWidth
+              >
+                Anmeldecode senden
+              </Button>
+            </Stack>
+          ) : (
+            <Stack mt="lg">
+              <Text ta="center" size="sm" fw="bold">
+                Bitte gib den 6-stelligen Code aus der E-Mail ein.
+              </Text>
+              <Stack align="center" gap="md" mb="xl">
+                <PinInput
+                  length={6}
+                  type="number"
+                  value={otp}
+                  onChange={setOtp}
+                  onComplete={(value) => void handleVerifyOtp(value)}
+                  disabled={submitting}
+                  error={!!error}
+                  autoFocus
+                  oneTimeCode
+                  inputMode="numeric"
+                  ariaLabel="Anmeldecode"
+                  fw="bolder"
+                  placeholder="_"
+                  size="md"
+                />
+              </Stack>
+              <Button
+                onClick={() => void handleVerifyOtp()}
+                loading={submitting}
+                disabled={otp.length < 6}
+                fullWidth
+              >
+                Anmelden
+              </Button>
+              <Button
+                variant="subtle"
+                color="gray"
+                onClick={() => {
+                  setOtpSent(false);
+                  setOtp("");
+                  setError(null);
+                  setInfo(null);
+                  setEmail(otpEmail || "");
+                }}
+                disabled={submitting}
+              >
+                Neu versuchen
+              </Button>
+            </Stack>
+          )}
+        </Stack>
+      </Card>
+    </Container>
   );
 }

@@ -31,7 +31,7 @@ const docClient = createDynamoDocClient(tracer);
 const env = parseLambdaEnv(BeholdSyncLambdaEnvironmentSchema);
 const TABLE_NAME = env.CACHE_TABLE_NAME;
 
-const MAX_POSTS = 2;
+const MAX_POSTS = 4;
 const MAX_AGE_DAYS = 14;
 const BEHOLD_TIMEOUT_MS = 10_000;
 

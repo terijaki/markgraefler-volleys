@@ -19,11 +19,11 @@ function HomePage() {
   const { instagramPosts } = Route.useLoaderData();
 
   return (
-    <Stack gap={0} align="stretch">
+    <Stack gap="xl" align="stretch">
       <HomeHero />
       <HomeUnion />
-      <HomeSponsors />
       <HomeInstagram posts={instagramPosts} />
+      <HomeSponsors />
     </Stack>
   );
 }

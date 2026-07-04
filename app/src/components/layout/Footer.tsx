@@ -1,4 +1,4 @@
-import { Anchor, Card, Container, Flex, Group, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Card, Flex, Group, Stack, Text, Title } from "@mantine/core";
 import { Club } from "@project.config";
 import { Link } from "@tanstack/react-router";
 import type { LinkProps } from "@tanstack/react-router";
@@ -130,25 +130,21 @@ function FooterSection({ title, links }: FooterSectionProps) {
 
 export default function Footer() {
   return (
-    <Container fluid m={0} py="xl" px={0} className="mv-curve-divider" id="kontakt">
-      <Container size="xl" px={{ base: "lg", md: "xl" }}>
-        <Card>
-          <Stack gap="md">
-            <Stack gap={4}>
-              <Title order={4} c="mvPurple.8">
-                {Club.shortName}
-              </Title>
-              <Text size="sm">Eine Spielgemeinschaft des VC Müllheim und TV Staufen.</Text>
-            </Stack>
+    <Card>
+      <Stack gap="md">
+        <Stack gap={4}>
+          <Title order={4} c="mvPurple.8">
+            {Club.shortName}
+          </Title>
+          <Text size="sm">Eine Spielgemeinschaft des VC Müllheim und TV Staufen.</Text>
+        </Stack>
 
-            <Flex justify="flex-start" columnGap="xl" rowGap="md" direction="row" wrap="wrap">
-              <FooterSection title="Kontakt" links={contactLinks} />
-              <FooterSection title="Info" links={infoLinks} />
-              <FooterSection title="Rechtliches" links={legalLinks} />
-            </Flex>
-          </Stack>
-        </Card>
-      </Container>
-    </Container>
+        <Flex justify="flex-start" columnGap="xl" rowGap="md" direction="row" wrap="wrap">
+          <FooterSection title="Kontakt" links={contactLinks} />
+          <FooterSection title="Info" links={infoLinks} />
+          <FooterSection title="Rechtliches" links={legalLinks} />
+        </Flex>
+      </Stack>
+    </Card>
   );
 }
