@@ -71,7 +71,7 @@ function Sponsors({ sponsors, showFallback }: { sponsors: Sponsor[]; showFallbac
       ) : (
         <Group gap="xl" w="100%" justify="space-between" align="center">
           {sponsors.map((sponsor) => (
-            <SponsorCard sponsor={sponsor} />
+            <SponsorCard sponsor={sponsor} key={sponsor.id} />
           ))}
         </Group>
       )}
