@@ -1,29 +1,48 @@
-import { Anchor, Card, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Card, Loader, Stack, Text, Title } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
 import CardTitle from "@webapp/components/CardTitle";
 import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
-import { getSamsMatchesFn } from "@webapp/server/functions/sams";
+import { useSamsMatches } from "@webapp/hooks/dataQueries";
+import { peekSamsMatchesCacheFn } from "@webapp/server/functions/sams";
 import { createWebcalLink } from "@webapp/utils/webcal";
 import dayjs from "dayjs";
 import { CalendarDays, Megaphone as IconSubscribe } from "lucide-react";
 import { Fragment } from "react";
+import type { LeagueMatchesResponse } from "@/lambda/sams/types";
 
 export const Route = createFileRoute("/_layout/matches/")({
+  /**
+   * LOADING STRATEGY — mirrors `/tabelle` (see that route for the full rationale).
+   * The loader must stay FAST: it only reads the DDB cache-peek function
+   * (`peekSamsMatchesCacheFn`), never the live SAMS-fetching `getSamsMatchesFn`, which
+   * would block navigation for 2-3s on every cache miss. Freshness is handled client-side
+   * by `useSamsMatches`, which falls back to the SAMS API on its own 5-min cache miss.
+   */
   loader: async () => {
-    const [matchesResult] = await Promise.allSettled([
-      getSamsMatchesFn({ data: { range: "future" } }),
-    ]);
-    const matches = matchesResult.status === "fulfilled" ? matchesResult.value : null;
-
-    return { matches, matchesError: matchesResult.status === "rejected" };
+    const matches = await peekSamsMatchesCacheFn({ data: { range: "future" } });
+    return { matches: matches ?? undefined };
   },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { matches, matchesError } = Route.useLoaderData();
+  const { matches: loaderMatches } = Route.useLoaderData();
   const webcalLink = createWebcalLink("/ics/all.ics");
+
+  const matchesInitialDataUpdatedAt = loaderMatches?.timestamp
+    ? new Date(loaderMatches.timestamp).getTime()
+    : undefined;
+
+  const {
+    data: matches,
+    isLoading,
+    isError,
+  } = useSamsMatches({
+    range: "future",
+    initialData: loaderMatches,
+    initialDataUpdatedAt: matchesInitialDataUpdatedAt,
+  });
 
   return (
     <PageWithHeading
@@ -47,9 +66,23 @@ function RouteComponent() {
             </Text>
           </Stack>
         </Card>
-        <MatchesContent matches={matches} error={matchesError} />
+        {isLoading && <MatchesLoadingState />}
+        {!isLoading && <MatchesContent matches={matches} error={isError} />}
       </Stack>
     </PageWithHeading>
+  );
+}
+
+function MatchesLoadingState() {
+  return (
+    <Card>
+      <Stack align="center" py="md" gap="xs">
+        <Loader size="sm" />
+        <Text c="dimmed" size="sm">
+          Lade Ligaspiele...
+        </Text>
+      </Stack>
+    </Card>
   );
 }
 
@@ -57,7 +90,7 @@ function MatchesContent({
   matches,
   error,
 }: {
-  matches: Awaited<ReturnType<typeof getSamsMatchesFn>> | null;
+  matches: LeagueMatchesResponse | undefined;
   error: boolean;
 }) {
   const currentMonth = dayjs().month() + 1;

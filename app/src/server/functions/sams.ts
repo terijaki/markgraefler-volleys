@@ -33,7 +33,7 @@ import {
   getSamsClubByNameSlugPrefix,
   getSamsClubBySportsclubUuid,
 } from "../queries";
-import { readCacheEntry, writeCacheEntry } from "../ddb-cache";
+import { getOrRefreshCacheEntry, readCacheEntry } from "../ddb-cache";
 import { parseServerData } from "../schema-parse";
 import {
   dedupeSamsMatchesByUuid,
@@ -97,6 +97,48 @@ export function createSamsMatchesCacheKey(
   });
 }
 
+async function fetchSamsLeagueMatchesForSportsclub({
+  league,
+  season,
+  team,
+  sportsclubUuid,
+}: Pick<SamsMatchesInput, "league" | "season" | "team"> & {
+  sportsclubUuid: string | undefined;
+}): Promise<Omit<LeagueMatchDto, "_links">[]> {
+  const defaultQueryParams: Record<string, string> = {};
+  if (league) defaultQueryParams["for-league"] = league;
+  if (season) defaultQueryParams["for-season"] = season;
+  if (sportsclubUuid) defaultQueryParams["for-sportsclub"] = sportsclubUuid;
+  if (team) defaultQueryParams["for-team"] = team;
+
+  const matches: Omit<LeagueMatchDto, "_links">[] = [];
+  let currentPage = 0;
+  let hasMorePages = true;
+
+  while (hasMorePages) {
+    const { data: pageData } = await getAllLeagueMatches({
+      query: { ...defaultQueryParams, page: currentPage, size: 100 },
+      signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
+    });
+
+    if (!pageData) {
+      if (currentPage === 0) {
+        throw new Error(`SAMS API returned no data on page ${currentPage}`);
+      }
+      break;
+    }
+
+    if (pageData.content) {
+      matches.push(...pageData.content.map(({ _links: _, ...match }) => match));
+      currentPage++;
+    }
+
+    if (pageData.last === true) hasMorePages = false;
+  }
+
+  return matches;
+}
+
 async function fetchAllSamsLeagueMatches({
   league,
   season,
@@ -106,89 +148,66 @@ async function fetchAllSamsLeagueMatches({
   sportsclubUuids: readonly string[];
 }): Promise<Omit<LeagueMatchDto, "_links">[]> {
   const sportsclubFilters = sportsclubUuids.length > 0 ? sportsclubUuids : [undefined];
-  const allMatches: Omit<LeagueMatchDto, "_links">[] = [];
 
-  for (const sportsclubUuid of sportsclubFilters) {
-    const defaultQueryParams: Record<string, string> = {};
-    if (league) defaultQueryParams["for-league"] = league;
-    if (season) defaultQueryParams["for-season"] = season;
-    if (sportsclubUuid) defaultQueryParams["for-sportsclub"] = sportsclubUuid;
-    if (team) defaultQueryParams["for-team"] = team;
+  // Fetch each sportsclub's matches concurrently instead of sequentially — with multiple
+  // configured clubs this avoids piling up multiple full pagination sequences (each with
+  // several round trips) one after another in a single request.
+  const matchesPerSportsclub = await Promise.all(
+    sportsclubFilters.map((sportsclubUuid) =>
+      fetchSamsLeagueMatchesForSportsclub({ league, season, team, sportsclubUuid }),
+    ),
+  );
 
-    let currentPage = 0;
-    let hasMorePages = true;
-
-    while (hasMorePages) {
-      const { data: pageData } = await getAllLeagueMatches({
-        query: { ...defaultQueryParams, page: currentPage, size: 100 },
-        signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
-      });
-
-      if (!pageData) {
-        if (currentPage === 0) {
-          throw new Error(`SAMS API returned no data on page ${currentPage}`);
-        }
-        break;
-      }
-
-      if (pageData.content) {
-        allMatches.push(...pageData.content.map(({ _links: _, ...match }) => match));
-        currentPage++;
-      }
-
-      if (pageData.last === true) hasMorePages = false;
-    }
-  }
-
-  return dedupeSamsMatchesByUuid(allMatches);
+  return dedupeSamsMatchesByUuid(matchesPerSportsclub.flat());
 }
 
 async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<RankingResponse> {
   const cacheKey = createCacheKey({ type: "sams_rankings", leagueUuid });
-  const cached = await readCacheEntry<RankingResponse>(cacheKey, 5 * 60 * 1000);
-  if (cached) return cached;
 
-  const [{ data: rankingsData }, { data: leagueData }] = await Promise.all([
-    getRankingsForLeague({
-      path: { uuid: leagueUuid },
-      query: { page: 0, size: 100 },
-      signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
-    }),
-    getLeagueByUuid({
-      path: { uuid: leagueUuid },
-      signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
-    }),
-  ]);
+  return getOrRefreshCacheEntry<RankingResponse>({
+    cacheKey,
+    softTtlMs: 5 * 60 * 1000,
+    refresh: async () => {
+      const [{ data: rankingsData }, { data: leagueData }] = await Promise.all([
+        getRankingsForLeague({
+          path: { uuid: leagueUuid },
+          query: { page: 0, size: 100 },
+          signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
+        }),
+        getLeagueByUuid({
+          path: { uuid: leagueUuid },
+          signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
+        }),
+      ]);
 
-  if (!rankingsData?.content) throw new Error("No rankings found for this league");
+      if (!rankingsData?.content) throw new Error("No rankings found for this league");
 
-  let leagueName: string | undefined;
-  let seasonName: string | undefined;
+      let leagueName: string | undefined;
+      let seasonName: string | undefined;
 
-  if (leagueData?.name) leagueName = leagueData.name;
+      if (leagueData?.name) leagueName = leagueData.name;
 
-  if (leagueData?.seasonUuid) {
-    const { data: seasonData } = await getSeasonByUuid({
-      path: { uuid: leagueData.seasonUuid },
-      signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
-    });
-    if (seasonData?.name) seasonName = seasonData.name;
-  }
+      if (leagueData?.seasonUuid) {
+        const { data: seasonData } = await getSeasonByUuid({
+          path: { uuid: leagueData.seasonUuid },
+          signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
+        });
+        if (seasonData?.name) seasonName = seasonData.name;
+      }
 
-  const result = parseServerData(
-    RankingResponseSchema,
-    {
-      teams: rankingsData.content,
-      timestamp: new Date().toISOString(),
-      leagueUuid,
-      leagueName,
-      seasonName,
+      return parseServerData(
+        RankingResponseSchema,
+        {
+          teams: rankingsData.content,
+          timestamp: new Date().toISOString(),
+          leagueUuid,
+          leagueName,
+          seasonName,
+        },
+        "Failed to parse SAMS rankings response",
+      );
     },
-    "Failed to parse SAMS rankings response",
-  );
-
-  await writeCacheEntry(cacheKey, result);
-  return result;
+  });
 }
 
 // ── SAMS API proxy — Matches ─────────────────────────────────────────────────
@@ -246,38 +265,40 @@ export const getSamsMatchesFn = createServerFn()
       },
       effectiveSportsclubUuids,
     );
-    const cachedMatches = await readCacheEntry<LeagueMatchesResponse>(cacheKey, 5 * 60 * 1000);
-    if (cachedMatches) return cachedMatches;
+    const cachedMatches = await getOrRefreshCacheEntry<LeagueMatchesResponse>({
+      cacheKey,
+      softTtlMs: 5 * 60 * 1000,
+      refresh: async () => {
+        const allMatches = await fetchAllSamsLeagueMatches({
+          league,
+          season,
+          team,
+          sportsclubUuids: effectiveSportsclubUuids,
+        });
 
-    const allMatches = await fetchAllSamsLeagueMatches({
-      league,
-      season,
-      team,
-      sportsclubUuids: effectiveSportsclubUuids,
+        let filteredMatches = allMatches;
+        if (data?.range === "future") {
+          filteredMatches = allMatches.filter((m) => !m.results?.winner);
+          filteredMatches.sort((a, b) =>
+            !a.date ? 1 : !b.date ? -1 : dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1,
+          );
+        } else if (data?.range === "past") {
+          filteredMatches = allMatches.filter((m) => !!m.results?.winner);
+          filteredMatches.sort((a, b) =>
+            !a.date ? 1 : !b.date ? -1 : dayjs(a.date).isAfter(dayjs(b.date)) ? -1 : 1,
+          );
+        }
+
+        if (data?.limit) filteredMatches = filteredMatches.slice(0, data.limit);
+
+        return parseServerData(
+          LeagueMatchesResponseSchema,
+          { matches: filteredMatches, timestamp: new Date().toISOString() },
+          "Failed to parse SAMS matches response",
+        );
+      },
     });
-
-    let filteredMatches = allMatches;
-    if (data?.range === "future") {
-      filteredMatches = allMatches.filter((m) => !m.results?.winner);
-      filteredMatches.sort((a, b) =>
-        !a.date ? 1 : !b.date ? -1 : dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1,
-      );
-    } else if (data?.range === "past") {
-      filteredMatches = allMatches.filter((m) => !!m.results?.winner);
-      filteredMatches.sort((a, b) =>
-        !a.date ? 1 : !b.date ? -1 : dayjs(a.date).isAfter(dayjs(b.date)) ? -1 : 1,
-      );
-    }
-
-    if (data?.limit) filteredMatches = filteredMatches.slice(0, data.limit);
-
-    const result = parseServerData(
-      LeagueMatchesResponseSchema,
-      { matches: filteredMatches, timestamp: new Date().toISOString() },
-      "Failed to parse SAMS matches response",
-    );
-    await writeCacheEntry(cacheKey, result);
-    return result;
+    return cachedMatches;
   });
 
 // ── SAMS API proxy — Rankings ────────────────────────────────────────────────

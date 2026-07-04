@@ -1,17 +1,25 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
+import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
 let readCacheEntry: typeof import("./ddb-cache").readCacheEntry;
 let writeCacheEntry: typeof import("./ddb-cache").writeCacheEntry;
+let getOrRefreshCacheEntry: typeof import("./ddb-cache").getOrRefreshCacheEntry;
 
 beforeAll(async () => {
   process.env.CACHE_TABLE_NAME = "test-cache-table";
   const module = await import("./ddb-cache");
   readCacheEntry = module.readCacheEntry;
   writeCacheEntry = module.writeCacheEntry;
+  getOrRefreshCacheEntry = module.getOrRefreshCacheEntry;
 });
 
 beforeEach(() => {
@@ -163,5 +171,112 @@ describe("Infinity TTL (loader peek contract)", () => {
     const result = await readCacheEntry<TestPayload>("no-entry", Infinity);
 
     expect(result).toBeNull();
+  });
+});
+
+describe("getOrRefreshCacheEntry", () => {
+  const FRESH_PAYLOAD: TestPayload = { leagueId: "league-abc", rankings: ["Team A", "Team C"] };
+
+  it("returns the fresh cached value without calling refresh", async () => {
+    const freshTime = new Date(Date.now() - 1000).toISOString();
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        pk: "cache#key",
+        sk: "cache",
+        data: JSON.stringify(SAMPLE_PAYLOAD),
+        cachedAt: freshTime,
+      },
+    });
+    const refresh = vi.fn(async () => FRESH_PAYLOAD);
+
+    const result = await getOrRefreshCacheEntry({ cacheKey: "key", softTtlMs: TTL_MS, refresh });
+
+    expect(result).toEqual(SAMPLE_PAYLOAD);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(ddbMock.commandCalls(PutCommand)).toHaveLength(0);
+  });
+
+  it("blocks and refreshes when there is no cached entry at all", async () => {
+    ddbMock.on(GetCommand).resolves({ Item: undefined });
+    ddbMock.on(PutCommand).resolves({});
+    const refresh = vi.fn(async () => FRESH_PAYLOAD);
+
+    const result = await getOrRefreshCacheEntry({ cacheKey: "key", softTtlMs: TTL_MS, refresh });
+
+    expect(result).toEqual(FRESH_PAYLOAD);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    const putCalls = ddbMock.commandCalls(PutCommand);
+    expect(putCalls).toHaveLength(1);
+    expect((putCalls[0].args[0].input.Item as Record<string, unknown>).sk).toBe("cache");
+  });
+
+  it("refreshes and writes fresh data when it acquires the refresh lock for a stale entry", async () => {
+    const staleTime = new Date(Date.now() - TTL_MS - 1000).toISOString();
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        pk: "cache#key",
+        sk: "cache",
+        data: JSON.stringify(SAMPLE_PAYLOAD),
+        cachedAt: staleTime,
+      },
+    });
+    ddbMock.on(PutCommand).resolves({});
+    ddbMock.on(DeleteCommand).resolves({});
+    const refresh = vi.fn(async () => FRESH_PAYLOAD);
+
+    const result = await getOrRefreshCacheEntry({ cacheKey: "key", softTtlMs: TTL_MS, refresh });
+
+    expect(result).toEqual(FRESH_PAYLOAD);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    const putCalls = ddbMock.commandCalls(PutCommand);
+    expect(putCalls).toHaveLength(2);
+    expect((putCalls[0].args[0].input.Item as Record<string, unknown>).sk).toBe("lock");
+    expect((putCalls[1].args[0].input.Item as Record<string, unknown>).sk).toBe("cache");
+    expect(ddbMock.commandCalls(DeleteCommand)).toHaveLength(1);
+  });
+
+  it("returns the stale value without refreshing when another caller holds the lock", async () => {
+    const staleTime = new Date(Date.now() - TTL_MS - 1000).toISOString();
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        pk: "cache#key",
+        sk: "cache",
+        data: JSON.stringify(SAMPLE_PAYLOAD),
+        cachedAt: staleTime,
+      },
+    });
+    ddbMock
+      .on(PutCommand)
+      .rejects(new ConditionalCheckFailedException({ message: "lock held", $metadata: {} }));
+    const refresh = vi.fn(async () => FRESH_PAYLOAD);
+
+    const result = await getOrRefreshCacheEntry({ cacheKey: "key", softTtlMs: TTL_MS, refresh });
+
+    expect(result).toEqual(SAMPLE_PAYLOAD);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("returns the stale value and releases the lock when refresh throws", async () => {
+    const staleTime = new Date(Date.now() - TTL_MS - 1000).toISOString();
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        pk: "cache#key",
+        sk: "cache",
+        data: JSON.stringify(SAMPLE_PAYLOAD),
+        cachedAt: staleTime,
+      },
+    });
+    ddbMock.on(PutCommand).resolves({});
+    ddbMock.on(DeleteCommand).resolves({});
+    const refresh = vi.fn(async () => {
+      throw new Error("SAMS API timeout");
+    });
+
+    const result = await getOrRefreshCacheEntry({ cacheKey: "key", softTtlMs: TTL_MS, refresh });
+
+    expect(result).toEqual(SAMPLE_PAYLOAD);
+    expect(ddbMock.commandCalls(DeleteCommand)).toHaveLength(1);
+    // Only the lock acquire Put happened — refresh failed before the cache write.
+    expect(ddbMock.commandCalls(PutCommand)).toHaveLength(1);
   });
 });

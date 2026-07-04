@@ -1,29 +1,25 @@
-import { Center, Divider, type MantineColor, Stack, Title } from "@mantine/core";
+import { Center, Divider, type MantineColor, Stack, Title, Text } from "@mantine/core";
 
 export default function SectionHeading({
   text,
+  subtext,
   color = "mvPurple",
 }: {
   text: string;
+  subtext?: string;
   color?: MantineColor;
 }) {
   return (
-    <Center c={color} pb="sm">
-      <Stack gap="xs">
-        <Title
-          order={2}
-          fw={800}
-          ta="center"
-          style={{
-            fontSize: "clamp(1.4rem, 2.5vw, 2.1rem)",
-            lineHeight: 1.08,
-            letterSpacing: "-0.018em",
-          }}
-        >
-          {text}
-        </Title>
-        <Divider w={132} size="md" color={color} opacity={0.34} />
-      </Stack>
-    </Center>
+    <Stack gap="xs" mb="sm">
+      <Center>
+        <Stack gap="xs">
+          <Title order={2} fw={800} ta="center">
+            {text}
+          </Title>
+          <Divider size="md" color={color} opacity={0.5} />
+        </Stack>
+      </Center>
+      {subtext && <Text ta="center">{subtext}</Text>}
+    </Stack>
   );
 }

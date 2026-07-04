@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Card,
-  Container,
   Flex,
   Group,
   Image,
@@ -13,10 +12,10 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { Club } from "@project.config";
 import { useFileUrl, useSponsors } from "../../hooks/dataQueries";
 import SectionHeading from "../layout/SectionHeading";
-import ScrollAnchor from "./ScrollAnchor";
 
 export default function HomeSponsors({ showFallback }: { showFallback?: boolean }) {
   const { data } = useSponsors();
@@ -24,72 +23,53 @@ export default function HomeSponsors({ showFallback }: { showFallback?: boolean 
   if (sponsors.length === 0 && !showFallback) return null;
 
   return (
-    <Box className="mv-section">
-      <ScrollAnchor name="sponsors" />
-      <Container size="xl" py="xl" px={{ base: "lg", md: "xl" }}>
-        <Card>
-          <SectionHeading text={sponsors.length === 1 ? "Sponsor" : "Sponsoren"} color="mvGreen" />
-          <Card.Section>
-            <Sponsors sponsors={sponsors} showFallback={showFallback} />
-          </Card.Section>
-        </Card>
-      </Container>
-    </Box>
+    <Stack mb="md" gap={0}>
+      <SectionHeading text={sponsors.length === 1 ? "Sponsor" : "Sponsoren"} color="mvGreen" />
+      <Sponsors sponsors={sponsors} showFallback={showFallback} />
+    </Stack>
   );
 }
 
 function Sponsors({ sponsors, showFallback }: { sponsors: Sponsor[]; showFallback?: boolean }) {
+  const isMobile = useMediaQuery("(max-width: 64em)");
+  const isTablet = useMediaQuery("(max-width: 74em)");
+  const shouldUseMarquee =
+    (isMobile && sponsors.length > 1) || (isTablet && sponsors.length > 3) || sponsors.length > 4;
+
   if (showFallback && (!sponsors || sponsors.length === 0))
     return (
-      <Container size="sm">
-        <Stack justify="center" align="center">
-          <Text style={{ textWrap: "balance" }} ta="center">
-            Um möglichst viele gemeinnützige Aktivitäten für alle Altersbereiche anbieten zu können,
-            suchen wir Sponsoring-Partnerschaften.
-          </Text>
-          <Box>
-            <Button
-              component="a"
-              href={`mailto:philipp@markgraefler-volleys.de?subject=Sponsoring ${Club.shortName}`}
-              variant="white"
-              className="mv-focus mv-pressable"
-            >
-              Förderverein kontaktieren
-            </Button>
-          </Box>
-        </Stack>
-      </Container>
+      <Stack justify="center" align="center">
+        <Text style={{ textWrap: "balance" }} ta="center">
+          Um möglichst viele gemeinnützige Aktivitäten für alle Altersbereiche anbieten zu können,
+          suchen wir Sponsoring-Partnerschaften.
+        </Text>
+        <Box>
+          <Button
+            component="a"
+            href={`mailto:philipp@markgraefler-volleys.de?subject=Sponsoring ${Club.shortName}`}
+            variant="white"
+            className="mv-focus mv-pressable"
+          >
+            Förderverein kontaktieren
+          </Button>
+        </Box>
+      </Stack>
     );
 
   return (
-    <Stack align="center">
-      <Text>
+    <Stack align="stretch">
+      <Text ta="center">
         Wir bedanken uns herzlich bei{" "}
         {sponsors.length === 1 ? "unserem Sponsor" : "unseren Sponsoren"}!
       </Text>
-      {sponsors.length > 2 ? (
-        <Marquee
-          gap="xl"
-          fadeEdges={false}
-          styles={{
-            root: {
-              marginInline: "calc(var(--mantine-spacing-lg) * -1)",
-              width: "calc(100% + var(--mantine-spacing-lg) * 2)",
-            },
-            content: {
-              paddingBlock: "10px",
-            },
-            group: {
-              paddingBlock: "10px",
-            },
-          }}
-        >
+      {shouldUseMarquee ? (
+        <Marquee gap="xl" fadeEdges={true} fadeEdgeColor="var(--mantine-color-mvBg-6)">
           {sponsors.map((sponsor) => (
             <SponsorCard sponsor={sponsor} key={sponsor.id} />
           ))}
         </Marquee>
       ) : (
-        <Group gap="xl" align="flex-start" justify="center">
+        <Group gap="xl" w="100%" justify="space-between" align="center">
           {sponsors.map((sponsor) => (
             <SponsorCard sponsor={sponsor} key={sponsor.id} />
           ))}
