@@ -82,7 +82,7 @@ export default function InstagramCard({ post, postIndex, isPortrait }: Instagram
 
   return (
     <Card
-      visibleFrom={postIndex > 1 ? "md" : undefined}
+      visibleFrom={postIndex > 1 ? "md" : postIndex > 2 ? "lg" : postIndex > 3 ? "md" : undefined}
       component="a"
       href={permalink}
       target="_blank"
