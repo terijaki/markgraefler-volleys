@@ -40,6 +40,11 @@ The email proxy uses SES receipt rules to route inbound member alias emails to S
 ### DNS & Identity
 
 - **SES Domain Identity**: `markgraefler-volleys.de` (manually verified in prior setup)
+- **Inbound MX Record (required)**:
+  - Name: `markgraefler-volleys.de`
+  - Type: `MX`
+  - Value: `10 inbound-smtp.eu-central-1.amazonaws.com.`
+  - TTL: `300`
 - **DKIM Records**: Configured in Route53 (see DNS stack)
 - **SPF/DMARC**: Configured per existing mail setup
 
@@ -80,7 +85,7 @@ The email proxy uses SES receipt rules to route inbound member alias emails to S
           {
             "Effect": "Allow",
             "Action": "s3:PutObject",
-            "Resource": "arn:aws:s3:::mv-mail-inbound-883425316554-eu-central-1-an/*"
+            "Resource": "arn:aws:s3:::mv-mail-inbound-926634327887-eu-central-1-an/*"
           }
         ]
       }
@@ -89,5 +94,10 @@ The email proxy uses SES receipt rules to route inbound member alias emails to S
 ### DNS & Identity
 
 - **SES Domain Identity**: `new.markgraefler-volleys.de` (manually verified)
+- **Inbound MX Record (required)**:
+  - Name: `new.markgraefler-volleys.de`
+  - Type: `MX`
+  - Value: `10 inbound-smtp.eu-central-1.amazonaws.com.`
+  - TTL: `300`
 - **DKIM Records**: Configured in Route53 (dev hosted zone)
 - **SPF/DMARC**: Configured per existing dev mail setup
