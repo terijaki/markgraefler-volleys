@@ -68,6 +68,8 @@ export class WebAppStack extends cdk.Stack {
     // prod: markgraefler-volleys.de  dev: dev.new.markgraefler-volleys.de  feature: dev-<branch>.new.markgraefler-volleys.de
     const webappDomain = buildWebappDomain(environment, branch);
     const webappUrl = buildWebappUrl(environment, branch);
+    const wwwWebappDomain = `www.${webappDomain}`;
+    const distributionDomainNames = isProd ? [webappDomain, wwwWebappDomain] : [webappDomain];
 
     if (!isCdkDestroy && !process.env.BETTER_AUTH_SECRET) {
       throw new Error("❌ BETTER_AUTH_SECRET environment variable is required");
@@ -293,7 +295,7 @@ export class WebAppStack extends cdk.Stack {
         : `Markgräfler Volleys WebApp (${environment}${branchSuffix})`,
       ...(props.cloudFrontCertificate && props.hostedZone
         ? {
-            domainNames: [webappDomain],
+            domainNames: distributionDomainNames,
             certificate: props.cloudFrontCertificate,
           }
         : {}),
@@ -321,6 +323,16 @@ export class WebAppStack extends cdk.Stack {
           new route53Targets.CloudFrontTarget(this.distribution),
         ),
       });
+
+      if (isProd) {
+        new route53.ARecord(this, "WebAppWwwARecord", {
+          zone: props.hostedZone,
+          recordName: wwwWebappDomain,
+          target: route53.RecordTarget.fromAlias(
+            new route53Targets.CloudFrontTarget(this.distribution),
+          ),
+        });
+      }
 
       this.webappUrl = webappUrl;
     } else {

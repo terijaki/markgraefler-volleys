@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import { Match, Template } from "aws-cdk-lib/assertions";
+import * as route53 from "aws-cdk-lib/aws-route53";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { CACHE_TABLE_ENV_VAR, CONTENT_TABLE_ENV_VAR } from "./db/env";
 import { createTestApp } from "./test-helpers";
@@ -221,6 +223,50 @@ describe("WebAppStack", () => {
           CDK_ENVIRONMENT: "dev",
         }),
       },
+    });
+  });
+
+  it("configures production aliases for apex and www domains", () => {
+    const app = createTestApp();
+    const dependencies = createDependencies();
+
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(app, "HostedZone", {
+      hostedZoneId: "Z1234567890",
+      zoneName: "markgraefler-volleys.de",
+    });
+    const cloudFrontCertificate = acm.Certificate.fromCertificateArn(
+      app,
+      "CloudFrontCertificate",
+      "arn:aws:acm:us-east-1:123456789012:certificate/mock-certificate-id",
+    );
+
+    const stack = new WebAppStack(app, "TestStack", {
+      env: testEnv,
+      stackProps: {
+        environment: "prod",
+        branch: "",
+      },
+      hostedZone,
+      cloudFrontCertificate,
+      ...dependencies,
+    });
+
+    const template = Template.fromStack(stack);
+
+    template.hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: {
+        Aliases: ["markgraefler-volleys.de", "www.markgraefler-volleys.de"],
+      },
+    });
+
+    template.resourceCountIs("AWS::Route53::RecordSet", 2);
+    template.hasResourceProperties("AWS::Route53::RecordSet", {
+      Name: "markgraefler-volleys.de.",
+      Type: "A",
+    });
+    template.hasResourceProperties("AWS::Route53::RecordSet", {
+      Name: "www.markgraefler-volleys.de.",
+      Type: "A",
     });
   });
 
