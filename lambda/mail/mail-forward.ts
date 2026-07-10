@@ -8,7 +8,7 @@
  *   3. Extract the To address (recipient alias) from MIME headers.
  *   4. Apply branch plus-address stripping in dev environments.
  *   5. Resolve recipient:
- *      a. Check hardcoded group aliases (trainer@, vorstand@, info@).
+ *      a. Check hardcoded group aliases (trainer@, info@).
  *      b. Fall back to individual proxy email lookup in DynamoDB.
  *   6. Forward raw MIME via SES — rewrite From, add Reply-To.
  *
@@ -93,27 +93,14 @@ async function resolveGroupAlias(localPart: string): Promise<string[] | null> {
         .go({ pages: "all" });
       return result.data.filter((m) => m.privateEmail).map((m) => m.privateEmail as string);
     },
-    vorstand: async () => {
-      const result = await db.member.query
-        .byType({ type: "member" })
-        .where((attr, op) => op.eq(attr.isBoardMember, true))
-        .go({ pages: "all" });
-      return result.data.filter((m) => m.privateEmail).map((m) => m.privateEmail as string);
-    },
     info: async () => {
-      // info@ routes to trainers + board members (union, deduplicated).
-      const [trainersResult, boardResult] = await Promise.all([
-        db.member.query
-          .byType({ type: "member" })
-          .where((attr, op) => op.eq(attr.isTrainer, true))
-          .go({ pages: "all" }),
-        db.member.query
-          .byType({ type: "member" })
-          .where((attr, op) => op.eq(attr.isBoardMember, true))
-          .go({ pages: "all" }),
-      ]);
+      // info@ routes to trainers.
+      const trainersResult = await db.member.query
+        .byType({ type: "member" })
+        .where((attr, op) => op.eq(attr.isTrainer, true))
+        .go({ pages: "all" });
       const emails = new Set<string>();
-      for (const m of [...trainersResult.data, ...boardResult.data]) {
+      for (const m of trainersResult.data) {
         if (m.privateEmail) emails.add(m.privateEmail);
       }
       return Array.from(emails);
@@ -127,7 +114,7 @@ async function resolveGroupAlias(localPart: string): Promise<string[] | null> {
 
 /**
  * Strip the branch plus-address suffix from a local part so it can be matched
- * against a hardcoded group alias name (trainer, vorstand, info).
+ * against a hardcoded group alias name (trainer, info).
  *
  * Individual member aliases are stored in DDB **with** the suffix
  * (e.g. `max.mueller+feat-x@new.markgraefler-volleys.de`), so their lookup uses the raw
@@ -599,12 +586,12 @@ const lambdaHandler = async (event: unknown) => {
     const [rawLocalPart] = toAddress.split("@");
     if (!rawLocalPart) continue;
 
-    // Strip branch suffix only to recognise group alias names (trainer, vorstand, info).
+    // Strip branch suffix only to recognise group alias names (trainer, info).
     // Individual aliases are stored in DDB WITH the suffix, so toAddress is used
     // directly for those lookups.
     const localPartForGroupCheck = stripBranchSuffix(rawLocalPart);
 
-    // Try group alias resolution first (trainer@, vorstand@, info@)
+    // Try group alias resolution first (trainer@, info@)
     const groupTargets = await resolveGroupAlias(localPartForGroupCheck);
     if (groupTargets !== null) {
       if (groupTargets.length === 0) {

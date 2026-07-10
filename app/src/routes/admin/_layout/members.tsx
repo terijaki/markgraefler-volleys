@@ -272,7 +272,6 @@ const defaultFormValues = {
   privateEmail: "",
   proxyEmail: "",
   phone: "",
-  isBoardMember: false,
   isTrainer: false,
   roleTitle: "",
   avatarS3Key: undefined as string | undefined,
@@ -476,7 +475,6 @@ function MembersPage() {
     form.setFieldValue("privateEmail", member.privateEmail ?? "");
     form.setFieldValue("proxyEmail", member.proxyEmail ?? "");
     form.setFieldValue("phone", member.phone ?? "");
-    form.setFieldValue("isBoardMember", member.isBoardMember ?? false);
     form.setFieldValue("isTrainer", member.isTrainer ?? false);
     form.setFieldValue("roleTitle", member.roleTitle ?? "");
     form.setFieldValue("avatarS3Key", member.avatarS3Key);
@@ -685,15 +683,6 @@ function MembersPage() {
               </form.Field>
 
               <Group gap="md">
-                <form.Field name="isBoardMember">
-                  {(field) => (
-                    <Checkbox
-                      label="Board Member"
-                      checked={field.state.value}
-                      onChange={(e) => field.handleChange(e.currentTarget.checked)}
-                    />
-                  )}
-                </form.Field>
                 <form.Field name="isTrainer">
                   {(field) => (
                     <Checkbox
@@ -830,7 +819,7 @@ function MemberCard({
     enabled: !!member.avatarS3Key,
   });
   const hasDetails = Boolean(member.roleTitle || member.proxyEmail || member.phone);
-  const hasBadges = member.isBoardMember || member.isTrainer || Boolean(member.authRole);
+  const hasBadges = member.isTrainer || Boolean(member.authRole);
 
   return (
     <Card
@@ -906,11 +895,6 @@ function MemberCard({
 
             {hasBadges && (
               <Group gap="xs" wrap="wrap" mt={4}>
-                {member.isBoardMember && (
-                  <Badge size="sm" variant="light" color="blue">
-                    Board
-                  </Badge>
-                )}
                 {member.isTrainer && (
                   <Badge size="sm" variant="light" color="green">
                     Trainer
@@ -993,11 +977,6 @@ function MemberCard({
 
             {hasBadges && (
               <Group gap="xs" wrap="wrap" mt="auto">
-                {member.isBoardMember && (
-                  <Badge size="sm" variant="light" color="blue">
-                    Board
-                  </Badge>
-                )}
                 {member.isTrainer && (
                   <Badge size="sm" variant="light" color="green">
                     Trainer
