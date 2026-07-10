@@ -3,28 +3,18 @@ import { Avatar, Badge, Card, Group, SimpleGrid, Stack, Text } from "@mantine/co
 import { User as IconAvatar } from "lucide-react";
 import { useFileUrls, useMembers } from "../../hooks/dataQueries";
 
-const boardLabel = "Vorstand";
 const trainerLabel = "Trainer:in";
 
 function getMemberFunctions(member: PublicMember): string[] {
   const functions: string[] = [];
 
   if (member.roleTitle?.trim()) functions.push(member.roleTitle.trim());
-  if (member.isBoardMember) functions.push(boardLabel);
   if (member.isTrainer) functions.push(trainerLabel);
 
   return Array.from(new Set(functions));
 }
 
 function sortMembers(a: PublicMember, b: PublicMember): number {
-  const aBoard = a.isBoardMember ? 1 : 0;
-  const bBoard = b.isBoardMember ? 1 : 0;
-  if (aBoard !== bBoard) return bBoard - aBoard;
-
-  const aTrainer = a.isTrainer ? 1 : 0;
-  const bTrainer = b.isTrainer ? 1 : 0;
-  if (aTrainer !== bTrainer) return bTrainer - aTrainer;
-
   return a.name.localeCompare(b.name, "de");
 }
 
@@ -32,9 +22,7 @@ export default function MembersDirectory() {
   const { data, isLoading } = useMembers();
   const members = data?.items || [];
 
-  const relevantMembers = members.filter(
-    (member) => member.isBoardMember || member.isTrainer || member.roleTitle,
-  );
+  const relevantMembers = members.filter((member) => member.isTrainer || member.roleTitle);
   const uniqueMembers = Array.from(
     new Map(relevantMembers.map((member) => [member.id, member])).values(),
   );
@@ -70,7 +58,7 @@ export default function MembersDirectory() {
   }
 
   return (
-    <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+    <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }} spacing="md">
       {displayMembers.map((member) => {
         const functions = getMemberFunctions(member);
         const avatarUrl = member.avatarS3Key ? avatarUrlByS3Key.get(member.avatarS3Key) : undefined;

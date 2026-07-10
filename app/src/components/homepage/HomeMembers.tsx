@@ -1,7 +1,6 @@
 import type { PublicMember } from "@webapp/server/functions/members";
 import { Avatar, Box, Container, Group, Stack, Text } from "@mantine/core";
 import { User as IconAvatar } from "lucide-react";
-import { shuffleArray } from "@utils/shuffleArray";
 import { useMembers } from "../../hooks/dataQueries";
 import { useFileUrl } from "../../hooks/dataQueries";
 import SectionHeading from "../layout/SectionHeading";
@@ -12,13 +11,11 @@ export default function HomeMembers() {
   if (isLoading) return null;
   const members = data?.items || [];
 
-  const relevantMembers = members.filter(
-    (member) => member.isBoardMember || member.isTrainer || member.roleTitle,
-  );
+  const relevantMembers = members.filter((member) => member.isTrainer || member.roleTitle);
   const uniqueMembers = Array.from(
     new Map(relevantMembers.map((member) => [member.id, member])).values(),
   );
-  const displayMembers = shuffleArray(uniqueMembers);
+  const displayMembers = [...uniqueMembers].sort((a, b) => a.name.localeCompare(b.name, "de"));
 
   return (
     <Box className="mv-section">
