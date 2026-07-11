@@ -90,7 +90,6 @@ export const MemberEntity = new Entity({
     privateEmail: { type: "string", get: (val: string | undefined) => val?.trim() },
     proxyEmail: { type: "string", get: (val: string | undefined) => val?.trim() },
     phone: { type: "string" },
-    isBoardMember: { type: "boolean" },
     isTrainer: { type: "boolean" },
     roleTitle: { type: "string" },
     avatarS3Key: { type: "string" },

@@ -61,7 +61,6 @@ export const memberSchema = z.object({
     .optional()
     .describe("Public proxy alias — used in all public mailto flows"),
   phone: z.string().optional(),
-  isBoardMember: z.boolean().optional(),
   isTrainer: z.boolean().optional(),
   roleTitle: z.string().max(100).optional(),
   avatarS3Key: z.string().optional(),
