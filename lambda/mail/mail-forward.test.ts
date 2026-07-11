@@ -675,23 +675,19 @@ describe("mail-forward Lambda", () => {
       expect(result).toMatchObject({ statusCode: 200, body: "forwarded: 2" });
     });
 
-    test("info@ forwards to union of trainers and board members, deduplicated", async () => {
+    test("info@ forwards to all trainers with a privateEmail", async () => {
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
           transformToString: vi.fn().mockResolvedValue(makeMime("info@markgraefler-volleys.de")),
         } as never,
       });
-      // Two parallel queries (trainers, board) — a member in both is deduplicated via Set
-      mockByTypeWhereGo
-        .mockResolvedValueOnce({
-          data: [{ id: "t1", isTrainer: true, privateEmail: "trainer@example.com" }],
-        })
-        .mockResolvedValueOnce({
-          data: [
-            { id: "b1", isBoardMember: true, privateEmail: "board@example.com" },
-            { id: "t1", isTrainer: true, isBoardMember: true, privateEmail: "trainer@example.com" }, // also a trainer — deduplicated
-          ],
-        });
+      mockByTypeWhereGo.mockResolvedValue({
+        data: [
+          { id: "t1", isTrainer: true, privateEmail: "trainer@example.com" },
+          { id: "t2", isTrainer: true, privateEmail: "trainer2@example.com" },
+          { id: "t3", isTrainer: true, privateEmail: undefined }, // excluded
+        ],
+      });
 
       const result = await handler(makeEvent("emails/info-group.eml"), mockLambdaContext as never);
 
@@ -699,7 +695,7 @@ describe("mail-forward Lambda", () => {
       expect(sesCalls).toHaveLength(2);
       const destinations = sesCalls.map((c) => c.args[0].input.Destination!.ToAddresses![0]);
       expect(destinations).toContain("trainer@example.com");
-      expect(destinations).toContain("board@example.com");
+      expect(destinations).toContain("trainer2@example.com");
       expect(result).toMatchObject({ statusCode: 200, body: "forwarded: 2" });
     });
   });
