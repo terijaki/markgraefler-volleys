@@ -23,7 +23,8 @@ createClient({
     },
     {
       name: "@hey-api/client-fetch",
-      runtimeConfigPath: "@codegen/sams/hey-api.ts", // Emit an alias import in generated/client.gen.ts so TS/esbuild resolve it consistently.
+      // Since @hey-api/openapi-ts 0.97, runtimeConfigPath resolves relative to the CWD (like `output.path`).
+      runtimeConfigPath: "./codegen/sams/hey-api.ts",
     },
     {
       name: "@hey-api/sdk",
