@@ -48,3 +48,15 @@ Subfolder-level `AGENTS.md` files contain additional context for specific areas 
 - Keep edits minimal and focused: follow existing file patterns (imports, export shapes, naming).
 - Prefer small, reviewable PRs that change one area (frontend, lambda, or infra) at a time.
 - When updating infra (`lib/*.ts`), include `cdk synth` output notes and required context (e.g., environment variables, AWS profile).
+
+## Agent skills
+
+Agent workflows live in `.agents/skills/`. Invoke them when the user names a skill or the task matches a skill description.
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues, and external pull requests are also treated as a triage request surface. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
+### Domain docs
+
+Domain docs are configured as single-context (root `CONTEXT.md` plus root `docs/adr/`). See [`docs/agents/domain.md`](docs/agents/domain.md).
