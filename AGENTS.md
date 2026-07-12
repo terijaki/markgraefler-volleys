@@ -7,7 +7,7 @@ Subfolder-level `AGENTS.md` files contain additional context for specific areas 
 
 - **Unified monorepo** with bun workspaces: `app` (single TanStack Start app + Nitro backend).
 - **Frontend & SSR:** TanStack Start with file-based routes, Mantine UI components — see [`app/AGENTS.md`](app/AGENTS.md).
-- **Server functions:** Nitro-backed server functions under `app/src/server/functions/`.
+- **Server functions:** Nitro-backed server functions under `app/src/server/functions/` — use the `*.ts` / `*.server.ts` split documented in [`app/AGENTS.md`](app/AGENTS.md).
 - **Backend/Infra:** AWS CDK (in `lib/`, `bin/cdk.ts`) producing WebApp Lambda, API Gateway, DynamoDB, S3 — see [`lib/AGENTS.md`](lib/AGENTS.md).
 - **Background Lambdas:** Sync tasks, ICS/Sitemap/Social handlers under `lambda/` — see [`lambda/AGENTS.md`](lambda/AGENTS.md).
 - **Shared runtime code:** `lib/db/` (repository layer), `lib/*-stack.ts` (CDK stacks), `lib/db/schemas.ts` (DB schemas).
@@ -48,3 +48,15 @@ Subfolder-level `AGENTS.md` files contain additional context for specific areas 
 - Keep edits minimal and focused: follow existing file patterns (imports, export shapes, naming).
 - Prefer small, reviewable PRs that change one area (frontend, lambda, or infra) at a time.
 - When updating infra (`lib/*.ts`), include `cdk synth` output notes and required context (e.g., environment variables, AWS profile).
+
+## Agent skills
+
+Agent workflows live in `.agents/skills/`. Invoke them when the user names a skill or the task matches a skill description.
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues, and external pull requests are also treated as a triage request surface. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
+### Domain docs
+
+Domain docs are configured as single-context (root `CONTEXT.md` plus root `docs/adr/`). See [`docs/agents/domain.md`](docs/agents/domain.md).

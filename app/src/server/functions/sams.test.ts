@@ -1,15 +1,14 @@
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
+import { triggerSamsClubsSyncFn, triggerSamsTeamsSyncFn } from "./sams";
 import {
   buildLiveMatchesFromRaw,
   createSamsMatchesCacheKey,
   invokeSamsLambdaAsync,
-  resolveEffectiveSamsSportsclubUuids,
   resolveClubLogoUrl,
-  triggerSamsClubsSyncFn,
-  triggerSamsTeamsSyncFn,
-} from "./sams";
+  resolveEffectiveSamsSportsclubUuids,
+} from "./sams.server";
 
 describe("resolveClubLogoUrl", () => {
   const CF = "https://cdn.example.com";
