@@ -3,6 +3,7 @@ import {
   canonicalizeProxyAlias,
   getProxyAliasBranchName,
   getProxyAliasDomain,
+  isProdProxyAliasDomain,
   normalizeAliasLocalPart,
   parseProxyAlias,
   suggestProxyAlias,
@@ -74,6 +75,12 @@ describe("suggestProxyAlias", () => {
     );
   });
 
+  test("sanitizes slashes in branch names for valid plus-address suffixes", () => {
+    expect(
+      suggestProxyAlias("Julia Fischer", "new.markgraefler-volleys.de", "terijaki/f3ed6e0f"),
+    ).toBe("julia.fischer+terijaki-f3ed6e0f@new.markgraefler-volleys.de");
+  });
+
   test("applies duplicate numbering before the branch suffix", () => {
     expect(suggestProxyAlias("Max Müller", "new.markgraefler-volleys.de", "email-proxy", 2)).toBe(
       "max.mueller2+email-proxy@new.markgraefler-volleys.de",
@@ -90,6 +97,60 @@ describe("proxy alias environment helpers", () => {
   test("uses the development recipient domain and branch suffix outside prod", () => {
     expect(getProxyAliasDomain("dev")).toBe("new.markgraefler-volleys.de");
     expect(getProxyAliasBranchName("dev", "email-proxy")).toBe("email-proxy");
+  });
+
+  test("infers recipient domain from hostname when build-time env is missing", () => {
+    const previousEnvironment = process.env.CDK_ENVIRONMENT;
+    delete process.env.CDK_ENVIRONMENT;
+
+    try {
+      expect(getProxyAliasDomain(undefined, "markgraefler-volleys.de")).toBe(
+        "markgraefler-volleys.de",
+      );
+      expect(getProxyAliasDomain(undefined, "www.markgraefler-volleys.de")).toBe(
+        "markgraefler-volleys.de",
+      );
+      expect(getProxyAliasDomain(undefined, "dev.new.markgraefler-volleys.de")).toBe(
+        "new.markgraefler-volleys.de",
+      );
+    } finally {
+      if (previousEnvironment === undefined) {
+        delete process.env.CDK_ENVIRONMENT;
+      } else {
+        process.env.CDK_ENVIRONMENT = previousEnvironment;
+      }
+    }
+  });
+
+  test("prefers dev hostname over build-time prod env", () => {
+    expect(getProxyAliasDomain("prod", "dev.new.markgraefler-volleys.de")).toBe(
+      "new.markgraefler-volleys.de",
+    );
+  });
+
+  test("keeps branch suffix on dev domain when build-time env is prod", () => {
+    expect(getProxyAliasBranchName("prod", "email-proxy", "new.markgraefler-volleys.de")).toBe(
+      "email-proxy",
+    );
+  });
+
+  test("sanitizes slashes in raw branch names for alias suffixes", () => {
+    expect(getProxyAliasBranchName("dev", "terijaki/f3ed6e0f", "new.markgraefler-volleys.de")).toBe(
+      "terijaki-f3ed6e0f",
+    );
+  });
+
+  test("hides branch suffix on production recipient domains", () => {
+    expect(isProdProxyAliasDomain("markgraefler-volleys.de")).toBe(true);
+    expect(getProxyAliasBranchName("dev", "main", "markgraefler-volleys.de")).toBeUndefined();
+    expect(getProxyAliasBranchName(undefined, "main", "markgraefler-volleys.de")).toBeUndefined();
+  });
+
+  test("hides the main branch suffix outside prod", () => {
+    expect(getProxyAliasBranchName("dev", "main", "new.markgraefler-volleys.de")).toBeUndefined();
+    expect(
+      getProxyAliasBranchName(undefined, "main", "new.markgraefler-volleys.de"),
+    ).toBeUndefined();
   });
 });
 
@@ -138,5 +199,15 @@ describe("canonicalizeProxyAlias", () => {
         "email-proxy",
       ),
     ).toBe("max.mueller@markgraefler-volleys.de");
+  });
+
+  test("rewrites unsanitized branch suffix to sanitized form in dev", () => {
+    expect(
+      canonicalizeProxyAlias(
+        "julia.fischer+terijaki/f3ed6e0f@new.markgraefler-volleys.de",
+        "dev",
+        "terijaki/f3ed6e0f",
+      ),
+    ).toBe("julia.fischer+terijaki-f3ed6e0f@new.markgraefler-volleys.de");
   });
 });
