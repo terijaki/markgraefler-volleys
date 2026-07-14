@@ -91,7 +91,12 @@ async function resolveGroupAlias(localPart: string): Promise<string[] | null> {
         .byType({ type: "member" })
         .where((attr, op) => op.eq(attr.isTrainer, true))
         .go({ pages: "all" });
-      return result.data.filter((m) => m.privateEmail).map((m) => m.privateEmail as string);
+      return collectRoutableEmails(
+        result.data
+          .filter((m) => m.privateEmail)
+          .map((m) => ({ email: m.privateEmail as string, memberId: m.id })),
+        "trainer",
+      );
     },
     info: async () => {
       // info@ routes to trainers.
@@ -101,7 +106,12 @@ async function resolveGroupAlias(localPart: string): Promise<string[] | null> {
         .go({ pages: "all" });
       const emails = new Set<string>();
       for (const m of trainersResult.data) {
-        if (m.privateEmail) emails.add(m.privateEmail);
+        if (!m.privateEmail) continue;
+        const sanitized = sanitizeRoutableEmail(m.privateEmail, {
+          memberId: m.id,
+          source: "info",
+        });
+        if (sanitized) emails.add(sanitized);
       }
       return Array.from(emails);
     },
@@ -187,16 +197,14 @@ function parseOriginalSender(originalFrom: string): ParsedOriginalSender {
   const bareAddressMatch = normalizedOriginalFrom.match(
     /(^|\s|"|'|\()([^\s<>]+@[^\s<>]+)(?=$|\s|"|'|\))/,
   );
-  const originalEmail = (
-    angleAddressMatch?.[1] ||
-    bareAddressMatch?.[2] ||
-    UNKNOWN_SENDER_PLACEHOLDER_EMAIL
-  ).trim();
+  const originalEmail = sanitizeEmailAddress(
+    (angleAddressMatch?.[1] || bareAddressMatch?.[2] || UNKNOWN_SENDER_PLACEHOLDER_EMAIL).trim(),
+  );
 
   let originalName = "";
   if (angleAddressMatch) {
     const beforeAddress = normalizedOriginalFrom.slice(0, angleAddressMatch.index).trim();
-    originalName = beforeAddress.replace(/^"|"$/g, "").trim();
+    originalName = sanitizeHeaderDisplayText(beforeAddress.replace(/^"|"$/g, "").trim());
   }
   if (!originalName) {
     originalName = originalEmail.split("@")[0] || "unknown";
@@ -208,8 +216,188 @@ function parseOriginalSender(originalFrom: string): ParsedOriginalSender {
   };
 }
 
+const INVISIBLE_EMAIL_CHARACTERS = ["\u00a0", "\u200b", "\u200c", "\u200d", "\ufeff"] as const;
+const RFC2047_ENCODED_WORD_PATTERN = /=\?[^?]+\?[BQbq]\?[^?]*\?=/;
+const RFC2047_MAX_ENCODED_WORD_LENGTH = 75;
+const RFC2047_ENCODED_WORD_PREFIX = "=?UTF-8?Q?";
+const RFC2047_ENCODED_WORD_SUFFIX = "?=";
+
+function stripInvisibleEmailCharacters(value: string): string {
+  let stripped = value;
+  for (const char of INVISIBLE_EMAIL_CHARACTERS) {
+    stripped = stripped.split(char).join("");
+  }
+  return stripped;
+}
+
+function stripControlCharacters(value: string): string {
+  let stripped = "";
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if (code >= 0x20 && code !== 0x7f) {
+      stripped += char;
+    }
+  }
+  return stripped;
+}
+
+function sanitizeHeaderDisplayText(value: string): string {
+  return stripInvisibleEmailCharacters(stripControlCharacters(value)).trim();
+}
+
+function sanitizeEmailAddress(email: string): string {
+  const withoutControlChars = stripControlCharacters(email);
+  const withoutInvisibleChars = stripInvisibleEmailCharacters(withoutControlChars);
+  // SES rejects addresses with internal whitespace (not just leading/trailing).
+  return withoutInvisibleChars.replace(/[ \t]/g, "").trim();
+}
+
+function sanitizeRoutableEmail(
+  rawEmail: string,
+  context: { memberId?: string; source: string },
+): string | null {
+  const sanitized = sanitizeEmailAddress(rawEmail);
+  if (!BASIC_EMAIL_REGEX.test(sanitized)) {
+    logger.warn("Skipping unroutable email address", {
+      ...context,
+      rawEmail,
+      sanitizedEmail: sanitized,
+    });
+    return null;
+  }
+  return sanitized;
+}
+
+function collectRoutableEmails(
+  entries: Array<{ email: string; memberId?: string }>,
+  source: string,
+): string[] {
+  const routable = new Set<string>();
+  for (const entry of entries) {
+    const sanitized = sanitizeRoutableEmail(entry.email, {
+      memberId: entry.memberId,
+      source,
+    });
+    if (sanitized) routable.add(sanitized);
+  }
+  return Array.from(routable);
+}
+
+function isRfc2047EncodedWord(value: string): boolean {
+  return RFC2047_ENCODED_WORD_PATTERN.test(value);
+}
+
+function containsNonAscii(value: string): boolean {
+  for (const char of value) {
+    if (char.charCodeAt(0) > 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function encodeQuotedPrintableByte(byte: number): string {
+  if (byte === 32) {
+    return "_";
+  }
+  if (byte === 63) {
+    return "=3F";
+  }
+  if ((byte >= 33 && byte <= 60) || (byte >= 62 && byte <= 126)) {
+    return String.fromCharCode(byte);
+  }
+  return `=${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+}
+
+function wrapRfc2047EncodedWord(quotedPrintablePayload: string): string {
+  return `${RFC2047_ENCODED_WORD_PREFIX}${quotedPrintablePayload}${RFC2047_ENCODED_WORD_SUFFIX}`;
+}
+
+function encodeRfc2047Utf8(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  const qpSegments: string[] = [];
+  for (const byte of bytes) {
+    qpSegments.push(encodeQuotedPrintableByte(byte));
+  }
+
+  const words: string[] = [];
+  let current = "";
+  for (const segment of qpSegments) {
+    const candidate = current + segment;
+    if (wrapRfc2047EncodedWord(candidate).length <= RFC2047_MAX_ENCODED_WORD_LENGTH) {
+      current = candidate;
+      continue;
+    }
+
+    if (current.length > 0) {
+      words.push(wrapRfc2047EncodedWord(current));
+    }
+    current = segment;
+  }
+
+  if (current.length > 0) {
+    words.push(wrapRfc2047EncodedWord(current));
+  }
+
+  return words.join(" ");
+}
+
+function formatDisplayNameForHeader(displayName: string): string {
+  const sanitizedName = sanitizeHeaderDisplayText(displayName);
+  if (!sanitizedName) {
+    return "";
+  }
+
+  if (isRfc2047EncodedWord(sanitizedName)) {
+    return sanitizedName;
+  }
+
+  if (containsNonAscii(sanitizedName)) {
+    return encodeRfc2047Utf8(sanitizedName);
+  }
+
+  const escapedName = sanitizedName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `"${escapedName}"`;
+}
+
+function formatFromHeaderValue(
+  displayName: string,
+  envelopeEmail: string,
+  sourceEmail?: string,
+): string {
+  const sanitizedEmail = sanitizeEmailAddress(envelopeEmail);
+  const formattedDisplayName = formatDisplayNameForHeader(displayName);
+  const compareEmail = sourceEmail ? sanitizeEmailAddress(sourceEmail) : sanitizedEmail;
+  const bareDisplayName = formattedDisplayName.replace(/^"|"$/g, "");
+
+  if (!formattedDisplayName || bareDisplayName === compareEmail.split("@")[0]) {
+    return sanitizedEmail;
+  }
+
+  return `${formattedDisplayName} <${sanitizedEmail}>`;
+}
+
+function formatMailboxHeaderValue(name: string, email: string): string {
+  const sanitizedEmail = sanitizeEmailAddress(email);
+  const formattedDisplayName = formatDisplayNameForHeader(name);
+
+  if (
+    !formattedDisplayName ||
+    formattedDisplayName.replace(/^"|"$/g, "") === sanitizedEmail.split("@")[0]
+  ) {
+    return sanitizedEmail;
+  }
+
+  return `${formattedDisplayName} <${sanitizedEmail}>`;
+}
+
+function shouldPreserveReplyToHeader(originalFrom: string): boolean {
+  const trimmed = originalFrom.replace(/\s+/g, " ").trim();
+  return /<[^<>]+@[^<>]+>/.test(trimmed) && isRfc2047EncodedWord(trimmed);
+}
+
 function canNotifySender(senderEmail: string): boolean {
-  const normalizedSenderEmail = senderEmail.trim().toLowerCase();
+  const normalizedSenderEmail = sanitizeEmailAddress(senderEmail).toLowerCase();
   return (
     normalizedSenderEmail.length > 0 &&
     normalizedSenderEmail !== UNKNOWN_SENDER_PLACEHOLDER_EMAIL &&
@@ -268,9 +456,9 @@ async function notifySenderAboutOversizedEmail(params: {
 
   await ses.send(
     new SendEmailCommand({
-      FromEmailAddress: FORWARD_FROM_EMAIL,
+      FromEmailAddress: sanitizeEmailAddress(FORWARD_FROM_EMAIL),
       Destination: {
-        ToAddresses: [senderEmail],
+        ToAddresses: [sanitizeEmailAddress(senderEmail)],
       },
       Content: {
         Simple: {
@@ -302,6 +490,9 @@ function splitMimeIntoHeadersAndBody(rawMime: string): { headers: string; body: 
   };
 }
 
+const BLOCKED_FORWARD_HEADER_PATTERN =
+  /^(return-path|sender|dkim-signature|arc-seal|arc-message-signature|arc-authentication-results|authentication-results|received-spf|reply-to|cc|bcc|disposition-notification-to|return-receipt-to|x-original-to):/i;
+
 function stripBlockedForwardHeaders(headers: string): string {
   const headerLines = headers.split(/\r?\n/);
   const strippedHeaders: string[] = [];
@@ -315,7 +506,7 @@ function stripBlockedForwardHeaders(headers: string): string {
       continue;
     }
 
-    skipContinuation = /^(return-path|sender):/i.test(line);
+    skipContinuation = BLOCKED_FORWARD_HEADER_PATTERN.test(line);
     if (!skipContinuation) {
       strippedHeaders.push(line);
     }
@@ -324,11 +515,68 @@ function stripBlockedForwardHeaders(headers: string): string {
   return strippedHeaders.join("\r\n");
 }
 
+function replaceHeaderLineAndStripContinuations(
+  headers: string,
+  headerName: "From" | "To",
+  replacementValue: string,
+): string {
+  const headerLines = headers.split(/\r?\n/);
+  const rewrittenHeaders: string[] = [];
+  let skippingContinuation = false;
+  const headerPattern = new RegExp(`^${headerName}:`, "i");
+
+  for (const line of headerLines) {
+    if (/^[ \t]/.test(line)) {
+      if (!skippingContinuation) {
+        rewrittenHeaders.push(line);
+      }
+      continue;
+    }
+
+    if (headerPattern.test(line)) {
+      rewrittenHeaders.push(`${headerName}: ${replacementValue}`);
+      skippingContinuation = true;
+      continue;
+    }
+
+    skippingContinuation = false;
+    rewrittenHeaders.push(line);
+  }
+
+  return rewrittenHeaders.join("\r\n");
+}
+
 function buildForwardFromHeaderValue(originalFrom: string, newFrom: string): string {
   const sender = parseOriginalSender(originalFrom);
-  const fromDisplayText = `${sender.name} (${sender.email})`;
-  const escapedFromDisplayText = fromDisplayText.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  return `"${escapedFromDisplayText}" <${newFrom}>`;
+  return formatFromHeaderValue(sender.name, newFrom, sender.email);
+}
+
+function buildPreservedReplyToHeaderValue(originalFrom: string): string {
+  const normalized = originalFrom.replace(/\s+/g, " ").trim();
+  const sender = parseOriginalSender(originalFrom);
+  const angleAddressMatch = normalized.match(/<[^<>]+@[^<>]+>/);
+
+  if (!angleAddressMatch || angleAddressMatch.index === undefined) {
+    return formatMailboxHeaderValue(sender.name, sender.email);
+  }
+
+  const displayName = normalized.slice(0, angleAddressMatch.index).trim();
+  const sanitizedEmail = sanitizeEmailAddress(sender.email);
+
+  if (!displayName) {
+    return sanitizedEmail;
+  }
+
+  return `${displayName} <${sanitizedEmail}>`;
+}
+
+function buildReplyToHeaderValue(originalFrom: string): string {
+  if (shouldPreserveReplyToHeader(originalFrom)) {
+    return buildPreservedReplyToHeaderValue(originalFrom);
+  }
+
+  const sender = parseOriginalSender(originalFrom);
+  return formatMailboxHeaderValue(sender.name, sender.email);
 }
 
 function applyForwardingHeaderRewrites(
@@ -337,18 +585,13 @@ function applyForwardingHeaderRewrites(
   rewrittenFrom: string,
   newTo: string,
 ): string {
-  let rewritten = headers
-    // Replace From header
-    .replace(/^from:.*$/im, `From: ${rewrittenFrom}`)
-    // Replace To header
-    .replace(/^to:.*$/im, `To: ${newTo}`);
+  const sanitizedTo = sanitizeEmailAddress(newTo);
+  const replyTo = buildReplyToHeaderValue(originalFrom);
 
-  // Add Reply-To header if not already present
-  if (!/^reply-to:/im.test(rewritten)) {
-    rewritten += `\r\nReply-To: ${originalFrom}`;
-  }
+  let rewritten = replaceHeaderLineAndStripContinuations(headers, "From", rewrittenFrom);
+  rewritten = replaceHeaderLineAndStripContinuations(rewritten, "To", sanitizedTo);
 
-  return rewritten;
+  return `${rewritten}\r\nReply-To: ${replyTo}`;
 }
 
 /**
@@ -389,14 +632,16 @@ function extractFromAddress(rawMime: string): string {
 
 async function sendForwardedEmail(input: SendForwardedEmailInput): Promise<ForwardSendResult> {
   const { rawMime, originalFrom, newFrom, target, s3Key, errorContext } = input;
+  const sanitizedTarget = sanitizeEmailAddress(target);
+  const sanitizedFrom = sanitizeEmailAddress(newFrom);
 
   try {
-    const rewritten = rewriteMimeHeaders(rawMime, originalFrom, newFrom, target);
+    const rewritten = rewriteMimeHeaders(rawMime, originalFrom, sanitizedFrom, sanitizedTarget);
     await ses.send(
       new SendEmailCommand({
-        FromEmailAddress: newFrom,
+        FromEmailAddress: sanitizedFrom,
         Destination: {
-          ToAddresses: [target],
+          ToAddresses: [sanitizedTarget],
         },
         Content: {
           Raw: {
@@ -415,22 +660,44 @@ async function sendForwardedEmail(input: SendForwardedEmailInput): Promise<Forwa
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const rewrittenFrom = buildForwardFromHeaderValue(originalFrom, sanitizedFrom);
+    const replyTo = buildReplyToHeaderValue(originalFrom);
+    const sentryExtra = {
+      target: sanitizedTarget,
+      originalTarget: target,
+      s3Key,
+      originalFrom,
+      rewrittenFrom,
+      replyTo,
+      ...(errorContext.kind === "individual" ? { toAddress: errorContext.toAddress } : {}),
+    };
 
     if (errorContext.kind === "group") {
-      logger.error("Failed to forward to group member", { target, error: message });
-      Sentry.captureException(err, { extra: { target, s3Key } });
+      logger.error("Failed to forward to group member", {
+        target: sanitizedTarget,
+        originalTarget: target,
+        error: message,
+        originalFrom,
+        rewrittenFrom,
+        replyTo,
+      });
+      Sentry.captureException(err, { extra: sentryExtra });
     } else {
       logger.error("Failed to forward individual alias", {
         toAddress: errorContext.toAddress,
+        target: sanitizedTarget,
         error: message,
+        originalFrom,
+        rewrittenFrom,
+        replyTo,
       });
-      Sentry.captureException(err, { extra: { toAddress: errorContext.toAddress, s3Key } });
+      Sentry.captureException(err, { extra: sentryExtra });
     }
 
     return {
       success: false,
       error: message,
-      target,
+      target: sanitizedTarget,
     };
   }
 }
@@ -637,12 +904,24 @@ const lambdaHandler = async (event: unknown) => {
       continue;
     }
 
+    const sanitizedPrivateEmail = sanitizeRoutableEmail(member.privateEmail, {
+      memberId: member.id,
+      source: "individual",
+    });
+    if (!sanitizedPrivateEmail) {
+      logger.info("Member private email is not routable — skipping", {
+        toAddress,
+        memberId: member.id,
+      });
+      continue;
+    }
+
     logger.info("Forwarding individual alias", { toAddress, targetMember: member.id });
     const result = await sendForwardedEmail({
       rawMime,
       originalFrom,
       newFrom: FORWARD_FROM_EMAIL,
-      target: member.privateEmail,
+      target: sanitizedPrivateEmail,
       s3Key,
       errorContext: { kind: "individual", toAddress },
     });
