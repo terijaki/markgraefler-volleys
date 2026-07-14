@@ -250,6 +250,63 @@ describe("mail-forward Lambda", () => {
       );
     });
 
+    test("removes DKIM-Signature headers before forwarding", async () => {
+      mockByProxyEmailGo.mockResolvedValue({
+        data: [
+          {
+            id: "m1",
+            proxyEmail: "max.mustermann@markgraefler-volleys.de",
+            privateEmail: "max@example.com",
+          },
+        ],
+      });
+      s3Mock.on(GetObjectCommand).resolves({
+        Body: {
+          transformToString: vi
+            .fn()
+            .mockResolvedValue(
+              [
+                "DKIM-Signature: v=1; a=rsa-sha256; d=gmail.com; s=20230601;",
+                " h=from:to:subject:date;",
+                " b=abc123",
+                "Authentication-Results: mx.google.com;",
+                " dkim=pass header.i=@gmail.com header.s=20230601",
+                "DKIM-Signature: v=1; a=rsa-sha256; d=hotmail.com; s=selector1;",
+                " h=from:to:subject:date;",
+                " b=def456",
+                "ARC-Seal: i=1; a=rsa-sha256; t=1234567890; cv=none;",
+                " d=example.com; s=arc; b=xyz789",
+                "Received-SPF: pass (google.com: domain of sender@gmail.com",
+                " designates 209.85.128.0/17 as permitted sender)",
+                "From: sender@gmail.com",
+                "To: max.mustermann@markgraefler-volleys.de",
+                "Subject: Test",
+                "",
+                "Hello world",
+              ].join("\n"),
+            ),
+        } as never,
+      });
+
+      const result = await handler(
+        makeEvent("emails/dkim-signature-test.eml"),
+        mockLambdaContext as never,
+      );
+
+      const sesCalls = getForwardCalls();
+      expect(sesCalls).toHaveLength(1);
+      expect(result).toMatchObject({ statusCode: 200, body: "forwarded: 1" });
+
+      const rawMime = Buffer.from(sesCalls[0].args[0].input.Content!.Raw!.Data!).toString();
+      expect(rawMime).not.toMatch(/^DKIM-Signature:/im);
+      expect(rawMime).not.toMatch(/^Authentication-Results:/im);
+      expect(rawMime).not.toMatch(/^ARC-Seal:/im);
+      expect(rawMime).not.toMatch(/^Received-SPF:/im);
+      expect(rawMime).toMatch(
+        /^From: "sender \(sender@gmail\.com\)" <postmaster@markgraefler-volleys\.de>$/im,
+      );
+    });
+
     test("in dev, looks up DDB with the full plus-address (suffix included)", async () => {
       // In dev the admin stores max.mueller+feat-x@markgraefler-volleys.de in DDB.
       // The inbound email also carries that full address in To:.
