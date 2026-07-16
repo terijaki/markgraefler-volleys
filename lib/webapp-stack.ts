@@ -33,6 +33,7 @@ import {
   computeSamsDataTableName,
 } from "./db/env";
 import { buildWebappDomain, buildWebappUrl } from "@utils/webapp-url";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
 export interface WebAppStackProps extends cdk.StackProps {
   stackProps?: {
@@ -62,7 +63,7 @@ export class WebAppStack extends cdk.Stack {
 
     const environment = props.stackProps?.environment || "dev";
     const branch = props.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
     const isProd = environment === "prod";
     const isCdkDestroy = process.env.CDK_DESTROY === "true";
     // prod: markgraefler-volleys.de  dev: dev.new.markgraefler-volleys.de  feature: dev-<branch>.new.markgraefler-volleys.de

@@ -15,6 +15,7 @@ import type * as s3 from "aws-cdk-lib/aws-s3";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import type { Construct } from "constructs";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
 export interface MonitoringStackProps extends cdk.StackProps {
   stackProps?: {
@@ -64,7 +65,7 @@ export class MonitoringStack extends cdk.Stack {
 
     const environment = props.stackProps?.environment || "dev";
     const branch = props.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
     const isProd = environment === "prod";
 
     // ==================== SNS Topics ====================

@@ -25,25 +25,27 @@ Stable resource names are computed in `lib/mail-env.ts` (no CloudFormation cross
 
 ## Deploy guard
 
-`MailInfraStack` is synthesized **only** when `CDK_DEPLOY_MAIL_INFRA=true`. Routine `cdk deploy --all` from feature branches never includes it.
+`MailInfraStack` is synthesized **only** when `CDK_DEPLOY_MAIL_INFRA=true`, and that mode synthesizes **only** `MailInfraStack` (no webapp build or other branch stacks). Routine `cdk deploy --all` from feature branches never includes it.
 
 ### Maintainer commands
 
 Authenticate via AWS SSO first (see `docs/SETUP.md`).
 
-**Dev (greenfield bootstrap):**
+**Dev (bootstrap):**
 
 ```bash
 # 1. Deploy shared mail infrastructure
 vpr cdk:deploy:mail-infra
 
-# 2. Deploy branch mail processing (example: main branch)
+# 2. Deploy branch mail processing (if not already deployed)
 vpr cdk:deploy:all
 
-# 3. Verify end-to-end, then remove leftover manual dev mail resources
+# 3. Verify end-to-end (inbound alias forward, OTP send in dev)
 ```
 
-**Prod (recreate + cutover):**
+If deploy fails on `ResourceExistenceCheck`, remove the conflicting manual SES/DNS/inbound resources in the AWS Console, then retry deploy.
+
+**Prod (cutover):**
 
 Schedule a low-traffic window. MX TTL is 300s — allow ~5 minutes after DNS changes.
 
@@ -51,12 +53,8 @@ Schedule a low-traffic window. MX TTL is 300s — allow ~5 minutes after DNS cha
 
 1. Snapshot current DKIM tokens, MAIL FROM DNS, and DMARC values from Route53.
 2. Disable prod `MailStack` EventBridge rule temporarily (AWS Console or CLI).
-3. Delete old manual resources that CDK will recreate:
-   - Active SES receipt rule set and rules
-   - Manual inbound S3 bucket
-   - SES domain identity
-   - Manual IAM role for SES→S3 writes
-   - Mail-related Route53 records CDK will recreate (MX, DMARC, DKIM, MAIL FROM)
+3. Remove old manual resources that CDK will recreate (SES identity, receipt rule set, inbound bucket, mail DNS records — MX, DMARC, DKIM, MAIL FROM).
+
 4. **Preserve:** apex web A records (CloudFront), www, media, NS, SOA, and dev zone delegation.
 
 ### Cutover sequence

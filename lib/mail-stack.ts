@@ -16,6 +16,7 @@ import { Club } from "@/project.config";
 import type { MailForwardLambdaEnvironment } from "@/lambda/mail/types";
 import { MvNodejsFunction } from "./construct/mv-nodejs-function";
 import { computeMailInboundBucketName, getMailEnvironmentConfig } from "./mail-env";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
 interface MailStackProps extends cdk.StackProps {
   stackProps?: {
@@ -46,7 +47,7 @@ export class MailStack extends cdk.Stack {
 
     const environment = props.stackProps?.environment || "dev";
     const branch = props.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
     const isProd = environment === "prod";
 
     const mailConfig = getMailEnvironmentConfig(environment);
