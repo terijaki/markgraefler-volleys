@@ -7,12 +7,12 @@
       "dependencies": {
         "@aws-lambda-powertools/logger": "^2.33.1",
         "@aws-lambda-powertools/tracer": "^2.33.1",
-        "@aws-sdk/client-dynamodb": "^3.1075.0",
-        "@aws-sdk/client-s3": "^3.1075.0",
-        "@aws-sdk/client-sesv2": "^3.1075.0",
-        "@aws-sdk/lib-dynamodb": "^3.1075.0",
-        "@aws-sdk/s3-request-presigner": "^3.1075.0",
-        "@aws-sdk/util-dynamodb": "^3.996.5",
+        "@aws-sdk/client-dynamodb": "3.1075.0",
+        "@aws-sdk/client-s3": "3.1075.0",
+        "@aws-sdk/client-sesv2": "3.1075.0",
+        "@aws-sdk/lib-dynamodb": "3.1075.0",
+        "@aws-sdk/s3-request-presigner": "3.1075.0",
+        "@aws-sdk/util-dynamodb": "3.996.5",
         "@mantine/core": "^9.4.0",
         "@mantine/dates": "^9.4.0",
         "@mantine/dropzone": "^9.4.0",
@@ -50,7 +50,7 @@
         "zod": "^4.4.3",
       },
       "devDependencies": {
-        "@aws-sdk/client-lambda": "^3.1075.0",
+        "@aws-sdk/client-lambda": "3.1075.0",
         "@behold/types": "^0.3.4",
         "@hey-api/openapi-ts": "^0.97.3",
         "@playwright/test": "^1.61.1",
@@ -78,9 +78,6 @@
         "vite-plus": "0.2.1",
       },
     },
-  },
-  "overrides": {
-    "@aws-sdk/lib-dynamodb": "3.1075.0",
   },
   "packages": {
     "@apm-js-collab/code-transformer": ["@apm-js-collab/code-transformer@0.15.0", "", { "dependencies": { "@types/estree": "^1.0.8", "astring": "^1.9.0", "esquery": "^1.7.0", "meriyah": "^6.1.4", "semifies": "^1.0.0", "source-map": "^0.6.0" }, "bin": { "code-transformer": "cli.js" } }, "sha512-XmXYVs8CzJ1Aj79noVbn2weUO/XWtRyURpGqx7aU7DOXlUQhR0WKOQNF0okh7PCeY37vxf7kU3v57OAkEPm3ww=="],
