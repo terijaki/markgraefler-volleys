@@ -14,6 +14,7 @@ import type {
 import { computeSamsDataTableName } from "./db/env";
 import { SamsTableIndexes } from "./db/sams-electrodb-entities";
 import { buildLambdaFunctionName, MvNodejsFunction } from "./construct/mv-nodejs-function";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
 interface SamsStackProps extends cdk.StackProps {
   stackProps?: {
@@ -38,7 +39,7 @@ export class SamsStack extends cdk.Stack {
     const environment = props?.stackProps?.environment || "dev";
     const isProd = environment === "prod";
     const branch = props?.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
 
     // Environment variables for all Lambda functions
     const samsKey = process.env.SAMS_API_KEY;

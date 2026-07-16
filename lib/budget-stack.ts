@@ -5,6 +5,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as budgets from "aws-cdk-lib/aws-budgets";
 import type { Construct } from "constructs";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
 export interface BudgetStackProps extends cdk.StackProps {
   stackProps?: {
@@ -20,7 +21,7 @@ export class BudgetStack extends cdk.Stack {
 
     const environment = props.stackProps?.environment || "dev";
     const branch = props.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
 
     const alertThreshold = 5; // USD
     const capThreshold = 10; // USD

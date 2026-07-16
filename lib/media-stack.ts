@@ -13,6 +13,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3Notifications from "aws-cdk-lib/aws-s3-notifications";
 import type { Construct } from "constructs";
 import { Club, LambdaLayers } from "@/project.config";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 import { MvNodejsFunction } from "./construct/mv-nodejs-function";
 
 /**
@@ -21,8 +22,7 @@ import { MvNodejsFunction } from "./construct/mv-nodejs-function";
  * bucket name as a plain string (no CloudFormation cross-stack reference).
  */
 export function computeMediaBucketName(environment: string, branch: string): string {
-  const branchSuffix = branch ? `-${branch}` : "";
-  return `${Club.slug}-media-${environment}${branchSuffix}`;
+  return `${Club.slug}-media-${environment}${computeResourceBranchSuffix(environment, branch)}`;
 }
 
 export interface MediaStackProps extends cdk.StackProps {
@@ -46,7 +46,7 @@ export class MediaStack extends cdk.Stack {
 
     const environment = props?.stackProps?.environment || "dev";
     const branch = props?.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
     const isProd = environment === "prod";
     const envPrefix = isProd ? "" : `${environment}${branchSuffix}-`;
     const baseDomain = isProd ? Club.domain : `new.${Club.domain}`;

@@ -26,8 +26,7 @@ export function getCacheTableName(): string {
  * Single source of truth used by CacheStack, WebAppStack, and SocialMediaStack.
  */
 export function computeCacheTableName(environment: string, branch: string): string {
-  const branchSuffix = branch ? `-${branch}` : "";
-  return `mv-cache-${environment}${branchSuffix}`;
+  return `mv-cache-${environment}${computeResourceBranchSuffix(environment, branch)}`;
 }
 
 /** Environment variable name for the single content table */
@@ -37,6 +36,18 @@ export const tableEnvironmentSchema = z.object({
   CONTENT_TABLE_NAME: z.string().trim().min(1),
 });
 export type TableEnvironment = z.infer<typeof tableEnvironmentSchema>;
+
+/**
+ * Branch suffix for shared AWS resource names (DynamoDB tables, Lambda names, S3 buckets).
+ * Prod resources are environment-scoped only — branch suffix applies in dev.
+ */
+export function computeResourceBranchSuffix(environment: string, branch: string): string {
+  if (environment === "prod") {
+    return "";
+  }
+  return branch ? `-${branch}` : "";
+}
+
 /** Get the single content table name from the environment, throwing if not configured */
 export function getContentTableName(): string {
   const tableName = process.env[CONTENT_TABLE_ENV_VAR];
@@ -53,8 +64,7 @@ export function getContentTableName(): string {
  * — keeping them in sync without a CloudFormation cross-stack reference.
  */
 export function computeContentTableName(environment: string, branch: string): string {
-  const branchSuffix = branch ? `-${branch}` : "";
-  return `mv-content-${environment}${branchSuffix}`;
+  return `mv-content-${environment}${computeResourceBranchSuffix(environment, branch)}`;
 }
 
 /** Environment variable name for the single SAMS data table */
@@ -75,6 +85,5 @@ export function getSamsTableName(): string {
  * vite plugin — keeping them in sync without a CloudFormation cross-stack reference.
  */
 export function computeSamsDataTableName(environment: string, branch: string): string {
-  const branchSuffix = branch ? `-${branch}` : "";
-  return `sams-data-${environment}${branchSuffix}`;
+  return `sams-data-${environment}${computeResourceBranchSuffix(environment, branch)}`;
 }

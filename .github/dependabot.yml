@@ -1,23 +1,25 @@
 version: 2
 updates:
-  - package-ecosystem: "bun"
-    directory: "/"
+  # Single Bun entry — grouped PRs, no duplicate monthly/weekly configs.
+  - package-ecosystem: bun
+    directory: /
     schedule:
-      interval: "monthly"
+      interval: weekly
+      day: monday
+    # Align with bunfig.toml minimumReleaseAge (2 days); security updates bypass cooldown.
     cooldown:
-      default-days: 30
-      semver-major-days: 30
-      semver-minor-days: 14
-      semver-patch-days: 7
-  # Group AWS dependencies for unified update PRs
-  - package-ecosystem: "bun"
-    directory: "/"
+      default-days: 2
+      semver-patch-days: 2
+      semver-minor-days: 7
+      semver-major-days: 14
     groups:
       aws:
         patterns:
           - "@aws-sdk/*"
+          - "@aws-lambda-powertools/*"
+          - "@smithy/*"
+          - "aws-xray-sdk-core"
           - "aws-cdk*"
-          - "cdk-*"
           - "aws-sdk-client-mock"
           - "constructs"
       mantine:
@@ -27,10 +29,6 @@ updates:
       tanstack:
         patterns:
           - "*tanstack*"
-      trpc:
-        patterns:
-          - "*trpc*"
-          - "superjson"
       tiptap:
         patterns:
           - "*tiptap*"
@@ -42,13 +40,13 @@ updates:
           - "@types/react-dom"
           - "babel-plugin-react-compiler"
           - "lucide-react"
-          - "react-icons"
-          - "react-fast-marquee"
           - "react-world-flags"
+      sentry:
+        patterns:
+          - "@sentry/*"
       validation:
         patterns:
           - "zod"
-          - "@biomejs/biome"
           - "typescript"
           - "@types/*"
       dates-and-times:
@@ -60,10 +58,25 @@ updates:
         patterns:
           - "vite"
           - "*vite*"
-    schedule:
-      interval: "weekly"
+          - "vite-plus"
+          - "esbuild"
+          - "tsx"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
     labels:
-      - "dependencies"
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies

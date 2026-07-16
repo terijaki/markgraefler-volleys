@@ -12,9 +12,11 @@ import * as sns from "aws-cdk-lib/aws-sns";
 import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import type { Construct } from "constructs";
-import { Club, Mail } from "@/project.config";
+import { Club } from "@/project.config";
 import type { MailForwardLambdaEnvironment } from "@/lambda/mail/types";
 import { MvNodejsFunction } from "./construct/mv-nodejs-function";
+import { computeMailInboundBucketName, getMailEnvironmentConfig } from "./mail-env";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
 interface MailStackProps extends cdk.StackProps {
   stackProps?: {
@@ -29,7 +31,7 @@ interface MailStackProps extends cdk.StackProps {
  * Branch-scoped mail forwarding stack.
  *
  * Singleton resources (SES receipt rule set, inbound S3 bucket, SES identity)
- * are provisioned once per environment manually — see docs/EMAIL_PROXY_AWS_SETUP.md.
+ * are provisioned by MailInfraStack — see docs/EMAIL_PROXY_MAIL_INFRA.md.
  *
  * This stack deploys only the branch-scoped moving parts:
  *   - EventBridge rule filtering S3 Object Created events from the inbound bucket
@@ -45,10 +47,11 @@ export class MailStack extends cdk.Stack {
 
     const environment = props.stackProps?.environment || "dev";
     const branch = props.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
     const isProd = environment === "prod";
 
-    const mailConfig = isProd ? Mail.prod : Mail.dev;
+    const mailConfig = getMailEnvironmentConfig(environment);
+    const inboundBucketName = computeMailInboundBucketName(environment);
 
     // Dead-letter queue — catches emails that could not be forwarded
     const dlq = new sqs.Queue(this, "MailForwardDlq", {
@@ -57,12 +60,8 @@ export class MailStack extends cdk.Stack {
       enforceSSL: true,
     });
 
-    // Reference the manually provisioned inbound S3 bucket (shared, not branch-scoped)
-    const inboundBucket = s3.Bucket.fromBucketName(
-      this,
-      "InboundBucket",
-      mailConfig.inboundBucketName,
-    );
+    // Reference the environment-scoped inbound S3 bucket (shared, not branch-scoped)
+    const inboundBucket = s3.Bucket.fromBucketName(this, "InboundBucket", inboundBucketName);
 
     // Lambda for mail forwarding
     const mailForward = new MvNodejsFunction(this, "MailForward", {
@@ -121,7 +120,7 @@ export class MailStack extends cdk.Stack {
         detailType: ["Object Created"],
         detail: {
           bucket: {
-            name: [mailConfig.inboundBucketName],
+            name: [inboundBucketName],
           },
         },
       },

@@ -46,6 +46,13 @@ export const DNS = {
   dev: {
     hostedZoneId: "Z09492545ZO3001R9861" as const,
     hostedZoneName: "new.markgraefler-volleys.de" as const,
+    /** Route53 nameservers for prod-zone NS delegation of the dev subdomain. */
+    delegationNameservers: [
+      "ns-1513.awsdns-61.org",
+      "ns-1995.awsdns-57.co.uk",
+      "ns-718.awsdns-25.net",
+      "ns-317.awsdns-39.com",
+    ] as const,
     certificateArn:
       "arn:aws:acm:eu-central-1:926634327887:certificate/a50f8fdd-d27b-49ee-9c2d-0aa3a674cc62" as const,
     cloudFrontCertificateArn:
@@ -62,22 +69,14 @@ export const LambdaLayers = {
   },
 } as const;
 
-/** AWS SES mail configuration (manually created, environment-specific). */
+/** AWS SES mail configuration (environment-specific domain and from addresses). */
 export const Mail = {
   prod: {
     recipientDomain: "markgraefler-volleys.de" as const,
-    inboundBucketName: "mv-mail-inbound-883425316554-eu-central-1-an" as const,
-    receiptRuleSetName: "mv-inbound-prod" as const,
-    receiptRuleName: "store-inbound-prod" as const,
     systemFromEmail: "postmaster@markgraefler-volleys.de" as const,
-    sesRegion: "eu-central-1" as const,
   },
   dev: {
     recipientDomain: "new.markgraefler-volleys.de" as const,
-    inboundBucketName: "mv-mail-inbound-926634327887-eu-central-1-an" as const,
-    receiptRuleSetName: "mv-inbound-dev" as const,
-    receiptRuleName: "store-inbound-dev" as const,
     systemFromEmail: "postmaster@new.markgraefler-volleys.de" as const,
-    sesRegion: "eu-central-1" as const,
   },
 } as const;
