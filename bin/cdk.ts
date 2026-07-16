@@ -8,6 +8,7 @@ import { BudgetStack } from "../lib/budget-stack";
 import { CacheStack } from "../lib/cache-stack";
 import { ContentDbStack } from "../lib/content-db-stack";
 import { DnsStack } from "../lib/dns-stack";
+import { MailInfraStack } from "../lib/mail-infra-stack";
 import { MailStack } from "../lib/mail-stack";
 import { MediaStack } from "../lib/media-stack";
 import { MonitoringStack } from "../lib/monitoring-stack";
@@ -20,6 +21,7 @@ const app = new cdk.App();
 const environment = ENV.CDK_ENVIRONMENT || "dev";
 const isProd = environment === "prod";
 const isDestroy = process.env.CDK_DESTROY === "true";
+const deployMailInfra = process.env.CDK_DEPLOY_MAIL_INFRA === "true";
 
 const branch = getSanitizedBranch();
 
@@ -61,7 +63,23 @@ const dnsStack = new DnsStack(app, dnsStackName, {
   cloudFrontCertificateArn: isProd
     ? DNS.prod.cloudFrontCertificateArn
     : DNS.dev.cloudFrontCertificateArn,
+  devSubdomainDelegation: isProd
+    ? {
+        recordName: "new",
+        nameservers: DNS.dev.delegationNameservers,
+      }
+    : undefined,
 });
+
+if (deployMailInfra) {
+  const mailInfraStackName = isProd ? "MailInfraStack-Prod" : "MailInfraStack-Dev";
+  new MailInfraStack(app, mailInfraStackName, {
+    ...commonStackProps,
+    description: `Mail Infrastructure (SES, DNS, Inbound S3) (${environment})`,
+    hostedZoneId: isProd ? DNS.prod.hostedZoneId : DNS.dev.hostedZoneId,
+    hostedZoneName: isProd ? DNS.prod.hostedZoneName : DNS.dev.hostedZoneName,
+  });
+}
 
 const contentDbStack = new ContentDbStack(app, contentDbStackName, {
   ...commonStackProps,

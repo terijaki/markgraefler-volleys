@@ -9,6 +9,11 @@ export interface DnsStackProps extends cdk.StackProps {
   hostedZoneName: string;
   regionalCertificateArn: string; // Certificate in eu-central-1 for API Gateway
   cloudFrontCertificateArn?: string; // Certificate in us-east-1 for CloudFront
+  /** Prod-only: delegate the dev subdomain to the dev account nameservers. */
+  devSubdomainDelegation?: {
+    recordName: string;
+    nameservers: readonly string[];
+  };
 }
 
 /**
@@ -51,5 +56,14 @@ export class DnsStack extends cdk.Stack {
           props.cloudFrontCertificateArn,
         )
       : undefined;
+
+    if (props.devSubdomainDelegation) {
+      new route53.NsRecord(this, "DevSubdomainDelegation", {
+        zone: this.hostedZone,
+        recordName: props.devSubdomainDelegation.recordName,
+        values: [...props.devSubdomainDelegation.nameservers],
+        ttl: cdk.Duration.hours(1),
+      });
+    }
   }
 }

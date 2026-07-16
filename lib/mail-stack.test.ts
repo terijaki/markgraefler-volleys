@@ -1,5 +1,6 @@
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vite-plus/test";
+import { computeMailInboundBucketName } from "./mail-env";
 import { MailStack } from "./mail-stack";
 import { createTestApp } from "./test-helpers";
 
@@ -106,5 +107,29 @@ describe("MailStack", () => {
     expect(sesForwardStatement).toBeDefined();
     expect(serializedResource).toContain("identity/markgraefler-volleys.de");
     expect(serializedResource).not.toContain("identity/new.markgraefler-volleys.de");
+  });
+
+  it("filters EventBridge on the computed inbound bucket name", () => {
+    const app = createTestApp();
+    const stack = new MailStack(app, "TestMailStackBucketFilter", {
+      env: testEnv,
+      stackProps: {
+        environment: "dev",
+        branch: "feature-x",
+      },
+      contentTableName: "mv-content-dev-feature-x",
+    });
+
+    const template = Template.fromStack(stack);
+
+    template.hasResourceProperties("AWS::Events::Rule", {
+      EventPattern: {
+        detail: {
+          bucket: {
+            name: [computeMailInboundBucketName("dev")],
+          },
+        },
+      },
+    });
   });
 });

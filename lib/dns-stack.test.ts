@@ -105,4 +105,36 @@ describe("DnsStack", () => {
       throw new Error(`Expected no outputs, got: ${outputKeys.join(", ")}`);
     }
   });
+
+  it("should create dev subdomain NS delegation when configured", () => {
+    const app = createTestApp();
+    const stack = new DnsStack(app, "TestStackDelegation", {
+      ...testProps,
+      hostedZoneName: "markgraefler-volleys.de",
+      devSubdomainDelegation: {
+        recordName: "new",
+        nameservers: ["ns-1513.awsdns-61.org", "ns-1995.awsdns-57.co.uk"],
+      },
+    });
+
+    const template = Template.fromStack(stack);
+
+    template.hasResourceProperties("AWS::Route53::RecordSet", {
+      Type: "NS",
+      Name: "new.markgraefler-volleys.de.",
+      ResourceRecords: ["ns-1513.awsdns-61.org", "ns-1995.awsdns-57.co.uk"],
+    });
+
+    if (!stack.hostedZone) {
+      throw new Error("Expected hosted zone to be available");
+    }
+  });
+
+  it("should not create NS delegation without devSubdomainDelegation prop", () => {
+    const app = createTestApp();
+    const stack = new DnsStack(app, "TestStackNoDelegation", testProps);
+
+    const template = Template.fromStack(stack);
+    template.resourceCountIs("AWS::Route53::RecordSet", 0);
+  });
 });
