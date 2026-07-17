@@ -67,6 +67,7 @@
     "aws-xray-sdk-core": "^3.12.0",
     "better-auth": "1.6.20",
     "dayjs": "^1.11.21",
+    "dynamodb-toolbox": "^2.10.0",
     "electrodb": "^3.9.1",
     "lucide-react": "^1.21.0",
     "nitro": "^3.0.260610-beta",

@@ -13,20 +13,10 @@
  */
 
 import { Entity } from "electrodb";
+import { ContentTableIndexes as SharedContentTableIndexes } from "./table-indexes";
 
-/** Shared GSI names used across entities in the single content table */
-export const ContentTableIndexes = {
-  /** Main table index */
-  table: "table",
-  /** Type + date sorted queries (events by startDate, teams by slug) */
-  gsi1: "GSI1-ByTypeAndDate",
-  /** Slug lookups (teams) */
-  gsi3: "GSI3-BySlug",
-  /** Proxy email / identifier lookups (members by proxyEmail, auth verifications) */
-  gsi4: "GSI4-ByIdentifier",
-  /** Private email lookups (members by privateEmail) */
-  gsi5: "GSI5-ByPrivateEmail",
-} as const;
+/** @deprecated Import from lib/db/table-indexes.ts */
+export const ContentTableIndexes = SharedContentTableIndexes;
 
 // ---------------------------------------------------------------------------
 // Team entity

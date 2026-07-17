@@ -10,14 +10,10 @@
  */
 
 import { Entity } from "electrodb";
+import { SamsTableIndexes as SharedSamsTableIndexes } from "./table-indexes";
 
-/** Shared GSI names used across SAMS entities in the single SAMS data table */
-export const SamsTableIndexes = {
-  /** Main table index */
-  table: "table",
-  /** Type + nameSlug sorted queries (club list, team list by slug) */
-  gsi1: "GSI1-BySamsType",
-} as const;
+/** @deprecated Import from lib/db/table-indexes.ts */
+export const SamsTableIndexes = SharedSamsTableIndexes;
 
 // ---------------------------------------------------------------------------
 // SamsClub entity

@@ -1,7 +1,7 @@
 import { describe, it } from "vite-plus/test";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { ContentDbStack } from "./content-db-stack";
-import { ContentTableIndexes } from "./db/electrodb-entities";
+import { ContentTableIndexes } from "./db/table-indexes";
 import { createTestApp } from "./test-helpers";
 
 describe("ContentDbStack", () => {

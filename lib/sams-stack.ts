@@ -12,7 +12,7 @@ import type {
   SamsTeamsSyncLambdaEnvironment,
 } from "@/lambda/sams/types";
 import { computeSamsDataTableName } from "./db/env";
-import { SamsTableIndexes } from "./db/sams-electrodb-entities";
+import { SamsTableIndexes } from "./db/table-indexes";
 import { buildLambdaFunctionName, MvNodejsFunction } from "./construct/mv-nodejs-function";
 
 interface SamsStackProps extends cdk.StackProps {

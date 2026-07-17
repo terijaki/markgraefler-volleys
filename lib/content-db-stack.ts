@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import type { Construct } from "constructs";
-import { ContentTableIndexes } from "./db/electrodb-entities";
+import { ContentTableIndexes } from "./db/table-indexes";
 import { computeContentTableName } from "./db/env";
 
 interface ContentDbStackProps extends cdk.StackProps {
