@@ -27,5 +27,5 @@ export type BaseEntity = {
   updatedAt: string;
 };
 
-/** Pagination cursor — ElectroDB base64-encoded last-evaluated-key string */
+/** Pagination cursor for paginated repository results */
 export type PaginationCursor = string;

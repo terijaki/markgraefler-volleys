@@ -37,26 +37,16 @@ function getNotificationCalls() {
     .filter((call) => call.args[0].input.Content?.Simple);
 }
 
-// ── ElectroDB mock via vi.hoisted + vi.mock ──────────────────────────────────
-// createDb is called at module-level in mail-forward.ts; must be intercepted
-// before the module is first imported.
-const { mockByProxyEmailGo, mockByTypeWhereGo } = vi.hoisted(() => {
-  return {
-    mockByProxyEmailGo: vi.fn(),
-    mockByTypeWhereGo: vi.fn(),
-  };
-});
+// ── Members repository mock ──────────────────────────────────────────────────
+const { mockGetByProxyEmail, mockListTrainers } = vi.hoisted(() => ({
+  mockGetByProxyEmail: vi.fn(),
+  mockListTrainers: vi.fn(),
+}));
 
-vi.mock("@/lib/db/electrodb-client", () => ({
-  createDb: vi.fn(() => ({
-    member: {
-      query: {
-        byProxyEmail: () => ({ go: mockByProxyEmailGo }),
-        byType: () => ({
-          where: () => ({ go: mockByTypeWhereGo }),
-        }),
-      },
-    },
+vi.mock("@/lib/db/repositories", () => ({
+  createMembersRepository: vi.fn(() => ({
+    getByProxyEmail: mockGetByProxyEmail,
+    listTrainers: mockListTrainers,
   })),
 }));
 
@@ -130,8 +120,8 @@ describe("mail-forward Lambda", () => {
     sesMock.on(SendEmailCommand).resolves({ MessageId: "test-message-id" });
 
     // Default: individual alias lookup returns nothing (unknown alias)
-    mockByProxyEmailGo.mockResolvedValue({ data: [] });
-    mockByTypeWhereGo.mockResolvedValue({ data: [] });
+    mockGetByProxyEmail.mockResolvedValue(null);
+    mockListTrainers.mockResolvedValue({ items: [] });
 
     const mod = await import("./mail-forward");
     handler = mod.handler as unknown as (event: unknown, context: unknown) => Promise<unknown>;
@@ -140,7 +130,7 @@ describe("mail-forward Lambda", () => {
 
   describe("unknown alias", () => {
     test("silently drops when proxyEmail not found in DDB", async () => {
-      mockByProxyEmailGo.mockResolvedValue({ data: [] });
+      mockGetByProxyEmail.mockResolvedValue(null);
 
       const result = await handler(
         makeEvent("emails/test-unknown.eml"),
@@ -152,14 +142,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("silently drops when member exists but has no privateEmail", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: undefined,
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: undefined,
       });
 
       const result = await handler(
@@ -174,14 +160,10 @@ describe("mail-forward Lambda", () => {
 
   describe("individual alias forwarding", () => {
     test("forwards email to privateEmail when alias matches", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
 
       const result = await handler(makeEvent("emails/test-match.eml"), mockLambdaContext as never);
@@ -194,14 +176,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("rewrites From header to forward-from address in MIME", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
 
       await handler(makeEvent("emails/rewrite-test.eml"), mockLambdaContext as never);
@@ -213,14 +191,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("removes DKIM-Signature headers before forwarding", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -250,14 +224,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("removes original Return-Path before forwarding", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -297,14 +267,10 @@ describe("mail-forward Lambda", () => {
         } as never,
       });
       // DDB entry stores the full suffixed alias as written by the admin in dev
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann+feat-x@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann+feat-x@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
 
       const result = await handler(
@@ -334,14 +300,10 @@ describe("mail-forward Lambda", () => {
         } as never,
       });
       sesMock.on(SendEmailCommand).resolves({ MessageId: "test-message-id" });
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann+feat-x@new.markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann+feat-x@new.markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
 
       const { handler: devHandler } = await import("./mail-forward");
@@ -360,14 +322,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("adds Reply-To with original sender in forwarded MIME", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -389,14 +347,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("quotes Reply-To display name when sender name contains comma", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -420,14 +374,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("replaces existing Reply-To header with sanitized original sender", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -456,14 +406,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("strips Cc and Bcc headers before forwarding", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -493,14 +439,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("trims whitespace from destination email address", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: " max@example.com ",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: " max@example.com ",
       });
 
       await handler(makeEvent("emails/trim-target-test.eml"), mockLambdaContext as never);
@@ -511,14 +453,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("strips internal whitespace from destination email address", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max @example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max @example.com",
       });
 
       await handler(makeEvent("emails/internal-whitespace-target.eml"), mockLambdaContext as never);
@@ -529,14 +467,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("strips folded To header continuations after rewrite", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -565,14 +499,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("skips member with invalid privateEmail and forwards to valid ones", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "not-an-email",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "not-an-email",
       });
 
       const result = await handler(
@@ -585,14 +515,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("reports SES header context to Sentry on forward failure", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -626,14 +552,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("includes original sender name in From display name", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -658,14 +580,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("preserves RFC 2047 encoded sender name in forwarded headers", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -692,14 +610,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("sanitizes angle address in preserved RFC 2047 Reply-To", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -723,14 +637,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("RFC 2047-encodes question marks in display names", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -752,14 +662,10 @@ describe("mail-forward Lambda", () => {
 
     test("splits long non-ASCII display names into multiple RFC 2047 encoded-words", async () => {
       const longName = "Müller ".repeat(12).trim();
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -788,14 +694,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("RFC 2047-encodes non-ASCII sender names when rebuilding Reply-To", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
       s3Mock.on(GetObjectCommand).resolves({
         Body: {
@@ -819,14 +721,10 @@ describe("mail-forward Lambda", () => {
     });
 
     test("sanitizes FromEmailAddress in SES API call", async () => {
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
 
       await handler(makeEvent("emails/from-api-sanitize-test.eml"), mockLambdaContext as never);
@@ -848,24 +746,16 @@ describe("mail-forward Lambda", () => {
             ),
         } as never,
       });
-      mockByProxyEmailGo
+      mockGetByProxyEmail
         .mockResolvedValueOnce({
-          data: [
-            {
-              id: "m1",
-              proxyEmail: "max.mustermann@markgraefler-volleys.de",
-              privateEmail: "max@example.com",
-            },
-          ],
+          id: "m1",
+          proxyEmail: "max.mustermann@markgraefler-volleys.de",
+          privateEmail: "max@example.com",
         })
         .mockResolvedValueOnce({
-          data: [
-            {
-              id: "m2",
-              proxyEmail: "erika.mustermann@markgraefler-volleys.de",
-              privateEmail: "erika@example.com",
-            },
-          ],
+          id: "m2",
+          proxyEmail: "erika.mustermann@markgraefler-volleys.de",
+          privateEmail: "erika@example.com",
         });
 
       const result = await handler(makeEvent("emails/multi-to.eml"), mockLambdaContext as never);
@@ -890,14 +780,10 @@ describe("mail-forward Lambda", () => {
             ),
         } as never,
       });
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
 
       const result = await handler(
@@ -928,14 +814,10 @@ describe("mail-forward Lambda", () => {
             ),
         } as never,
       });
-      mockByProxyEmailGo.mockResolvedValueOnce({
-        data: [
-          {
-            id: "m2",
-            proxyEmail: "erika.mustermann@markgraefler-volleys.de",
-            privateEmail: "erika@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValueOnce({
+        id: "m2",
+        proxyEmail: "erika.mustermann@markgraefler-volleys.de",
+        privateEmail: "erika@example.com",
       });
 
       const result = await handler(
@@ -978,14 +860,10 @@ describe("mail-forward Lambda", () => {
         } as never,
       });
       const byteLengthSpy = vi.spyOn(Buffer, "byteLength").mockReturnValue(11 * 1024 * 1024);
-      mockByProxyEmailGo.mockResolvedValue({
-        data: [
-          {
-            id: "m1",
-            proxyEmail: "max.mustermann@markgraefler-volleys.de",
-            privateEmail: "max@example.com",
-          },
-        ],
+      mockGetByProxyEmail.mockResolvedValue({
+        id: "m1",
+        proxyEmail: "max.mustermann@markgraefler-volleys.de",
+        privateEmail: "max@example.com",
       });
 
       const result = await handler(
@@ -1079,8 +957,8 @@ describe("mail-forward Lambda", () => {
         } as never,
       });
       // byType returns trainers without a privateEmail
-      mockByTypeWhereGo.mockResolvedValue({
-        data: [{ id: "t1", isTrainer: true, privateEmail: undefined }],
+      mockListTrainers.mockResolvedValue({
+        items: [{ id: "t1", isTrainer: true, privateEmail: undefined }],
       });
 
       const result = await handler(
@@ -1102,8 +980,8 @@ describe("mail-forward Lambda", () => {
           transformToString: vi.fn().mockResolvedValue(makeMime("trainer@markgraefler-volleys.de")),
         } as never,
       });
-      mockByTypeWhereGo.mockResolvedValue({
-        data: [
+      mockListTrainers.mockResolvedValue({
+        items: [
           { id: "t1", isTrainer: true, privateEmail: "trainer1@example.com" },
           { id: "t2", isTrainer: true, privateEmail: "trainer2@example.com" },
           { id: "t3", isTrainer: true, privateEmail: undefined }, // excluded
@@ -1129,8 +1007,8 @@ describe("mail-forward Lambda", () => {
           transformToString: vi.fn().mockResolvedValue(makeMime("trainer@markgraefler-volleys.de")),
         } as never,
       });
-      mockByTypeWhereGo.mockResolvedValue({
-        data: [
+      mockListTrainers.mockResolvedValue({
+        items: [
           { id: "t1", isTrainer: true, privateEmail: "trainer1@example.com" },
           { id: "t2", isTrainer: true, privateEmail: "trainer1 @example.com" },
         ],
@@ -1154,8 +1032,8 @@ describe("mail-forward Lambda", () => {
           transformToString: vi.fn().mockResolvedValue(makeMime("trainer@markgraefler-volleys.de")),
         } as never,
       });
-      mockByTypeWhereGo.mockResolvedValue({
-        data: [
+      mockListTrainers.mockResolvedValue({
+        items: [
           { id: "t1", isTrainer: true, privateEmail: "trainer1@example.com" },
           { id: "t2", isTrainer: true, privateEmail: "not-an-email" },
         ],
@@ -1178,8 +1056,8 @@ describe("mail-forward Lambda", () => {
           transformToString: vi.fn().mockResolvedValue(makeMime("trainer@markgraefler-volleys.de")),
         } as never,
       });
-      mockByTypeWhereGo.mockResolvedValue({
-        data: [
+      mockListTrainers.mockResolvedValue({
+        items: [
           { id: "t1", isTrainer: true, privateEmail: "fail@example.com" },
           { id: "t2", isTrainer: true, privateEmail: "ok@example.com" },
         ],
@@ -1205,8 +1083,8 @@ describe("mail-forward Lambda", () => {
           transformToString: vi.fn().mockResolvedValue(makeMime("trainer@markgraefler-volleys.de")),
         } as never,
       });
-      mockByTypeWhereGo.mockResolvedValue({
-        data: [
+      mockListTrainers.mockResolvedValue({
+        items: [
           { id: "t1", isTrainer: true, privateEmail: "fail1@example.com" },
           { id: "t2", isTrainer: true, privateEmail: "fail2@example.com" },
         ],
@@ -1226,8 +1104,8 @@ describe("mail-forward Lambda", () => {
           transformToString: vi.fn().mockResolvedValue(makeMime("info@markgraefler-volleys.de")),
         } as never,
       });
-      mockByTypeWhereGo.mockResolvedValue({
-        data: [
+      mockListTrainers.mockResolvedValue({
+        items: [
           { id: "t1", isTrainer: true, privateEmail: "trainer@example.com" },
           { id: "t2", isTrainer: true, privateEmail: "trainer2@example.com" },
           { id: "t3", isTrainer: true, privateEmail: undefined }, // excluded

@@ -5,6 +5,7 @@ export {
 } from "./repositories/locations-repository";
 export type { LocationCreateInput, LocationUpdateInput } from "./repositories/locations-repository";
 export {
+  createMembersRepository,
   membersRepository,
   MembersRepository,
   memberUpdateInputSchema,

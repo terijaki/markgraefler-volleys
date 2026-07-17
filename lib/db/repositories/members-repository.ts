@@ -63,10 +63,13 @@ function normalizeMemberWriteInput<T extends MemberEmailFields>(input: T): T {
 }
 
 export class MembersRepository {
-  constructor(private readonly documentClient: DynamoDBDocumentClient = docClient) {}
+  constructor(
+    private readonly documentClient: DynamoDBDocumentClient = docClient,
+    private readonly tableName?: string,
+  ) {}
 
   private entityRepository() {
-    getContentTable(this.documentClient);
+    getContentTable(this.documentClient, this.tableName);
     return MemberEntity.build(EntityRepository);
   }
 
@@ -232,3 +235,10 @@ export class MembersRepository {
 }
 
 export const membersRepository = new MembersRepository();
+
+export function createMembersRepository(
+  client: DynamoDBDocumentClient,
+  tableName: string,
+): MembersRepository {
+  return new MembersRepository(client, tableName);
+}

@@ -26,19 +26,15 @@ import {
   ScanCommand as ScanDocCommand,
 } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
-import { createDb } from "@/lib/db/electrodb-client";
 import {
-  type LocationInput,
-  locationSchema,
-  type MemberInput,
-  memberSchema,
-  sponsorSchema,
-  type TeamInput,
-  teamSchema,
-} from "@/lib/db/schemas";
+  locationsRepository,
+  membersRepository,
+  sponsorsRepository,
+  teamsRepository,
+} from "@/lib/db/repositories";
+import type { Location, Member, Team } from "@/lib/db/types";
 import { Club } from "@/project.config";
 import { getSanitizedBranch } from "@/utils/git";
-import { slugify } from "@/utils/slugify";
 
 // Check environment
 const CDK_ENVIRONMENT = process.env.CDK_ENVIRONMENT || "dev";
@@ -140,9 +136,7 @@ async function uploadImageToS3(imageUrl: string, s3Key: string): Promise<string>
 
 // Table name — single content table (mirrors the CDK stack)
 const CONTENT_TABLE_NAME = `mv-content-${CDK_ENVIRONMENT}${branchSuffix}`;
-
-// ElectroDB entity map wired to the single content table
-const entities = createDb(docClient, CONTENT_TABLE_NAME);
+process.env.CONTENT_TABLE_NAME = CONTENT_TABLE_NAME;
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -168,46 +162,36 @@ if (shouldCreateUser) {
   userEmail = email;
 }
 
-const locationCache: LocationInput[] = [];
-const membersCache: MemberInput[] = [];
-const teamCache: TeamInput[] = [];
+const locationCache: Location[] = [];
+const membersCache: Member[] = [];
+const teamCache: Team[] = [];
 
 /**
- * Create a CMS user (whitelisted email) in the content table via ElectroDB.
+ * Create a CMS user (whitelisted email) in the content table via the members repository.
  * The user can then sign in via email OTP (passwordless) at the CMS admin panel.
  */
 async function createCmsUser(email: string): Promise<void> {
   console.log(`\n👤 Granting Admin role to member: ${email}...`);
 
   // Check if a member with this privateEmail already exists
-  const existing = await entities.member.query.byPrivateEmail({ privateEmail: email }).go();
-  if (existing.data && existing.data.length > 0) {
-    const member = existing.data[0];
-    if (member.authRole) {
-      console.log(`ℹ️  Member ${email} already has authRole: ${member.authRole}`);
+  const existing = await membersRepository.getByPrivateEmail(email);
+  if (existing) {
+    if (existing.authRole) {
+      console.log(`ℹ️  Member ${email} already has authRole: ${existing.authRole}`);
       process.exit(0);
     }
-    // Grant Admin role to existing member
-    await entities.member
-      .patch({ id: member.id })
-      .set({ authRole: "Admin", updatedAt: new Date().toISOString() })
-      .go();
+    await membersRepository.update(existing.id, { authRole: "Admin" });
     console.log(`✅ Admin role granted to existing member ${email}`);
     console.log(`   The member can now sign in at the CMS with email OTP (passwordless).`);
     return;
   }
 
-  // No member found — create a minimal one
-  await entities.member
-    .create({
-      id: crypto.randomUUID(),
-      name: email.split("@")[0],
-      privateEmail: email,
-      authRole: "Admin",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-    .go();
+  await membersRepository.create({
+    type: "member",
+    name: email.split("@")[0] ?? email,
+    privateEmail: email,
+    authRole: "Admin",
+  });
 
   console.log(`✅ Member ${email} created with Admin role`);
   console.log(`   The member can now sign in at the CMS with email OTP (passwordless).`);
@@ -283,17 +267,6 @@ async function cleanupDatabase() {
 }
 
 /**
- * Helper: write an array of items via ElectroDB entity.create().
- * Uses Promise.all so writes are concurrent (no DynamoDB batch size limit to worry about).
- */
-async function putItems<T>(
-  entity: { create(item: T): { go(): Promise<unknown> } },
-  items: T[],
-): Promise<void> {
-  await Promise.all(items.map((item) => entity.create(item).go()));
-}
-
-/**
  * Generate UUIDs
  */
 
@@ -327,21 +300,19 @@ async function seedLocationsData() {
     },
   ];
 
-  // Add base metadata
-  const locationsWithBaseMeta = locations.map((loc) => ({
-    ...loc,
-    id: crypto.randomUUID(),
+  for (const loc of locations) {
+    const created = await locationsRepository.create({
+      type: "location",
+      name: loc.name,
+      description: loc.description,
+      street: loc.street,
+      postal: loc.postal,
+      city: loc.city,
+    });
+    locationCache.push(created);
+  }
 
-    createdAt: dayjs().toISOString(),
-    updatedAt: dayjs().toISOString(),
-  }));
-
-  // Validate against schema
-  const validatedLocations = locationsWithBaseMeta.map((loc) => locationSchema.parse(loc));
-
-  await putItems(entities.location, validatedLocations);
-  console.log(`✅ Seeded ${validatedLocations.length} locations`);
-  locationCache.push(...validatedLocations);
+  console.log(`✅ Seeded ${locationCache.length} locations`);
 }
 
 /**
@@ -357,7 +328,7 @@ async function seedMembersData() {
       phone: "+49 7622 123456",
       isTrainer: true,
       roleTitle: "Trainer Herren 1",
-      avatarS3Key: "",
+      withAvatar: true,
     },
     {
       name: "Sarah Hubertschmidt",
@@ -365,21 +336,20 @@ async function seedMembersData() {
       phone: "+49 7622 234567",
       isTrainer: true,
       roleTitle: "Trainerin Damen 1",
-      avatarS3Key: "",
+      withAvatar: true,
     },
     {
       name: "Thomas Weber",
       email: "thomas.weber@example.com",
       phone: "+49 7622 345678",
       roleTitle: "Kassier",
-      createdAt: dayjs().subtract(2, "years").toISOString(),
     },
     {
       name: "Julia Fischer",
       email: "julia.fischer@example.com",
       isTrainer: true,
       roleTitle: "Trainerin Jugend",
-      avatarS3Key: "",
+      withAvatar: true,
     },
     {
       name: "Klaus Hoffmann",
@@ -392,7 +362,7 @@ async function seedMembersData() {
       email: "anna.maria.sofie.wagner@example.com",
       isTrainer: true,
       roleTitle: "Co-Trainer Damen 2",
-      avatarS3Key: "",
+      withAvatar: true,
     },
     {
       name: "Peter Lustig",
@@ -402,53 +372,45 @@ async function seedMembersData() {
     },
   ];
 
-  // Add base metadata
-  const membersWithBaseMeta = members.map((m) => ({
-    id: crypto.randomUUID(),
-    createdAt: dayjs().toISOString(),
-    updatedAt: dayjs().toISOString(),
-    ...m, // after the above so dates can be overridden
-  }));
-
-  // Validate against schema
-  const validatedMembers = membersWithBaseMeta.map((mem) => memberSchema.parse(mem));
-
-  // Avatar URLs to download (only for members with avatarS3Key)
   const avatarUrls = [
     "https://picsum.photos/400/400?random=30",
     "https://picsum.photos/400/400?random=31",
-    // Skip Thomas Weber (no avatar)
     "https://picsum.photos/400/400?random=32",
-    // Skip Klaus Hoffmann (no avatar)
     "https://picsum.photos/400/400?random=33",
   ];
 
-  // Download and upload avatars
   console.log("  Downloading and uploading member avatars...");
   let avatarIndex = 0;
-  for (let i = 0; i < validatedMembers.length; i++) {
-    const member = validatedMembers[i];
-    // Only upload for members with avatar key (those with avatarS3Key property defined)
-    if (i === 0 || i === 1 || i === 3 || i === 5) {
+  for (const member of members) {
+    const created = await membersRepository.create({
+      type: "member",
+      name: member.name,
+      privateEmail: member.email,
+      phone: member.phone,
+      isTrainer: member.isTrainer,
+      roleTitle: member.roleTitle,
+    });
+
+    if (member.withAvatar) {
       try {
-        const uploadKey = `uploads/members/${member.id}-avatar.jpg`;
-        const finalKey = `members/${member.id}-avatar.jpg`;
+        const uploadKey = `uploads/members/${created.id}-avatar.jpg`;
+        const finalKey = `members/${created.id}-avatar.jpg`;
         await uploadImageToS3(avatarUrls[avatarIndex], uploadKey);
-        member.avatarS3Key = finalKey; // Store final key (Lambda will move from uploads/)
+        await membersRepository.update(created.id, { avatarS3Key: finalKey });
         avatarIndex++;
-        // Delay to avoid overwhelming Lambda
         await new Promise((resolve) => setTimeout(resolve, 200));
       } catch (error) {
         console.warn(`  ⚠️  Failed to upload avatar for member ${member.name}:`, error);
-        // Leave empty if upload fails
       }
+    }
+
+    const refreshed = await membersRepository.getById(created.id);
+    if (refreshed) {
+      membersCache.push(refreshed);
     }
   }
 
-  await putItems(entities.member, validatedMembers);
-  console.log(`✅ Seeded ${validatedMembers.length} members`);
-
-  membersCache.push(...validatedMembers);
+  console.log(`✅ Seeded ${membersCache.length} members`);
 }
 
 /**
@@ -464,15 +426,15 @@ async function seedTeamsData() {
       gender: "male" as const,
       ageGroup: "ab 16",
       league: "Landesliga",
-      trainerIds: [membersCache[0]?.id, membersCache[1]?.id].filter(Boolean),
-      pointOfContactIds: [membersCache[3]?.id].filter(Boolean),
+      trainerIds: [membersCache[0]?.id, membersCache[1]?.id].filter((id): id is string => !!id),
+      pointOfContactIds: [membersCache[3]?.id].filter((id): id is string => !!id),
       pictureS3Keys: [],
       trainingSchedules: [
         {
           days: [1, 3, 5], // Monday, Wednesday, Friday
           startTime: "19:00",
           endTime: "21:00",
-          locationId: (locationCache[0]?.id ?? crypto.randomUUID()) as string,
+          locationId: locationCache[0]?.id ?? "",
         },
       ],
     },
@@ -482,15 +444,15 @@ async function seedTeamsData() {
       gender: "female" as const,
       ageGroup: "18",
       league: "Oberliga",
-      trainerIds: [membersCache[1]?.id].filter(Boolean),
-      pointOfContactIds: [membersCache[2]?.id].filter(Boolean),
+      trainerIds: [membersCache[1]?.id].filter((id): id is string => !!id),
+      pointOfContactIds: [membersCache[2]?.id].filter((id): id is string => !!id),
       pictureS3Keys: [],
       trainingSchedules: [
         {
           days: [2, 4, 6], // Tuesday, Thursday, Saturday
           startTime: "19:30",
           endTime: "21:30",
-          locationId: (locationCache[1]?.id ?? crypto.randomUUID()) as string,
+          locationId: locationCache[1]?.id ?? "",
         },
       ],
     },
@@ -499,13 +461,13 @@ async function seedTeamsData() {
       description: "Jugendmannschaft U18",
       gender: "mixed" as const,
       ageGroup: "12-18 Jahre",
-      pointOfContactIds: [membersCache[3]?.id].filter(Boolean),
+      pointOfContactIds: [membersCache[3]?.id].filter((id): id is string => !!id),
       trainingSchedules: [
         {
           days: [1, 4], // Monday, Thursday
           startTime: "17:00",
           endTime: "18:30",
-          locationId: (locationCache[2]?.id ?? crypto.randomUUID()) as string,
+          locationId: locationCache[2]?.id ?? "",
         },
       ],
     },
@@ -514,63 +476,63 @@ async function seedTeamsData() {
       description: "Zweite Damenmannschaft",
       gender: "female" as const,
       league: "Verbandsliga",
-      trainerIds: [membersCache[5]?.id].filter(Boolean),
+      trainerIds: [membersCache[5]?.id].filter((id): id is string => !!id),
       trainingSchedules: [
         {
           days: [2, 5], // Tuesday, Friday
           startTime: "20:00",
           endTime: "22:00",
-          locationId: (locationCache[0]?.id ?? crypto.randomUUID()) as string,
+          locationId: locationCache[0]?.id ?? "",
         },
       ],
     },
   ];
 
-  // create team slugs from names and add dates
-  const teamsWithBaseMeta = teams.map((t) => ({
-    ...t,
-    type: "team" as const,
-    id: crypto.randomUUID(),
-    createdAt: dayjs().toISOString(),
-    updatedAt: dayjs().toISOString(),
-    slug: slugify(t.name, true),
-  }));
-
-  // Validate against schema
-  const validatedTeams = teamsWithBaseMeta.map((team) => teamSchema.parse(team));
-
-  // Team picture URLs to download
   const teamPictureUrls = [
-    ["https://picsum.photos/1200/800?random=40"], // Herren 1
-    ["https://picsum.photos/1200/800?random=41"], // Damen 1
-    // Jugend - no pictures
-    // Damen 2 - no pictures
+    ["https://picsum.photos/1200/800?random=40"],
+    ["https://picsum.photos/1200/800?random=41"],
   ];
 
-  // Download and upload team pictures
   console.log("  Downloading and uploading team pictures...");
-  for (let i = 0; i < validatedTeams.length; i++) {
-    const pictureUrls = teamPictureUrls[i] || [];
-    // Reset pictureS3Keys to empty array before adding uploaded images
-    validatedTeams[i].pictureS3Keys = [];
-    for (const pictureUrl of pictureUrls) {
+  for (let i = 0; i < teams.length; i++) {
+    const team = teams[i];
+    const created = await teamsRepository.create({
+      type: "team",
+      name: team.name,
+      gender: team.gender,
+      description: team.description,
+      ageGroup: team.ageGroup,
+      league: team.league,
+      trainerIds: team.trainerIds,
+      pointOfContactIds: team.pointOfContactIds,
+      trainingSchedules: team.trainingSchedules,
+    });
+
+    const pictureUrls = teamPictureUrls[i] ?? [];
+    const pictureS3Keys: string[] = [];
+    for (const [pictureIndex, pictureUrl] of pictureUrls.entries()) {
       try {
-        const uploadKey = `uploads/teams/${validatedTeams[i].id}-${pictureUrls.indexOf(pictureUrl)}.jpg`;
-        const finalKey = `teams/${validatedTeams[i].id}-${pictureUrls.indexOf(pictureUrl)}.jpg`;
+        const uploadKey = `uploads/teams/${created.id}-${pictureIndex}.jpg`;
+        const finalKey = `teams/${created.id}-${pictureIndex}.jpg`;
         await uploadImageToS3(pictureUrl, uploadKey);
-        validatedTeams[i].pictureS3Keys?.push(finalKey); // Store final key (Lambda will move from uploads/)
-        // Delay to avoid overwhelming Lambda
+        pictureS3Keys.push(finalKey);
         await new Promise((resolve) => setTimeout(resolve, 200));
       } catch (error) {
-        console.warn(`  ⚠️  Failed to upload picture for team ${validatedTeams[i].name}:`, error);
-        // Continue with next image
+        console.warn(`  ⚠️  Failed to upload picture for team ${team.name}:`, error);
       }
+    }
+
+    if (pictureS3Keys.length > 0) {
+      await teamsRepository.update(created.id, { pictureS3Keys });
+    }
+
+    const refreshed = await teamsRepository.getById(created.id);
+    if (refreshed) {
+      teamCache.push(refreshed);
     }
   }
 
-  await putItems(entities.team, validatedTeams);
-  console.log(`✅ Seeded ${validatedTeams.length} teams`);
-  teamCache.push(...validatedTeams);
+  console.log(`✅ Seeded ${teamCache.length} teams`);
 }
 
 /**
@@ -581,50 +543,30 @@ async function seedSponsorsData() {
 
   const sponsors = [
     {
-      id: crypto.randomUUID(),
       name: "Müllheim Bank AG",
       description: "Hauptsponsor des Markgräfler Volleys seit 2020",
       websiteUrl: "https://www.muellheimbank.de",
-      logoS3Key: "",
       ttl: Math.floor(dayjs().add(1, "year").valueOf() / 1000),
-      createdAt: dayjs().subtract(2, "years").toISOString(),
-      updatedAt: dayjs().toISOString(),
     },
     {
-      id: crypto.randomUUID(),
       name: "Sporthaus Schmidt",
       description: "Ausrüster für Sportbekleidung und Equipment",
       websiteUrl: "https://www.sporthaus-schmidt.de",
-      logoS3Key: "",
       ttl: Math.floor(dayjs().add(6, "months").valueOf() / 1000),
-      createdAt: dayjs().subtract(1, "year").toISOString(),
-      updatedAt: dayjs().toISOString(),
     },
     {
-      id: crypto.randomUUID(),
       name: "Bäckerei Hoffmann",
       description: "Versorger von Verpflegung bei Heimspielen",
-      logoS3Key: "",
       ttl: Math.floor(dayjs().add(8, "months").valueOf() / 1000),
-      createdAt: dayjs().toISOString(),
-      updatedAt: dayjs().toISOString(),
     },
     {
-      id: crypto.randomUUID(),
       name: "Fitness Plus Müllheim",
       description: "Partner für Krafttraining und Sportwissenschaft",
       websiteUrl: "https://www.fitnessplus-muellheim.de",
-      logoS3Key: "",
       ttl: Math.floor(dayjs().add(10, "months").valueOf() / 1000),
-      createdAt: dayjs().toISOString(),
-      updatedAt: dayjs().toISOString(),
     },
   ];
 
-  // Validate against schema
-  const validatedSponsors = sponsors.map((sponsor) => sponsorSchema.parse(sponsor));
-
-  // Logo URLs to download
   const logoUrls = [
     "https://picsum.photos/400/200?random=30",
     "https://picsum.photos/400/200?random=31",
@@ -632,25 +574,29 @@ async function seedSponsorsData() {
     "https://picsum.photos/400/200?random=33",
   ];
 
-  // Download and upload logos
   console.log("  Downloading and uploading sponsor logos...");
-  for (let i = 0; i < validatedSponsors.length; i++) {
+  for (let i = 0; i < sponsors.length; i++) {
+    const sponsor = sponsors[i];
+    const created = await sponsorsRepository.create({
+      type: "sponsor",
+      name: sponsor.name,
+      description: sponsor.description,
+      websiteUrl: sponsor.websiteUrl,
+      ttl: sponsor.ttl,
+    });
+
     try {
-      const uploadKey = `uploads/sponsors/${validatedSponsors[i].id}-logo.jpg`;
-      const finalKey = `sponsors/${validatedSponsors[i].id}-logo.jpg`;
+      const uploadKey = `uploads/sponsors/${created.id}-logo.jpg`;
+      const finalKey = `sponsors/${created.id}-logo.jpg`;
       await uploadImageToS3(logoUrls[i], uploadKey);
-      validatedSponsors[i].logoS3Key = finalKey; // Store final key (Lambda will move from uploads/)
-      // Delay to avoid overwhelming Lambda
+      await sponsorsRepository.update(created.id, { logoS3Key: finalKey });
       await new Promise((resolve) => setTimeout(resolve, 200));
     } catch (error) {
-      console.warn(`  ⚠️  Failed to upload logo for ${validatedSponsors[i].name}:`, error);
-      // Continue without logo
+      console.warn(`  ⚠️  Failed to upload logo for ${sponsor.name}:`, error);
     }
   }
 
-  // SponsorEntity uses ttl for DynamoDB-based automatic expiry.
-  await putItems(entities.sponsor, validatedSponsors);
-  console.log(`✅ Seeded ${validatedSponsors.length} sponsors`);
+  console.log(`✅ Seeded ${sponsors.length} sponsors`);
 }
 
 async function main() {

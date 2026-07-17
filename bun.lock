@@ -38,7 +38,6 @@
         "better-auth": "1.6.20",
         "dayjs": "^1.11.21",
         "dynamodb-toolbox": "^2.10.0",
-        "electrodb": "^3.9.1",
         "lucide-react": "^1.21.0",
         "nitro": "^3.0.260610-beta",
         "num-words-de": "^1.1.0",
@@ -937,8 +936,6 @@
     "dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
     "dynamodb-toolbox": ["dynamodb-toolbox@2.10.0", "", { "dependencies": { "hotscript": "^1.0.13" }, "peerDependencies": { "@aws-sdk/client-dynamodb": "^3.0.0", "@aws-sdk/lib-dynamodb": "^3.0.0" } }, "sha512-Wl0MbrVIDyZ1U0DIrTGx5Yzpti0Gw2VYSapb9myStWZAXvv7dDva5ooFSl1IuxKh5r7qwykh2Ca6MYQYOlIK6Q=="],
-
-    "electrodb": ["electrodb@3.9.1", "", { "dependencies": { "@aws-sdk/lib-dynamodb": "^3.654.0", "@aws-sdk/util-dynamodb": "^3.654.0", "jsonschema": "1.5.0" } }, "sha512-Z1y19yQWuZq0pI7kmDfzMbSzTAImCHLqjmTCML1kYHuSSvK+yZZYY2RyDAefpe2xJ0RkGTmFjuH4y/AWL1nJPQ=="],
 
     "electron-to-chromium": ["electron-to-chromium@1.5.360", "", {}, "sha512-GkcBt6YYAw9SxFWn+xVar4cLVGlXVuswwtRLBozi2zp0GjXs4ZnOrqV4zbXzg35n7w81hCkyJNYicgXlVHAmBA=="],
 

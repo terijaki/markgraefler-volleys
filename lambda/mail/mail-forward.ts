@@ -24,7 +24,7 @@ import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import middy from "@middy/core";
-import { createDb } from "@/lib/db/electrodb-client";
+import { createMembersRepository } from "@/lib/db/repositories";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { parseLambdaEnv } from "../utils/env";
@@ -49,7 +49,7 @@ const BASIC_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const dynamoBaseClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoBaseClient);
-const db = createDb(docClient, CONTENT_TABLE_NAME);
+const membersRepository = createMembersRepository(docClient, CONTENT_TABLE_NAME);
 
 const s3 = tracer.captureAWSv3Client(new S3Client({}));
 const ses = tracer.captureAWSv3Client(new SESv2Client({}));
@@ -87,25 +87,18 @@ type SendForwardedEmailInput = {
 async function resolveGroupAlias(localPart: string): Promise<string[] | null> {
   const resolvers: Record<string, () => Promise<string[]>> = {
     trainer: async () => {
-      const result = await db.member.query
-        .byType({ type: "member" })
-        .where((attr, op) => op.eq(attr.isTrainer, true))
-        .go({ pages: "all" });
+      const { items } = await membersRepository.listTrainers();
       return collectRoutableEmails(
-        result.data
+        items
           .filter((m) => m.privateEmail)
           .map((m) => ({ email: m.privateEmail as string, memberId: m.id })),
         "trainer",
       );
     },
     info: async () => {
-      // info@ routes to trainers.
-      const trainersResult = await db.member.query
-        .byType({ type: "member" })
-        .where((attr, op) => op.eq(attr.isTrainer, true))
-        .go({ pages: "all" });
+      const { items } = await membersRepository.listTrainers();
       const emails = new Set<string>();
-      for (const m of trainersResult.data) {
+      for (const m of items) {
         if (!m.privateEmail) continue;
         const sanitized = sanitizeRoutableEmail(m.privateEmail, {
           memberId: m.id,
@@ -896,8 +889,7 @@ const lambdaHandler = async (event: unknown) => {
     // Individual alias lookup via proxyEmail GSI.
     // toAddress already contains the branch suffix in dev (e.g. max.mueller+feat-x@new.markgraefler-volleys.de),
     // which matches what the admin stored when they confirmed the alias suggestion.
-    const memberResult = await db.member.query.byProxyEmail({ proxyEmail: toAddress }).go();
-    const member = memberResult.data?.[0];
+    const member = await membersRepository.getByProxyEmail(toAddress);
 
     if (!member || !member.privateEmail) {
       logger.info("Unknown alias or no private email — skipping", { toAddress });

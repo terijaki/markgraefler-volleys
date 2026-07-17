@@ -6,8 +6,11 @@ import { createContentTable } from "./tables/content-table";
 import { createSamsTable } from "./tables/sams-table";
 import { SamsTable } from "./tables/sams-table";
 
-export function getContentTable(client: DynamoDBDocumentClient = docClient) {
+export function getContentTable(client: DynamoDBDocumentClient = docClient, tableName?: string) {
   ContentTable.documentClient = client;
+  if (tableName !== undefined) {
+    ContentTable.tableName = tableName;
+  }
   return ContentTable;
 }
 
