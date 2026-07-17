@@ -50,10 +50,13 @@ function parseTeam(value: unknown, message: string): Team {
 }
 
 export class TeamsRepository {
-  constructor(private readonly documentClient: DynamoDBDocumentClient = docClient) {}
+  constructor(
+    private readonly documentClient: DynamoDBDocumentClient = docClient,
+    private readonly tableName?: string,
+  ) {}
 
   private entityRepository() {
-    getContentTable(this.documentClient);
+    getContentTable(this.documentClient, this.tableName);
     return TeamEntity.build(EntityRepository);
   }
 

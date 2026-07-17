@@ -10,11 +10,13 @@ import {
 import { mockClient } from "aws-sdk-client-mock";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { ContentTableIndexes } from "../table-indexes";
-import { memberPk, SK_METADATA } from "../key-constants";
+import { memberPk, SK_METADATA, teamPk } from "../key-constants";
 import { MembersRepository } from "./members-repository";
 
 const TABLE = "mv-content-test";
+const CUSTOM_TABLE = "mv-content-branch";
 const MEMBER_ID = "660e8400-e29b-41d4-a716-446655440001";
+const TEAM_ID = "550e8400-e29b-41d4-a716-446655440000";
 const ISO = "2024-06-15T10:30:00.000Z";
 
 const storedMemberItem = {
@@ -171,6 +173,58 @@ describe("MembersRepository", () => {
     const [del] = ddbMock.commandCalls(DeleteCommand);
     expect(del.args[0].input).toMatchObject({
       TableName: TABLE,
+      Key: { pk: memberPk(MEMBER_ID), sk: SK_METADATA },
+    });
+  });
+
+  it("delete cleans trainer references using the injected table name", async () => {
+    process.env.CONTENT_TABLE_NAME = "mv-content-default";
+
+    const storedTeamItem = {
+      pk: teamPk(TEAM_ID),
+      sk: SK_METADATA,
+      _et: "Team",
+      gsi1pk: "team",
+      gsi1sk: "herren1",
+      gsi3pk: "herren1",
+      gsi3sk: SK_METADATA,
+      id: TEAM_ID,
+      type: "team",
+      name: "Herren 1",
+      slug: "herren1",
+      gender: "male",
+      trainerIds: [MEMBER_ID],
+      createdAt: ISO,
+      updatedAt: ISO,
+    };
+
+    ddbMock.on(QueryCommand).resolves({ Items: [storedTeamItem] });
+    ddbMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: storedTeamItem })
+      .resolvesOnce({
+        Item: {
+          ...storedTeamItem,
+          trainerIds: [],
+        },
+      });
+    ddbMock.on(UpdateCommand).resolves({});
+    ddbMock.on(DeleteCommand).resolves({});
+
+    const repo = new MembersRepository(documentClient, CUSTOM_TABLE);
+    const result = await repo.delete(MEMBER_ID);
+
+    expect(result).toEqual({ success: true });
+
+    const teamListQuery = ddbMock.commandCalls(QueryCommand)[0];
+    expect(teamListQuery?.args[0].input.TableName).toBe(CUSTOM_TABLE);
+
+    const teamUpdate = ddbMock.commandCalls(UpdateCommand)[0];
+    expect(teamUpdate?.args[0].input.TableName).toBe(CUSTOM_TABLE);
+
+    const memberDelete = ddbMock.commandCalls(DeleteCommand)[0];
+    expect(memberDelete?.args[0].input).toMatchObject({
+      TableName: CUSTOM_TABLE,
       Key: { pk: memberPk(MEMBER_ID), sk: SK_METADATA },
     });
   });

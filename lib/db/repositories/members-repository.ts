@@ -16,7 +16,7 @@ import { getContentTable } from "../toolbox-client";
 import type { Member } from "../types";
 import { applyMemberEmailIndexKeys, trimMemberEmails } from "./member-email-keys";
 import type { MemberEmailFields } from "./member-email-keys";
-import { teamsRepository } from "./teams-repository";
+import { TeamsRepository } from "./teams-repository";
 
 const memberInputSchema = memberSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
@@ -63,10 +63,14 @@ function normalizeMemberWriteInput<T extends MemberEmailFields>(input: T): T {
 }
 
 export class MembersRepository {
+  private readonly teamsRepository: TeamsRepository;
+
   constructor(
     private readonly documentClient: DynamoDBDocumentClient = docClient,
     private readonly tableName?: string,
-  ) {}
+  ) {
+    this.teamsRepository = new TeamsRepository(documentClient, tableName);
+  }
 
   private entityRepository() {
     getContentTable(this.documentClient, this.tableName);
@@ -220,13 +224,13 @@ export class MembersRepository {
   }
 
   async delete(id: string): Promise<{ success: true }> {
-    const { items: teams } = await teamsRepository.listAll();
+    const { items: teams } = await this.teamsRepository.listAll();
     for (const team of teams) {
       if (!team.trainerIds?.includes(id)) {
         continue;
       }
       const updatedTrainerIds = team.trainerIds.filter((trainerId) => trainerId !== id);
-      await teamsRepository.update(team.id, { trainerIds: updatedTrainerIds });
+      await this.teamsRepository.update(team.id, { trainerIds: updatedTrainerIds });
     }
 
     await this.entityRepository().delete({ id });
