@@ -34,7 +34,7 @@ import {
 } from "@/lib/db/repositories";
 import type { Location, Member, Team } from "@/lib/db/types";
 import { Club } from "@/project.config";
-import { getSanitizedBranch } from "@/utils/git";
+import { getSanitizedBranch } from "@/utils/git.server";
 
 // Check environment
 const CDK_ENVIRONMENT = process.env.CDK_ENVIRONMENT || "dev";

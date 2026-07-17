@@ -18,7 +18,7 @@ function checkAwsSession() {
 }
 checkAwsSession();
 
-import { getSanitizedBranch } from "@/utils/git";
+import { getSanitizedBranch } from "@/utils/git.server";
 
 // Read environment and branch from env vars or use defaults
 const ENVIRONMENT = process.env.CDK_ENVIRONMENT || "dev";
@@ -41,7 +41,16 @@ async function invokeSync(name: string) {
     });
     const result = await client.send(cmd);
     const payload = result.Payload ? Buffer.from(result.Payload).toString() : "";
-    console.log(`✅ Invoked ${name}`);
+
+    if (result.FunctionError) {
+      console.error(`❌ ${name} failed (${result.FunctionError})`);
+      if (payload) {
+        console.error(payload);
+      }
+      return false;
+    }
+
+    console.log(`✅ Invoked ${name} (StatusCode=${result.StatusCode})`);
     if (payload) {
       console.log(payload);
     }
@@ -58,15 +67,33 @@ function sleep(ms: number) {
 }
 
 async function main() {
-  console.log("=== Triggering SAMS sync Lambdas ===\n");
+  console.log("=== Triggering SAMS sync Lambdas ===");
+  console.log(`Environment: ${ENVIRONMENT}`);
+  console.log(`Branch: ${BRANCH || "(main)"}`);
+  for (const name of lambdaNames) {
+    console.log(`  → ${name}`);
+  }
+  console.log("");
+
+  let failed = false;
   for (const [i, name] of lambdaNames.entries()) {
-    await invokeSync(name);
+    const ok = await invokeSync(name);
+    if (!ok) {
+      failed = true;
+    }
     if (i < lambdaNames.length - 1) {
       console.log("Waiting 5 seconds before next sync...");
       await sleep(5000);
     }
   }
-  console.log("\n=== All syncs triggered ===");
+
+  if (failed) {
+    console.error("\n=== One or more syncs failed — check CloudWatch logs ===");
+    process.exit(1);
+  }
+
+  console.log("\n=== All syncs completed ===");
+  console.log("Verify with: bun run db:verify-migration");
 }
 
 main();

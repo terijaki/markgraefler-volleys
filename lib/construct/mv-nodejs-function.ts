@@ -3,7 +3,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, type NodejsFunctionProps } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
-import { getSanitizedBranch } from "@utils/git";
+import { getSanitizedBranch } from "@utils/git.server";
 
 export interface MvNodejsFunctionProps extends Omit<
   NodejsFunctionProps,

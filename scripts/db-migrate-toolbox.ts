@@ -24,7 +24,7 @@ import {
 } from "@/lib/db/migration/electrodb-migration";
 import { getContentTable, getSamsTable } from "@/lib/db/toolbox-client";
 import { computeContentTableName, computeSamsDataTableName } from "@/lib/db/env";
-import { getSanitizedBranch } from "@/utils/git";
+import { getSanitizedBranch } from "@/utils/git.server";
 
 type TableTarget = "content" | "sams" | "all";
 
@@ -61,9 +61,8 @@ function checkAwsSession() {
 checkAwsSession();
 
 const sanitizedBranch = getSanitizedBranch();
-const branchSuffix = sanitizedBranch ? `-${sanitizedBranch}` : "";
-const contentTableName = computeContentTableName(CDK_ENVIRONMENT, branchSuffix);
-const samsTableName = computeSamsDataTableName(CDK_ENVIRONMENT, branchSuffix);
+const contentTableName = computeContentTableName(CDK_ENVIRONMENT, sanitizedBranch);
+const samsTableName = computeSamsDataTableName(CDK_ENVIRONMENT, sanitizedBranch);
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION || "eu-central-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -142,7 +141,11 @@ async function migrateTable(tableName: string, bindTable: () => void): Promise<M
 }
 
 async function main() {
-  console.log(`🚀 ElectroDB → Toolbox migration (${CDK_ENVIRONMENT}${branchSuffix})`);
+  console.log(
+    `🚀 ElectroDB → Toolbox migration (${CDK_ENVIRONMENT}${sanitizedBranch ? `/${sanitizedBranch}` : ""})`,
+  );
+  console.log(`   Content table: ${contentTableName}`);
+  console.log(`   SAMS table:    ${samsTableName}`);
 
   const tables: Array<{ name: string; bind: () => void }> = [];
   if (tableTarget === "content" || tableTarget === "all") {
