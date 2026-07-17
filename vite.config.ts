@@ -47,8 +47,8 @@ export default defineConfig({
       ]);
 
     return [
-      localAwsResourceEnvPlugin(),
       ...(isDevServer ? [varlockVitePlugin()] : []),
+      localAwsResourceEnvPlugin(),
       nitro({
         preset: "aws-lambda",
         output: {

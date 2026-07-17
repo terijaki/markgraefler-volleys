@@ -68,7 +68,7 @@ jobs:
           CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
         run: |
           WEBAPP_URL=$(vp exec tsx -e '
-            import { getSanitizedBranch } from "./utils/git.ts";
+            import { getSanitizedBranch } from "./utils/deploy-branch.ts";
             import { buildWebappUrl } from "./utils/webapp-url.ts";
 
             const environment = process.env.CDK_ENVIRONMENT || "dev";

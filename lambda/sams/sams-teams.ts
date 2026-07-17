@@ -3,7 +3,7 @@ import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import { getTeamByUuid } from "@codegen/sams/generated";
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { createSamsDb } from "@/lib/db/electrodb-client";
+import { createSamsRepositories } from "@/lib/db/repositories";
 import { slugify } from "@/utils/slugify";
 import { parseLambdaEnv } from "../utils/env";
 import { createDynamoDocClient, createLambdaResources } from "../utils/resources";
@@ -21,7 +21,7 @@ const docClient = createDynamoDocClient(tracer);
 const env = parseLambdaEnv(SamsTeamsLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
 const SAMS_API_KEY = env.SAMS_API_KEY;
-const samsEntities = createSamsDb(docClient, TABLE_NAME);
+const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   logger.appendKeys({ path: event.path });
@@ -44,9 +44,9 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
 
     // Case 1: Get team by UUID (path parameter)
     if (uuid) {
-      const result = await samsEntities.team.get({ uuid }).go();
+      const storedTeam = await samsRepos.teams.getById(uuid);
 
-      if (!result.data) {
+      if (!storedTeam) {
         console.log(`🔍 Fetching team by UUID: ${uuid}`);
         const { data } = await getTeamByUuid({
           path: { uuid },
@@ -76,7 +76,7 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
       }
 
       // Parse with TeamItemSchema, then convert to response format
-      const team = TeamItemSchema.parse(result.data);
+      const team = TeamItemSchema.parse(storedTeam);
       const responseTeam = TeamResponseSchema.parse(team);
 
       return {
@@ -96,17 +96,11 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
       // Query by name using nameSlug GSI (case-insensitive)
       const slugifiedName = slugify(name);
       console.log(`🔍 Querying team by nameSlug: ${name} (slug: ${slugifiedName})`);
-      const result = await samsEntities.team.query
-        .byType({ type: "team" })
-        .begins({ nameSlug: slugifiedName })
-        .go({ pages: "all" });
-      // Prefer exact nameSlug matches; fall back to all prefix matches if none are exact
-      const exactMatches = result.data.filter((t) => t.nameSlug === slugifiedName);
-      teams = exactMatches.length > 0 ? exactMatches : result.data;
+      const prefixMatches = await samsRepos.teams.queryByNameSlugPrefix(slugifiedName);
+      const exactMatches = prefixMatches.filter((t) => t.nameSlug === slugifiedName);
+      teams = exactMatches.length > 0 ? exactMatches : prefixMatches;
     } else {
-      // No filters provided - return all teams (since we only store our club's teams)
-      const result = await samsEntities.team.query.byType({ type: "team" }).go({ pages: "all" });
-      teams = result.data;
+      teams = await samsRepos.teams.listAll();
     }
 
     // Parse and validate response

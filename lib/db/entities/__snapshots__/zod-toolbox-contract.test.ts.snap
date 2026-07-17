@@ -1,0 +1,181 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Zod ↔ Toolbox contract suite > Location entity > Location-saved-item 1`] = `
+{
+  "_et": "Location",
+  "city": "Heitersheim",
+  "createdAt": "2024-06-15T10:30:00.000Z",
+  "description": "Main hall",
+  "gsi1pk": "location",
+  "gsi1sk": "2024-06-15T10:30:00.000Z",
+  "gsi3sk": "METADATA",
+  "gsi4sk": "METADATA",
+  "gsi5sk": "METADATA",
+  "id": "880e8400-e29b-41d4-a716-446655440003",
+  "name": "Halle 1",
+  "pk": "location#880e8400-e29b-41d4-a716-446655440003",
+  "postal": "79423",
+  "sk": "METADATA",
+  "street": "Sportstr. 1",
+  "type": "location",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+}
+`;
+
+exports[`Zod ↔ Toolbox contract suite > Media entity > Media-saved-item 1`] = `
+{
+  "_et": "Media",
+  "alt": "Alt",
+  "caption": "Cap",
+  "createdAt": "2024-06-15T10:30:00.000Z",
+  "fileSize": 1024,
+  "filename": "photo.jpg",
+  "gsi3sk": "METADATA",
+  "gsi4sk": "METADATA",
+  "gsi5sk": "METADATA",
+  "height": 600,
+  "id": "990e8400-e29b-41d4-a716-446655440004",
+  "mimeType": "image/jpeg",
+  "pk": "media#990e8400-e29b-41d4-a716-446655440004",
+  "s3Bucket": "bucket",
+  "s3Key": "media/photo.jpg",
+  "sk": "METADATA",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+  "uploadedBy": "660e8400-e29b-41d4-a716-446655440001",
+  "url": "https://cdn.example.com/photo.jpg",
+  "width": 800,
+}
+`;
+
+exports[`Zod ↔ Toolbox contract suite > Member entity > Member-saved-item 1`] = `
+{
+  "_et": "Member",
+  "authRole": "Admin",
+  "avatarS3Key": "avatar.jpg",
+  "createdAt": "2024-06-15T10:30:00.000Z",
+  "gsi1pk": "member",
+  "gsi1sk": "2024-06-15T10:30:00.000Z",
+  "gsi3sk": "METADATA",
+  "id": "660e8400-e29b-41d4-a716-446655440001",
+  "isTrainer": true,
+  "name": "Alex Example",
+  "phone": "+491234",
+  "pk": "member#660e8400-e29b-41d4-a716-446655440001",
+  "privateEmail": "private@example.com",
+  "proxyEmail": "alias@example.com",
+  "roleTitle": "Coach",
+  "sk": "METADATA",
+  "type": "member",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+}
+`;
+
+exports[`Zod ↔ Toolbox contract suite > SamsClub entity > SamsClub-saved-item 1`] = `
+{
+  "_et": "SamsClub",
+  "associationName": "SBVV",
+  "associationUuid": "assoc-1",
+  "gsi1pk": "club",
+  "gsi1sk": "markgraefler-volleys",
+  "logoImageLink": "https://logo.example.com/x.png",
+  "logoS3Key": "sams-logos/x.png",
+  "name": "Markgräfler Volleys",
+  "nameSlug": "markgraefler-volleys",
+  "pk": "club#aa0e8400-e29b-41d4-a716-446655440005",
+  "sk": "METADATA",
+  "sportsclubUuid": "aa0e8400-e29b-41d4-a716-446655440005",
+  "ttl": 1700000000,
+  "type": "club",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+}
+`;
+
+exports[`Zod ↔ Toolbox contract suite > SamsTeam entity > SamsTeam-saved-item 1`] = `
+{
+  "_et": "SamsTeam",
+  "associationUuid": "assoc-1",
+  "gsi1pk": "team",
+  "gsi1sk": "mv-herren",
+  "leagueHierarchyLevel": 2,
+  "leagueName": "Bezirksliga",
+  "leagueUuid": "league-1",
+  "name": "MV Herren",
+  "nameSlug": "mv-herren",
+  "pk": "team#bb0e8400-e29b-41d4-a716-446655440006",
+  "seasonName": "2024/25",
+  "seasonUuid": "season-1",
+  "sk": "METADATA",
+  "sportsclubUuid": "aa0e8400-e29b-41d4-a716-446655440005",
+  "ttl": 1700000000,
+  "type": "team",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+  "uuid": "bb0e8400-e29b-41d4-a716-446655440006",
+}
+`;
+
+exports[`Zod ↔ Toolbox contract suite > Sponsor entity > Sponsor-saved-item 1`] = `
+{
+  "_et": "Sponsor",
+  "createdAt": "2024-06-15T10:30:00.000Z",
+  "description": "Great sponsor",
+  "gsi1pk": "sponsor",
+  "gsi1sk": "2024-06-15T10:30:00.000Z",
+  "gsi3sk": "METADATA",
+  "gsi4sk": "METADATA",
+  "gsi5sk": "METADATA",
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "logoS3Key": "logo.png",
+  "name": "Acme GmbH",
+  "pk": "sponsor#770e8400-e29b-41d4-a716-446655440002",
+  "sk": "METADATA",
+  "ttl": 1700000000,
+  "type": "sponsor",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+  "websiteUrl": "https://example.com",
+}
+`;
+
+exports[`Zod ↔ Toolbox contract suite > Team entity > Team-saved-item 1`] = `
+{
+  "_et": "Team",
+  "ageGroup": "senior",
+  "createdAt": "2024-06-15T10:30:00.000Z",
+  "description": "Desc",
+  "gender": "male",
+  "gsi1pk": "team",
+  "gsi1sk": "herren-1",
+  "gsi3pk": "herren-1",
+  "gsi3sk": "METADATA",
+  "gsi4sk": "METADATA",
+  "gsi5sk": "METADATA",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "league": "Bezirksliga",
+  "name": "Herren 1",
+  "pictureS3Keys": [
+    "pic.jpg",
+  ],
+  "pk": "team#550e8400-e29b-41d4-a716-446655440000",
+  "pointOfContactIds": [
+    "660e8400-e29b-41d4-a716-446655440001",
+  ],
+  "sbvvTeamId": "sbvv-1",
+  "sk": "METADATA",
+  "slug": "herren-1",
+  "trainerIds": [
+    "660e8400-e29b-41d4-a716-446655440001",
+  ],
+  "trainingSchedules": [
+    {
+      "days": [
+        1,
+        3,
+      ],
+      "endTime": "21:00",
+      "locationId": "cc0e8400-e29b-41d4-a716-446655440007",
+      "startTime": "19:00",
+    },
+  ],
+  "type": "team",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+}
+`;

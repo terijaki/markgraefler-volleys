@@ -28,17 +28,20 @@ describe("server/queries", () => {
   });
 
   describe("getAllSamsClubs", () => {
-    it("queries the SAMS table by type via ElectroDB", async () => {
+    it("queries the SAMS table by type via repository", async () => {
       const mockClubs = [
         {
+          pk: "club#c1",
+          sk: "METADATA",
+          _et: "SamsClub",
+          gsi1pk: "club",
+          gsi1sk: "markgraefler-volleys",
           sportsclubUuid: "c1",
           type: "club",
           name: "Markgräfler Volleys",
           nameSlug: "markgraefler-volleys",
-          updatedAt: "2024-01-01T00:00:00Z",
+          updatedAt: "2024-01-01T00:00:00.000Z",
           ttl: 123,
-          __edb_e__: "samsclub",
-          __edb_v__: "1",
         },
       ];
       ddbMock.on(QueryCommand).resolves({ Items: mockClubs });
@@ -52,16 +55,19 @@ describe("server/queries", () => {
   });
 
   describe("getSamsClubBySportsclubUuid", () => {
-    it("gets club by primary key sportsclubUuid via ElectroDB", async () => {
+    it("gets club by primary key sportsclubUuid via repository", async () => {
       const mockClub = {
+        pk: "club#c1",
+        sk: "METADATA",
+        _et: "SamsClub",
+        gsi1pk: "club",
+        gsi1sk: "markgraefler-volleys",
         sportsclubUuid: "c1",
         type: "club",
         name: "Markgräfler Volleys",
         nameSlug: "markgraefler-volleys",
-        updatedAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
         ttl: 123,
-        __edb_e__: "samsclub",
-        __edb_v__: "1",
       };
       ddbMock.on(GetCommand).resolves({ Item: mockClub });
 
@@ -82,16 +88,19 @@ describe("server/queries", () => {
   });
 
   describe("getSamsClubByNameSlug", () => {
-    it("queries GSI1-BySamsType with begins_with slug match via ElectroDB", async () => {
+    it("queries GSI1-BySamsType with begins_with slug match via repository", async () => {
       const mockClub = {
+        pk: "club#c1",
+        sk: "METADATA",
+        _et: "SamsClub",
+        gsi1pk: "club",
+        gsi1sk: "markgraefler-volleys",
         sportsclubUuid: "c1",
         type: "club",
         name: "Markgräfler Volleys",
         nameSlug: "markgraefler-volleys",
-        updatedAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
         ttl: 123,
-        __edb_e__: "samsclub",
-        __edb_v__: "1",
       };
       ddbMock.on(QueryCommand).resolves({ Items: [mockClub] });
 
@@ -111,9 +120,14 @@ describe("server/queries", () => {
   });
 
   describe("getAllSamsTeams", () => {
-    it("queries the SAMS table by type via ElectroDB", async () => {
+    it("queries the SAMS table by type via repository", async () => {
       const mockTeams = [
         {
+          pk: "team#t1",
+          sk: "METADATA",
+          _et: "SamsTeam",
+          gsi1pk: "team",
+          gsi1sk: "damen-1",
           uuid: "t1",
           type: "team",
           name: "Damen 1",
@@ -124,10 +138,8 @@ describe("server/queries", () => {
           leagueName: "Liga A",
           seasonUuid: "s1",
           seasonName: "2024",
-          updatedAt: "2024-01-01T00:00:00Z",
+          updatedAt: "2024-01-01T00:00:00.000Z",
           ttl: 123,
-          __edb_e__: "samsteam",
-          __edb_v__: "1",
         },
       ];
       ddbMock.on(QueryCommand).resolves({ Items: mockTeams });
@@ -141,8 +153,13 @@ describe("server/queries", () => {
   });
 
   describe("getSamsTeamByUuid", () => {
-    it("gets team by uuid primary key via ElectroDB", async () => {
+    it("gets team by uuid primary key via repository", async () => {
       const mockTeam = {
+        pk: "team#t1",
+        sk: "METADATA",
+        _et: "SamsTeam",
+        gsi1pk: "team",
+        gsi1sk: "damen-1",
         uuid: "t1",
         type: "team",
         name: "Damen 1",
@@ -153,10 +170,8 @@ describe("server/queries", () => {
         leagueName: "Liga A",
         seasonUuid: "s1",
         seasonName: "2024",
-        updatedAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
         ttl: 123,
-        __edb_e__: "samsteam",
-        __edb_v__: "1",
       };
       ddbMock.on(GetCommand).resolves({ Item: mockTeam });
 

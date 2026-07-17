@@ -4,7 +4,7 @@ import { getAllLeagueMatches, type LeagueMatchDto } from "@codegen/sams/generate
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyHandler } from "aws-lambda";
 import dayjs from "dayjs";
-import { createSamsDb } from "@/lib/db/electrodb-client";
+import { createSamsRepositories } from "@/lib/db/repositories";
 import {
   dedupeSamsMatchesByUuid,
   resolveConfiguredSamsSportsclubUuids,
@@ -26,20 +26,19 @@ const docClient = createDynamoDocClient(tracer);
 const env = parseLambdaEnv(SamsLeagueMatchesLambdaEnvironmentSchema);
 const SAMS_API_KEY = env.SAMS_API_KEY;
 const TABLE_NAME = env.SAMS_TABLE_NAME;
-const samsEntities = createSamsDb(docClient, TABLE_NAME);
+const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 async function resolveConfiguredSamsSportsclubUuidsFromStorage(): Promise<string[]> {
-  const clubResponse = await samsEntities.club.query.byType({ type: "club" }).go({ pages: "all" });
+  const clubs = await samsRepos.clubs.listAll();
   const missingClubSlugs = SAMS_TARGET_CLUB_SLUGS.filter(
-    (clubSlug) =>
-      !clubResponse.data.some((club) => club.nameSlug === clubSlug && !!club.sportsclubUuid),
+    (clubSlug) => !clubs.some((club) => club.nameSlug === clubSlug && !!club.sportsclubUuid),
   );
 
   if (missingClubSlugs.length > 0) {
     logger.warn("Failed to resolve configured SAMS clubs", { missingClubSlugs });
   }
 
-  return resolveConfiguredSamsSportsclubUuids(clubResponse.data);
+  return resolveConfiguredSamsSportsclubUuids(clubs);
 }
 
 async function fetchAllLeagueMatchesForSportsclubs({

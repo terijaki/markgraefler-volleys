@@ -5,7 +5,15 @@ import {
   computeCacheTableName,
   computeSamsDataTableName,
 } from "../../lib/db/env.ts";
-import { getSanitizedBranch } from "../../utils/git.ts";
+import { getSanitizedBranch } from "../../utils/deploy-branch.ts";
+
+function buildBranchLambdaName(
+  baseName: string,
+  environment: string,
+  branchSuffix: string,
+): string {
+  return `mv-${baseName}-${environment}${branchSuffix}`;
+}
 
 function setDefaultEnv(name: string, value: string) {
   if (!process.env[name]) {
@@ -15,8 +23,7 @@ function setDefaultEnv(name: string, value: string) {
 
 /**
  * Computes AWS resource names using the sanitized branch suffix.
- * Varlock already loads the raw branch name via $VARLOCK_BRANCH in the schema.
- * This plugin only handles resource naming that requires sanitization.
+ * Varlock runs before this plugin (see vite.config.ts) and sets BRANCH_NAME from $VARLOCK_BRANCH.
  */
 export function localAwsResourceEnvPlugin(): PluginOption {
   return {
@@ -36,6 +43,14 @@ export function localAwsResourceEnvPlugin(): PluginOption {
       setDefaultEnv(CONTENT_TABLE_ENV_VAR, `mv-content-${environment}${branchSuffix}`);
       setDefaultEnv(CACHE_TABLE_ENV_VAR, computeCacheTableName(environment, sanitizedBranch));
       setDefaultEnv("SAMS_TABLE_NAME", computeSamsDataTableName(environment, sanitizedBranch));
+      setDefaultEnv(
+        "SAMS_CLUBS_SYNC_FUNCTION_NAME",
+        buildBranchLambdaName("sams-clubs-sync", environment, branchSuffix),
+      );
+      setDefaultEnv(
+        "SAMS_TEAMS_SYNC_FUNCTION_NAME",
+        buildBranchLambdaName("sams-teams-sync", environment, branchSuffix),
+      );
       setDefaultEnv(
         "MEDIA_BUCKET_NAME",
         `markgraefler-volleys-media-${environment}${branchSuffix}`,

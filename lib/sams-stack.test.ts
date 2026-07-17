@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, it } from "vite-plus/test";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { SamsStack } from "./sams-stack";
-import { SamsTableIndexes } from "./db/sams-electrodb-entities";
+import { SamsTableIndexes } from "./db/table-indexes";
 import { createTestApp } from "./test-helpers";
 
 // Set required environment variables before tests

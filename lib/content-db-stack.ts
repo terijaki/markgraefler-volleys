@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import type { Construct } from "constructs";
-import { ContentTableIndexes } from "./db/electrodb-entities";
+import { ContentTableIndexes } from "./db/table-indexes";
 import { computeContentTableName } from "./db/env";
 
 interface ContentDbStackProps extends cdk.StackProps {
@@ -14,7 +14,7 @@ interface ContentDbStackProps extends cdk.StackProps {
 /**
  * Single-table DynamoDB stack for all content entities.
  *
- * Replaces the previous 10-table design.  ElectroDB entities (lib/db/electrodb-entities.ts)
+ * Replaces the previous 10-table design. DynamoDB-Toolbox entities (lib/db/entities/)
  * describe each entity's key structure within this shared table.
  */
 export class ContentDbStack extends cdk.Stack {
@@ -69,8 +69,8 @@ export class ContentDbStack extends cdk.Stack {
 
     // GSI4 — proxy email / identifier lookups
     // Used by: members (by proxyEmail), auth verifications (by identifier)
-    // The SK (gsi4sk) is populated by ElectroDB with a constant entity-type prefix,
-    // enabling safe co-existence of member and verification items under the same GSI partition.
+    // The SK (gsi4sk) uses a constant METADATA value, enabling safe co-existence of
+    // member and auth-storage items under the same GSI partition.
     this.contentTable.addGlobalSecondaryIndex({
       indexName: ContentTableIndexes.gsi4,
       partitionKey: { name: "gsi4pk", type: dynamodb.AttributeType.STRING },

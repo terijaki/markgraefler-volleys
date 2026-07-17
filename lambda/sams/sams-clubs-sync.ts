@@ -4,7 +4,7 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getAllSportsclubs, getAssociationByUuid, getAssociations } from "@codegen/sams/generated";
 import middy from "@middy/core";
 import type { EventBridgeEvent } from "aws-lambda";
-import { createSamsDb } from "@/lib/db/electrodb-client";
+import { createSamsRepositories } from "@/lib/db/repositories";
 import { SAMS } from "@/project.config";
 import { slugify } from "@/utils/slugify";
 import { parseLambdaEnv } from "../utils/env";
@@ -21,7 +21,7 @@ const MEDIA_BUCKET_NAME = env.MEDIA_BUCKET_NAME;
 const ASSOCIATION_NAME = SAMS.association.name; // SBVV
 
 const s3Client = new S3Client({});
-const samsEntities = createSamsDb(docClient, TABLE_NAME);
+const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 /**
  * Downloads a logo from a URL and uploads it to S3.
@@ -137,10 +137,8 @@ const lambdaHandler = async (event: EventBridgeEvent<string, unknown>) => {
     // previously stored valid values that must be preserved.
     console.log("🔄 Pre-loading existing club logo data from DynamoDB...");
     const existingLogoMap = new Map<string, { logoImageLink?: string; logoS3Key?: string }>();
-    const existingResponse = await samsEntities.club.query
-      .byType({ type: "club" })
-      .go({ pages: "all" });
-    for (const item of existingResponse.data) {
+    const existingClubs = await samsRepos.clubs.listAll();
+    for (const item of existingClubs) {
       existingLogoMap.set(item.sportsclubUuid, {
         logoImageLink: item.logoImageLink ?? undefined,
         logoS3Key: item.logoS3Key ?? undefined,
@@ -175,7 +173,7 @@ const lambdaHandler = async (event: EventBridgeEvent<string, unknown>) => {
 
         const validEntries = data.content.filter((c) => c.uuid && c.name);
         // Phase 1: resolve logos sequentially (rate-limited S3 uploads)
-        type ClubUpsertItem = Parameters<typeof samsEntities.club.upsert>[0];
+        type ClubUpsertItem = Parameters<typeof samsRepos.clubs.upsert>[0];
         const pageItems: ClubUpsertItem[] = [];
         for (const c of validEntries) {
           const existing = existingLogoMap.get(c.uuid as string);
@@ -189,7 +187,6 @@ const lambdaHandler = async (event: EventBridgeEvent<string, unknown>) => {
             if (uploaded) logoS3Key = uploaded;
           }
           pageItems.push({
-            type: "club",
             sportsclubUuid: c.uuid as string,
             name: c.name as string,
             nameSlug: slugify(c.name as string),
@@ -204,9 +201,7 @@ const lambdaHandler = async (event: EventBridgeEvent<string, unknown>) => {
         // Phase 2: write to DynamoDB in parallel chunks of 25
         const CHUNK_SIZE = 25;
         for (let i = 0; i < pageItems.length; i += CHUNK_SIZE) {
-          await Promise.all(
-            pageItems.slice(i, i + CHUNK_SIZE).map((item) => samsEntities.club.upsert(item).go()),
-          );
+          await samsRepos.clubs.upsertMany(pageItems.slice(i, i + CHUNK_SIZE));
         }
         totalWritten += pageItems.length;
         console.log(

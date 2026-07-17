@@ -8,7 +8,7 @@ import {
 } from "@codegen/sams/generated";
 import middy from "@middy/core";
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { createSamsDb } from "@/lib/db/electrodb-client";
+import { createSamsRepositories } from "@/lib/db/repositories";
 import { slugify } from "../../utils/slugify";
 import { resolveConfiguredSamsSportsclubUuids, SAMS_TARGET_CLUB_SLUGS } from "../../utils/sams";
 import { parseLambdaEnv } from "../utils/env";
@@ -21,7 +21,7 @@ const docClient = createDynamoDocClient(tracer);
 
 const env = parseLambdaEnv(SamsTeamsSyncLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
-const samsEntities = createSamsDb(docClient, TABLE_NAME);
+const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 type SyncedTeamItem = {
   uuid: string;
@@ -40,20 +40,17 @@ type SyncedTeamItem = {
 };
 
 async function resolveConfiguredSamsClubsFromStorage() {
-  const clubResponse = await samsEntities.club.query.byType({ type: "club" }).go({ pages: "all" });
+  const clubs = await samsRepos.clubs.listAll();
   const missingClubSlugs = SAMS_TARGET_CLUB_SLUGS.filter(
-    (clubSlug) =>
-      !clubResponse.data.some((club) => club.nameSlug === clubSlug && !!club.sportsclubUuid),
+    (clubSlug) => !clubs.some((club) => club.nameSlug === clubSlug && !!club.sportsclubUuid),
   );
 
   if (missingClubSlugs.length > 0) {
     logger.warn("Failed to resolve configured SAMS clubs", { missingClubSlugs });
   }
 
-  const sportsclubUuids = new Set(resolveConfiguredSamsSportsclubUuids(clubResponse.data));
-  return clubResponse.data.filter(
-    (club) => club.sportsclubUuid && sportsclubUuids.has(club.sportsclubUuid),
-  );
+  const sportsclubUuids = new Set(resolveConfiguredSamsSportsclubUuids(clubs));
+  return clubs.filter((club) => club.sportsclubUuid && sportsclubUuids.has(club.sportsclubUuid));
 }
 
 const lambdaHandler: APIGatewayProxyHandler = async () => {
@@ -241,19 +238,17 @@ const lambdaHandler: APIGatewayProxyHandler = async () => {
     let teamsProcessed = 0;
 
     for (const team of allTeams) {
-      await samsEntities.team.upsert(team).go();
+      await samsRepos.teams.upsert(team);
       teamsProcessed++;
     }
 
     // Step 6: Delete stale teams (not updated in this sync)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const existingResponse = await samsEntities.team.query
-      .byType({ type: "team" })
-      .go({ pages: "all" });
+    const existingTeams = await samsRepos.teams.listAll();
     let teamsDeleted = 0;
-    for (const existingTeam of existingResponse.data) {
+    for (const existingTeam of existingTeams) {
       if (existingTeam.updatedAt < oneHourAgo) {
-        await samsEntities.team.delete({ uuid: existingTeam.uuid }).go();
+        await samsRepos.teams.delete(existingTeam.uuid);
         console.log(`Deleted stale team: ${existingTeam.name}`);
         teamsDeleted++;
       }

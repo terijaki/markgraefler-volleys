@@ -14,8 +14,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from "ts-ics";
-import { db } from "@/lib/db/electrodb-client";
-import { teamSchema } from "@/lib/db/schemas";
+import { teamsRepository } from "@/lib/db/repositories";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(utc);
@@ -119,15 +118,10 @@ export const Route = createFileRoute("/ics/$teamSlug")({
 
           if (!teamSlug || teamSlug === "all") {
             calendarTitle = `${calendarTitle} - Vereinskalender`;
-            const allTeamsResult = await db()
-              .team.query.byType({ type: "team" })
-              .go({ pages: "all" });
-            teamSamsUuids = allTeamsResult.data
-              .map((t) => teamSchema.parse(t).sbvvTeamId)
-              .filter((id): id is string => !!id);
+            const { items: allTeams } = await teamsRepository.listAll();
+            teamSamsUuids = allTeams.map((t) => t.sbvvTeamId).filter((id): id is string => !!id);
           } else {
-            const teamResult = await db().team.query.bySlug({ slug: teamSlug }).go({ limit: 1 });
-            const foundTeam = teamResult.data[0] ? teamSchema.parse(teamResult.data[0]) : null;
+            const foundTeam = await teamsRepository.getBySlug(teamSlug);
             if (!foundTeam) {
               return new Response("Team nicht gefunden", {
                 status: 404,

@@ -7,11 +7,11 @@
 
 import type { z } from "zod";
 import type {
-  locationSchema,
-  mediaSchema,
-  memberSchema,
-  sponsorSchema,
-  teamSchema,
+    locationSchema,
+    mediaSchema,
+    memberSchema,
+    sponsorSchema,
+    teamSchema,
 } from "./schemas";
 
 /** Inferred types from Zod schemas */
@@ -27,5 +27,11 @@ export type BaseEntity = {
   updatedAt: string;
 };
 
-/** Pagination cursor — ElectroDB base64-encoded last-evaluated-key string */
+/** Pagination cursor for paginated repository results */
 export type PaginationCursor = string;
+
+/** Standard list result shape (cursor omitted when all pages are fetched). */
+export type PaginatedListResult<T> = {
+  items: T[];
+  lastEvaluatedKey?: PaginationCursor;
+};

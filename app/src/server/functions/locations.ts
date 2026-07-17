@@ -25,7 +25,9 @@ export const updateLocationFn = createServerFn({ method: "POST" })
   .validator(
     z.object({
       id: z.uuid(),
-      data: locationSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial(),
+      data: locationSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial().extend({
+        description: z.string().nullable().optional(),
+      }),
     }),
   )
   .handler(async ({ data: { id, data: updates } }) => handleUpdateLocation(id, updates));

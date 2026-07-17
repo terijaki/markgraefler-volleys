@@ -1,12 +1,6 @@
-import { execSync } from "node:child_process";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { getSanitizedBranch, sanitizeBranchName } from "./git";
-
-vi.mock("node:child_process", () => ({
-  execSync: vi.fn(),
-}));
-
-const mockExecSync = vi.mocked(execSync);
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import { sanitizeBranchName } from "./branch";
+import { getSanitizedBranch } from "./deploy-branch";
 
 describe("sanitizeBranchName", () => {
   it("replaces slashes with hyphens", () => {
@@ -16,12 +10,13 @@ describe("sanitizeBranchName", () => {
 
 describe("getSanitizedBranch", () => {
   beforeEach(() => {
-    delete process.env.CDK_BRANCH_OVERWRITE;
+    Reflect.deleteProperty(process.env, "CDK_BRANCH_OVERWRITE");
+    Reflect.deleteProperty(process.env, "BRANCH_NAME");
   });
 
   afterEach(() => {
-    delete process.env.CDK_BRANCH_OVERWRITE;
-    vi.clearAllMocks();
+    Reflect.deleteProperty(process.env, "CDK_BRANCH_OVERWRITE");
+    Reflect.deleteProperty(process.env, "BRANCH_NAME");
   });
 
   describe("main branch handling", () => {
@@ -64,7 +59,6 @@ describe("getSanitizedBranch", () => {
     });
 
     it("removes trailing hyphen created by truncation", () => {
-      // "feat-1234567890123456-x" truncates at position 20 with a trailing "-"
       process.env.CDK_BRANCH_OVERWRITE = "feat-1234567890123456-x";
       const result = getSanitizedBranch();
       expect(result.endsWith("-")).toBe(false);
@@ -72,24 +66,21 @@ describe("getSanitizedBranch", () => {
     });
   });
 
-  describe("git command integration", () => {
-    it("returns the sanitized branch name from git", () => {
-      mockExecSync.mockReturnValue("my-feature\n");
-      expect(getSanitizedBranch()).toBe("my-feature");
+  describe("branch resolution order", () => {
+    it("uses CDK_BRANCH_OVERWRITE instead of BRANCH_NAME", () => {
+      process.env.CDK_BRANCH_OVERWRITE = "from-cdk";
+      process.env.BRANCH_NAME = "from-varlock";
+
+      expect(getSanitizedBranch()).toBe("from-cdk");
     });
 
-    it("uses CDK_BRANCH_OVERWRITE env variable instead of running git", () => {
-      process.env.CDK_BRANCH_OVERWRITE = "my-feature";
-      expect(getSanitizedBranch()).toBe("my-feature");
-      expect(mockExecSync).not.toHaveBeenCalled();
-    });
-  });
+    it("uses BRANCH_NAME when CDK_BRANCH_OVERWRITE is unset", () => {
+      process.env.BRANCH_NAME = "terijaki/aeac08da";
 
-  describe("error handling", () => {
-    it("returns empty string when git command throws", () => {
-      mockExecSync.mockImplementation(() => {
-        throw new Error("git not found");
-      });
+      expect(getSanitizedBranch()).toBe("terijaki-aeac08da");
+    });
+
+    it("returns empty string when no branch env is set", () => {
       expect(getSanitizedBranch()).toBe("");
     });
   });
