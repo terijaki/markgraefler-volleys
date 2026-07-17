@@ -1,9 +1,21 @@
 export {
+  locationsRepository,
+  LocationsRepository,
+  locationUpdateInputSchema,
+} from "./repositories/locations-repository";
+export type { LocationCreateInput, LocationUpdateInput } from "./repositories/locations-repository";
+export {
   membersRepository,
   MembersRepository,
   memberUpdateInputSchema,
 } from "./repositories/members-repository";
 export type { MemberCreateInput, MemberUpdateInput } from "./repositories/members-repository";
+export {
+  sponsorsRepository,
+  SponsorsRepository,
+  sponsorUpdateInputSchema,
+} from "./repositories/sponsors-repository";
+export type { SponsorCreateInput, SponsorUpdateInput } from "./repositories/sponsors-repository";
 export {
   teamsRepository,
   TeamsRepository,
