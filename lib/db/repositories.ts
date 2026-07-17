@@ -1,4 +1,10 @@
 export {
+  membersRepository,
+  MembersRepository,
+  memberUpdateInputSchema,
+} from "./repositories/members-repository";
+export type { MemberCreateInput, MemberUpdateInput } from "./repositories/members-repository";
+export {
   teamsRepository,
   TeamsRepository,
   teamUpdateInputSchema,

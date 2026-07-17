@@ -117,10 +117,6 @@ describe("Zod ↔ Toolbox contract suite", () => {
       _et: "Member",
       gsi1pk: "member",
       gsi1sk: iso,
-      gsi4pk: "alias@example.com",
-      gsi4sk: SK_METADATA,
-      gsi5pk: "private@example.com",
-      gsi5sk: SK_METADATA,
     });
   });
 

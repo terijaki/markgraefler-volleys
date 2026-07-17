@@ -38,16 +38,9 @@ export const MemberEntity = new Entity({
       .link<typeof prevSchema>(({ updatedAt }) => updatedAt)
       .savedAs("gsi1sk")
       .hidden(),
-    gsi4pk: string()
-      // Empty-string fallback at entity level; repository (#37) omits gsi4pk when proxyEmail absent
-      .link<typeof prevSchema>(({ proxyEmail }) => proxyEmail ?? "")
-      .savedAs("gsi4pk")
-      .hidden()
-      .optional(),
-    gsi5pk: string()
-      .link<typeof prevSchema>(({ privateEmail }) => privateEmail ?? "")
-      .savedAs("gsi5pk")
-      .hidden()
-      .optional(),
+    gsi4pk: string().savedAs("gsi4pk").hidden().optional(),
+    gsi4sk: string().savedAs("gsi4sk").hidden().optional(),
+    gsi5pk: string().savedAs("gsi5pk").hidden().optional(),
+    gsi5sk: string().savedAs("gsi5sk").hidden().optional(),
   })),
 });

@@ -4,8 +4,8 @@ import {
   type TeamResponse,
   TeamResponseSchema,
 } from "@/lambda/sams/types";
-import { db, samsDb } from "@/lib/db/electrodb-client";
-import { memberSchema } from "@/lib/db/schemas";
+import { membersRepository } from "@/lib/db/repositories";
+import { samsDb } from "@/lib/db/electrodb-client";
 import type { Member, PaginationCursor } from "@/lib/db/types";
 
 type PaginatedResult<T> = {
@@ -18,9 +18,11 @@ type PaginatedResult<T> = {
  * Only returns members with Admin or Moderator role.
  */
 export async function getAdminMemberByPrivateEmail(privateEmail: string): Promise<Member | null> {
-  const result = await db().member.query.byPrivateEmail({ privateEmail }).go({ limit: 1 });
-  const item = result.data.find((m) => m.authRole === "Admin" || m.authRole === "Moderator");
-  return item ? memberSchema.parse(item) : null;
+  const member = await membersRepository.getByPrivateEmail(privateEmail);
+  if (!member || (member.authRole !== "Admin" && member.authRole !== "Moderator")) {
+    return null;
+  }
+  return member;
 }
 
 /**
@@ -28,9 +30,7 @@ export async function getAdminMemberByPrivateEmail(privateEmail: string): Promis
  * Returns any member (not gated by role) — used to resolve proxy → privateEmail for OTP delivery.
  */
 export async function getMemberByProxyEmail(proxyEmail: string): Promise<Member | null> {
-  const result = await db().member.query.byProxyEmail({ proxyEmail }).go({ limit: 1 });
-  const item = result.data[0] ? memberSchema.parse(result.data[0]) : null;
-  return item ?? null;
+  return membersRepository.getByProxyEmail(proxyEmail);
 }
 
 // ── SAMS entity queries (ElectroDB — single SAMS data table) ─────────────────
