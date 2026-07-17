@@ -93,7 +93,6 @@ async function main() {
   }
 
   console.log("\n=== All syncs completed ===");
-  console.log("Verify with: bun run db:verify-migration");
 }
 
 main();

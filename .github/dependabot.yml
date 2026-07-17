@@ -44,7 +44,7 @@ updates:
         patterns:
           - "nitro"
           - "better-auth"
-          - "electrodb"
+          - "dynamodb-toolbox"
           - "varlock"
           - "@varlock/*"
           - "zod"
