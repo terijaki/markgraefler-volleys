@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:
@@ -47,7 +47,7 @@ jobs:
           aws-region: eu-central-1
 
       - name: Load environment variables
-        uses: dmno-dev/varlock-action@v1.0.1
+        uses: dmno-dev/varlock-action@v1.0.5
 
       - name: Lint check
         run: vp lint
@@ -125,7 +125,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:
@@ -142,7 +142,7 @@ jobs:
           aws-region: eu-central-1
 
       - name: Load environment variables
-        uses: dmno-dev/varlock-action@v1.0.1
+        uses: dmno-dev/varlock-action@v1.0.5
 
       - name: Lint check
         run: vp lint
@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:
@@ -218,7 +218,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Get workflow logs
         id: logs
@@ -232,7 +232,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment on deployment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const workflowUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;

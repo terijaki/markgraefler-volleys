@@ -1,5 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
+import * as cr from "aws-cdk-lib/custom-resources";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as route53 from "aws-cdk-lib/aws-route53";
 import type { Construct } from "constructs";
 
@@ -9,6 +11,11 @@ export interface DnsStackProps extends cdk.StackProps {
   hostedZoneName: string;
   regionalCertificateArn: string; // Certificate in eu-central-1 for API Gateway
   cloudFrontCertificateArn?: string; // Certificate in us-east-1 for CloudFront
+  /** Prod-only: delegate the dev subdomain to the dev account nameservers. */
+  devSubdomainDelegation?: {
+    recordName: string;
+    nameservers: readonly string[];
+  };
 }
 
 /**
@@ -51,5 +58,56 @@ export class DnsStack extends cdk.Stack {
           props.cloudFrontCertificateArn,
         )
       : undefined;
+
+    if (props.devSubdomainDelegation) {
+      const delegation = props.devSubdomainDelegation;
+      const recordFqdn = `${delegation.recordName}.${props.hostedZoneName}.`;
+      const ttlSeconds = cdk.Duration.hours(1).toSeconds();
+      const resourceRecords = delegation.nameservers.map((nameserver) => ({
+        Value: nameserver.endsWith(".") ? nameserver : `${nameserver}.`,
+      }));
+      const changeBatch = {
+        Changes: [
+          {
+            Action: "UPSERT",
+            ResourceRecordSet: {
+              Name: recordFqdn,
+              Type: "NS",
+              TTL: ttlSeconds,
+              ResourceRecords: resourceRecords,
+            },
+          },
+        ],
+      };
+
+      // UPSERT so prod cutover succeeds when the NS delegation was created manually first.
+      new cr.AwsCustomResource(this, "DevSubdomainDelegation", {
+        onCreate: {
+          service: "Route53",
+          action: "changeResourceRecordSets",
+          parameters: {
+            HostedZoneId: props.hostedZoneId,
+            ChangeBatch: changeBatch,
+          },
+          physicalResourceId: cr.PhysicalResourceId.of(
+            `dev-subdomain-delegation-${props.hostedZoneId}`,
+          ),
+        },
+        onUpdate: {
+          service: "Route53",
+          action: "changeResourceRecordSets",
+          parameters: {
+            HostedZoneId: props.hostedZoneId,
+            ChangeBatch: changeBatch,
+          },
+        },
+        policy: cr.AwsCustomResourcePolicy.fromStatements([
+          new iam.PolicyStatement({
+            actions: ["route53:ChangeResourceRecordSets", "route53:GetChange"],
+            resources: [`arn:aws:route53:::hostedzone/${props.hostedZoneId}`],
+          }),
+        ]),
+      });
+    }
   }
 }
