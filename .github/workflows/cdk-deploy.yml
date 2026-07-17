@@ -1,7 +1,7 @@
 name: CDK Deploy
 concurrency:
-  group: cdk-deploy
-  cancel-in-progress: false
+  group: cdk-deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   push:
@@ -20,6 +20,7 @@ permissions:
 jobs:
   deploy:
     name: Deploy CDK Stack
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     outputs:
       webapp_url: ${{ steps.resolve-webapp-url.outputs.webapp_url }}
@@ -114,9 +115,60 @@ jobs:
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           fi
 
+  synth:
+    name: CDK Synth
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    env:
+      CDK_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && 'arn:aws:iam::883425316554:role/GitHubActionsCDKRole' || 'arn:aws:iam::926634327887:role/GitHubActionsCDKRole' }}
+          aws-region: eu-central-1
+
+      - name: Load environment variables
+        uses: dmno-dev/varlock-action@v1.0.1
+
+      - name: Lint check
+        run: vp lint
+
+      - name: Run tests
+        run: vp test
+
+      - name: CDK Synth
+        run: vp exec cdk synth --all
+
+      - name: Add synth summary
+        run: |
+          echo "## 📦 CDK Synth Summary (Dependabot)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | ${{ github.ref == 'refs/heads/main' && 'Production' || 'Development' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Dependabot PRs validate infrastructure via synth only — no AWS deploy or E2E." >> $GITHUB_STEP_SUMMARY
+
   e2e-tests:
     name: E2E Tests
     needs: deploy
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -161,8 +213,8 @@ jobs:
           echo "| **Result** | ${RESULT} |" >> $GITHUB_STEP_SUMMARY
 
   comment-on-deployment:
-    if: always() && (needs.deploy.result == 'failure' || needs.e2e-tests.result == 'failure')
-    needs: [deploy, e2e-tests]
+    if: always() && (needs.deploy.result == 'failure' || needs.e2e-tests.result == 'failure' || needs.synth.result == 'failure')
+    needs: [deploy, e2e-tests, synth]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
