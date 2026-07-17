@@ -1,6 +1,6 @@
 import "varlock/auto-load";
 import { ENV } from "varlock/env";
-import { getSanitizedBranch } from "@utils/git.server";
+import { getSanitizedBranch } from "@utils/deploy-branch";
 import { getCdkNaming } from "@utils/cdk-naming";
 import * as cdk from "aws-cdk-lib";
 import { DNS } from "@/project.config";

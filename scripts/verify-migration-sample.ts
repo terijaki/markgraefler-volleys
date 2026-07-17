@@ -9,7 +9,7 @@ import "varlock/auto-load";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { computeContentTableName, computeSamsDataTableName } from "@/lib/db/env";
-import { getSanitizedBranch } from "@/utils/git.server";
+import { getSanitizedBranch } from "@/utils/deploy-branch";
 
 const CDK_ENVIRONMENT = process.env.CDK_ENVIRONMENT || "dev";
 const sanitizedBranch = getSanitizedBranch();

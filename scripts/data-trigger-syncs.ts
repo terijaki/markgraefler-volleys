@@ -18,7 +18,7 @@ function checkAwsSession() {
 }
 checkAwsSession();
 
-import { getSanitizedBranch } from "@/utils/git.server";
+import { getSanitizedBranch } from "@/utils/deploy-branch";
 
 // Read environment and branch from env vars or use defaults
 const ENVIRONMENT = process.env.CDK_ENVIRONMENT || "dev";

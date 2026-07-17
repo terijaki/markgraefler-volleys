@@ -1,13 +1,6 @@
-import { execSync } from "node:child_process";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { getSanitizedBranch } from "./git.server";
-import { sanitizeBranchName } from "./git";
-
-vi.mock("node:child_process", () => ({
-  execSync: vi.fn(),
-}));
-
-const mockExecSync = vi.mocked(execSync);
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import { sanitizeBranchName } from "./branch";
+import { getSanitizedBranch } from "./deploy-branch";
 
 describe("sanitizeBranchName", () => {
   it("replaces slashes with hyphens", () => {
@@ -24,7 +17,6 @@ describe("getSanitizedBranch", () => {
   afterEach(() => {
     Reflect.deleteProperty(process.env, "CDK_BRANCH_OVERWRITE");
     Reflect.deleteProperty(process.env, "BRANCH_NAME");
-    vi.clearAllMocks();
   });
 
   describe("main branch handling", () => {
@@ -67,7 +59,6 @@ describe("getSanitizedBranch", () => {
     });
 
     it("removes trailing hyphen created by truncation", () => {
-      // "feat-1234567890123456-x" truncates at position 20 with a trailing "-"
       process.env.CDK_BRANCH_OVERWRITE = "feat-1234567890123456-x";
       const result = getSanitizedBranch();
       expect(result.endsWith("-")).toBe(false);
@@ -76,34 +67,20 @@ describe("getSanitizedBranch", () => {
   });
 
   describe("branch resolution order", () => {
-    it("uses CDK_BRANCH_OVERWRITE instead of BRANCH_NAME or git", () => {
+    it("uses CDK_BRANCH_OVERWRITE instead of BRANCH_NAME", () => {
       process.env.CDK_BRANCH_OVERWRITE = "from-cdk";
       process.env.BRANCH_NAME = "from-varlock";
-      mockExecSync.mockReturnValue("from-git\n");
 
       expect(getSanitizedBranch()).toBe("from-cdk");
-      expect(mockExecSync).not.toHaveBeenCalled();
     });
 
     it("uses BRANCH_NAME when CDK_BRANCH_OVERWRITE is unset", () => {
       process.env.BRANCH_NAME = "terijaki/aeac08da";
-      mockExecSync.mockReturnValue("from-git\n");
 
       expect(getSanitizedBranch()).toBe("terijaki-aeac08da");
-      expect(mockExecSync).not.toHaveBeenCalled();
     });
 
-    it("falls back to git when env vars are unset", () => {
-      mockExecSync.mockReturnValue("my-feature\n");
-      expect(getSanitizedBranch()).toBe("my-feature");
-    });
-  });
-
-  describe("error handling", () => {
-    it("returns empty string when git command throws and env is unset", () => {
-      mockExecSync.mockImplementation(() => {
-        throw new Error("git not found");
-      });
+    it("returns empty string when no branch env is set", () => {
       expect(getSanitizedBranch()).toBe("");
     });
   });

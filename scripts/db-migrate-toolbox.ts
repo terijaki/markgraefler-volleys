@@ -24,7 +24,7 @@ import {
 } from "@/lib/db/migration/electrodb-migration";
 import { getContentTable, getSamsTable } from "@/lib/db/toolbox-client";
 import { computeContentTableName, computeSamsDataTableName } from "@/lib/db/env";
-import { getSanitizedBranch } from "@/utils/git.server";
+import { getSanitizedBranch } from "@/utils/deploy-branch";
 
 type TableTarget = "content" | "sams" | "all";
 

@@ -5,7 +5,7 @@ import {
   computeCacheTableName,
   computeSamsDataTableName,
 } from "../../lib/db/env.ts";
-import { getSanitizedBranch } from "../../utils/git.server.ts";
+import { getSanitizedBranch } from "../../utils/deploy-branch.ts";
 
 function buildBranchLambdaName(
   baseName: string,
@@ -23,8 +23,7 @@ function setDefaultEnv(name: string, value: string) {
 
 /**
  * Computes AWS resource names using the sanitized branch suffix.
- * Varlock already loads the raw branch name via $VARLOCK_BRANCH in the schema.
- * This plugin only handles resource naming that requires sanitization.
+ * Varlock runs before this plugin (see vite.config.ts) and sets BRANCH_NAME from $VARLOCK_BRANCH.
  */
 export function localAwsResourceEnvPlugin(): PluginOption {
   return {

@@ -1,6 +1,6 @@
 /**
- * Client-safe branch name sanitization.
- * Branch resolution for deploy/dev tooling lives in git.server.ts.
+ * Client-safe branch name sanitization for AWS resource names and email plus-addresses.
+ * Deploy/tooling branch resolution lives in deploy-branch.ts.
  */
 
 /**

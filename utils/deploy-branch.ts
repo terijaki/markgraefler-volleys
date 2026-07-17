@@ -1,5 +1,4 @@
-import { execSync } from "node:child_process";
-import { sanitizeBranchName } from "./git";
+import { sanitizeBranchName } from "./branch";
 
 function resolveRawBranchName(): string | undefined {
   if (process.env.CDK_BRANCH_OVERWRITE) {
@@ -10,21 +9,17 @@ function resolveRawBranchName(): string | undefined {
     return process.env.BRANCH_NAME;
   }
 
-  try {
-    return execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8" }).trim();
-  } catch {
-    return undefined;
-  }
+  return undefined;
 }
 
 /**
- * Resolve the current deployment branch, sanitized for AWS resource naming.
+ * Resolve the deployment branch suffix for AWS resource naming (CDK, scripts, local dev).
  *
  * Resolution order:
  * 1. CDK_BRANCH_OVERWRITE — explicit override (CI, scripts)
- * 2. BRANCH_NAME — Varlock / deployed runtime env (same source as member proxy aliases)
- * 3. git rev-parse — local fallback when env is unset
+ * 2. BRANCH_NAME — Varlock ($VARLOCK_BRANCH) or CDK-injected runtime env
  *
+ * Requires Varlock auto-load (or CDK_BRANCH_OVERWRITE) — does not shell out to git.
  * Returns empty string on main (unless includeMain) or when branch cannot be resolved.
  */
 export function getSanitizedBranch(includeMain = false): string {

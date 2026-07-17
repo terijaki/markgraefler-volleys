@@ -6,7 +6,7 @@
  */
 
 import { Mail } from "@/project.config";
-import { sanitizeBranchName } from "@utils/git";
+import { sanitizeBranchName } from "@utils/branch";
 
 /** Map of German special characters to ASCII equivalents */
 const GERMAN_CHAR_MAP: Record<string, string> = {
