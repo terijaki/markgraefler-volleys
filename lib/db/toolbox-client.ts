@@ -11,8 +11,11 @@ export function getContentTable(client: DynamoDBDocumentClient = docClient) {
   return ContentTable;
 }
 
-export function getSamsTable(client: DynamoDBDocumentClient = docClient) {
+export function getSamsTable(client: DynamoDBDocumentClient = docClient, tableName?: string) {
   SamsTable.documentClient = client;
+  if (tableName !== undefined) {
+    SamsTable.tableName = tableName;
+  }
   return SamsTable;
 }
 

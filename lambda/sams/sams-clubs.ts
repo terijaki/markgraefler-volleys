@@ -2,7 +2,7 @@ import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { createSamsDb } from "@/lib/db/electrodb-client";
+import { createSamsRepositories } from "@/lib/db/repositories";
 import { slugify } from "@/utils/slugify";
 import { parseLambdaEnv } from "../utils/env";
 import { createDynamoDocClient, createLambdaResources } from "../utils/resources";
@@ -14,7 +14,7 @@ const docClient = createDynamoDocClient(tracer);
 
 const env = parseLambdaEnv(SamsClubsLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
-const samsEntities = createSamsDb(docClient, TABLE_NAME);
+const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   logger.appendKeys({ path: event.path });
@@ -29,9 +29,9 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
       // Get specific club by UUID (primary key lookup)
       console.log(`🔍 Fetching club by UUID: ${uuid}`);
 
-      const result = await samsEntities.club.get({ sportsclubUuid: uuid }).go();
+      const club = await samsRepos.clubs.getById(uuid);
 
-      if (!result.data) {
+      if (!club) {
         return {
           statusCode: 404,
           headers: {
@@ -48,7 +48,7 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
           "Content-Type": "application/json",
           "Cache-Control": "public, max-age=259200",
         },
-        body: JSON.stringify(ClubResponseSchema.parse(result.data)),
+        body: JSON.stringify(ClubResponseSchema.parse(club)),
       };
     }
 
@@ -58,12 +58,9 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
       const slugifiedName = slugify(name);
       console.log(`🔍 Querying club by name prefix: ${name} (slug: ${slugifiedName})`);
 
-      const result = await samsEntities.club.query
-        .byType({ type: "club" })
-        .begins({ nameSlug: slugifiedName })
-        .go({ pages: "all" });
+      const clubs = await samsRepos.clubs.queryByNameSlugPrefix(slugifiedName);
 
-      if (!result.data || result.data.length === 0) {
+      if (clubs.length === 0) {
         return {
           statusCode: 404,
           headers: {
@@ -75,7 +72,7 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
       }
 
       // Return first match if exact match, otherwise all prefix matches
-      const exactMatch = result.data.find((item) => item.nameSlug === slugifiedName);
+      const exactMatch = clubs.find((item) => item.nameSlug === slugifiedName);
       if (exactMatch) {
         return {
           statusCode: 200,
@@ -96,8 +93,8 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
         },
         body: JSON.stringify(
           ClubsResponseSchema.parse({
-            clubs: result.data.map((item) => ClubResponseSchema.parse(item)),
-            count: result.data.length,
+            clubs: clubs.map((item) => ClubResponseSchema.parse(item)),
+            count: clubs.length,
           }),
         ),
       };
@@ -106,7 +103,7 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
     // No filters - return all clubs (scan)
     console.log("📊 Fetching all clubs");
 
-    const result = await samsEntities.club.query.byType({ type: "club" }).go({ pages: "all" });
+    const clubs = await samsRepos.clubs.listAll();
 
     return {
       statusCode: 200,
@@ -116,8 +113,8 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
       },
       body: JSON.stringify(
         ClubsResponseSchema.parse({
-          clubs: result.data.map((item) => ClubResponseSchema.parse(item)),
-          count: result.data.length,
+          clubs: clubs.map((item) => ClubResponseSchema.parse(item)),
+          count: clubs.length,
         }),
       ),
     };
