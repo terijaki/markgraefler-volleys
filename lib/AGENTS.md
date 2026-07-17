@@ -10,6 +10,8 @@ This file provides instructions specific to the `lib/` directory, which contains
   - `lib/sams-api-stack.ts` — SAMS API proxy (Lambda + API Gateway + Lambda@Edge)
   - `lib/social-media-stack.ts` — Instagram sync Lambda + DynamoDB
   - `lib/media-stack.ts` — S3 bucket + CloudFront distribution for media assets
+  - `lib/mail-infra-stack.ts` — Environment-scoped SES identity, inbound S3, receipt rules, mail DNS
+  - `lib/mail-stack.ts` — Branch-scoped mail forwarding (EventBridge, Lambda, DLQ)
   - `lib/dns-stack.ts` — Route53 hosted zones and DNS records
   - `lib/monitoring-stack.ts` — CloudWatch dashboards, alarms, SNS topics
   - `lib/budget-stack.ts` — AWS Billing and cost alerts
@@ -19,7 +21,7 @@ This file provides instructions specific to the `lib/` directory, which contains
 ## Key files to reference
 
 - CDK entry: `bin/cdk.ts`
-- Active stacks: `lib/webapp-stack.ts`, `lib/content-db-stack.ts`, `lib/sams-api-stack.ts`, `lib/social-media-stack.ts`, `lib/media-stack.ts`, `lib/dns-stack.ts`, `lib/monitoring-stack.ts`, `lib/budget-stack.ts`
+- Active stacks: `lib/webapp-stack.ts`, `lib/content-db-stack.ts`, `lib/sams-api-stack.ts`, `lib/social-media-stack.ts`, `lib/media-stack.ts`, `lib/mail-infra-stack.ts`, `lib/mail-stack.ts`, `lib/dns-stack.ts`, `lib/monitoring-stack.ts`, `lib/budget-stack.ts`
 - DB client: `lib/db/client.ts` (DynamoDB DocumentClient with X-Ray tracing)
 - DB schemas: `lib/db/schemas.ts` (Zod schemas for all entities)
 - DB repositories: `lib/db/repositories.ts` (repository pattern for CRUD + queries)

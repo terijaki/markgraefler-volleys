@@ -74,6 +74,22 @@ describe("ContentDbStack", () => {
         TableName: "mv-content-prod",
       });
     });
+
+    it("should ignore branch suffix in prod table name", () => {
+      const app = createTestApp();
+      const stack = new ContentDbStack(app, "TestStackProdBranch", {
+        stackProps: {
+          environment: "prod",
+          branch: "feature-xyz",
+        },
+      });
+
+      const template = Template.fromStack(stack);
+
+      template.hasResourceProperties("AWS::DynamoDB::Table", {
+        TableName: "mv-content-prod",
+      });
+    });
   });
 
   describe("Table configuration", () => {

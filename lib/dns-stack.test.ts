@@ -105,4 +105,72 @@ describe("DnsStack", () => {
       throw new Error(`Expected no outputs, got: ${outputKeys.join(", ")}`);
     }
   });
+
+  it("should upsert dev subdomain NS delegation when configured", () => {
+    const app = createTestApp();
+    const stack = new DnsStack(app, "TestStackDelegation", {
+      ...testProps,
+      hostedZoneName: "markgraefler-volleys.de",
+      devSubdomainDelegation: {
+        recordName: "new",
+        nameservers: ["ns-1513.awsdns-61.org", "ns-1995.awsdns-57.co.uk"],
+      },
+    });
+
+    const template = Template.fromStack(stack);
+    template.resourceCountIs("Custom::AWS", 1);
+
+    const resources = template.findResources("Custom::AWS");
+    const createPayload = Object.values(resources)[0]?.Properties?.Create;
+    if (typeof createPayload !== "string") {
+      throw new Error("Expected dev subdomain delegation custom resource Create payload");
+    }
+
+    const create = JSON.parse(createPayload) as {
+      service: string;
+      action: string;
+      parameters: {
+        ChangeBatch: {
+          Changes: Array<{
+            Action: string;
+            ResourceRecordSet: {
+              Name: string;
+              Type: string;
+              TTL: number;
+              ResourceRecords: Array<{ Value: string }>;
+            };
+          }>;
+        };
+      };
+    };
+
+    if (create.service !== "Route53" || create.action !== "changeResourceRecordSets") {
+      throw new Error("Expected Route53 changeResourceRecordSets upsert custom resource");
+    }
+
+    const recordSet = create.parameters.ChangeBatch.Changes[0]?.ResourceRecordSet;
+    if (create.parameters.ChangeBatch.Changes[0]?.Action !== "UPSERT") {
+      throw new Error("Expected UPSERT action for dev subdomain delegation");
+    }
+    if (recordSet?.Name !== "new.markgraefler-volleys.de.") {
+      throw new Error(
+        `Expected delegation record name new.markgraefler-volleys.de., got ${recordSet?.Name}`,
+      );
+    }
+    if (recordSet?.Type !== "NS") {
+      throw new Error(`Expected NS record type, got ${recordSet?.Type}`);
+    }
+
+    if (!stack.hostedZone) {
+      throw new Error("Expected hosted zone to be available");
+    }
+  });
+
+  it("should not create NS delegation without devSubdomainDelegation prop", () => {
+    const app = createTestApp();
+    const stack = new DnsStack(app, "TestStackNoDelegation", testProps);
+
+    const template = Template.fromStack(stack);
+    template.resourceCountIs("Custom::AWS", 0);
+  });
 });

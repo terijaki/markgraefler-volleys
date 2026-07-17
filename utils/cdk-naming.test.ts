@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { getCdkNaming } from "./cdk-naming";
+import { getCdkNaming, computeResourceBranchSuffix } from "./cdk-naming";
 
 describe("getCdkNaming", () => {
   describe("prod", () => {
@@ -41,5 +41,20 @@ describe("getCdkNaming", () => {
       const { envLabel } = getCdkNaming(false, "");
       expect(envLabel).toBe("dev-main");
     });
+  });
+});
+
+describe("computeResourceBranchSuffix", () => {
+  it("returns empty suffix for prod regardless of branch", () => {
+    expect(computeResourceBranchSuffix("prod", "")).toBe("");
+    expect(computeResourceBranchSuffix("prod", "feature-foo")).toBe("");
+  });
+
+  it("returns branch suffix for dev feature branches", () => {
+    expect(computeResourceBranchSuffix("dev", "feature-foo")).toBe("-feature-foo");
+  });
+
+  it("returns empty suffix for dev main branch", () => {
+    expect(computeResourceBranchSuffix("dev", "")).toBe("");
   });
 });

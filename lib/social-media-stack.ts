@@ -5,6 +5,7 @@ import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import type { Construct } from "constructs";
 import type { BeholdSyncLambdaEnvironment } from "@/lambda/social/types";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 import { computeCacheTableName } from "./db/env";
 import { MvNodejsFunction } from "./construct/mv-nodejs-function";
 
@@ -21,7 +22,7 @@ export class SocialMediaStack extends cdk.Stack {
 
     const environment = props?.stackProps?.environment || "dev";
     const branch = props?.stackProps?.branch || "";
-    const branchSuffix = branch ? `-${branch}` : "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
     const commonEnvironment = {
       CDK_ENVIRONMENT: environment,
     };

@@ -3,6 +3,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, type NodejsFunctionProps } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
+import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 import { getSanitizedBranch } from "@utils/deploy-branch";
 
 export interface MvNodejsFunctionProps extends Omit<
@@ -16,7 +17,7 @@ export interface MvNodejsFunctionProps extends Omit<
 export function buildLambdaFunctionName(baseName: string): string {
   const environment = process.env.CDK_ENVIRONMENT || "dev";
   const branch = getSanitizedBranch();
-  const branchSuffix = branch ? `-${branch}` : "";
+  const branchSuffix = computeResourceBranchSuffix(environment, branch);
 
   return `mv-${baseName}-${environment}${branchSuffix}`;
 }
@@ -24,7 +25,7 @@ export function buildLambdaFunctionName(baseName: string): string {
 function buildLogGroupName(namespace: string, baseName: string): string {
   const environment = process.env.CDK_ENVIRONMENT || "dev";
   const branch = getSanitizedBranch();
-  const branchSuffix = branch ? `-${branch}` : "";
+  const branchSuffix = computeResourceBranchSuffix(environment, branch);
 
   return `/mv/${environment}${branchSuffix}/${namespace}/${baseName}`;
 }

@@ -18,7 +18,7 @@ jobs:
     outputs:
       has_drift: ${{ steps.diff.outputs.has_drift }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:
@@ -62,7 +62,7 @@ jobs:
       fixed_bug_ids: ${{ steps.parse.outputs.fixed_bug_ids }}
       check_failed_ids: ${{ steps.parse.outputs.check_failed_ids }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:
@@ -81,7 +81,7 @@ jobs:
           aws-region: eu-central-1
 
       - name: Load environment variables
-        uses: dmno-dev/varlock-action@v1.0.1
+        uses: dmno-dev/varlock-action@v1.0.5
 
       - name: Run bug checks
         run: bun scripts/check-sams-bugs.ts > bug-results.json
@@ -135,7 +135,7 @@ jobs:
       failed: ${{ steps.result.outputs.failed }}
       failure_step: ${{ steps.result.outputs.failure_step }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:
@@ -183,7 +183,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:

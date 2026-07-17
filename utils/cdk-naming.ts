@@ -1,3 +1,5 @@
+export { computeResourceBranchSuffix } from "../lib/db/env";
+
 /**
  * Builds a CDK stack name and environment label from the deployment context.
  *
