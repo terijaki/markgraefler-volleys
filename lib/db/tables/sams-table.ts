@@ -1,5 +1,6 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Table } from "dynamodb-toolbox/table";
+import { docClient } from "../client";
 import { getSamsTableName } from "../env";
 import { SamsTableIndexes } from "../table-indexes";
 
@@ -23,5 +24,5 @@ export function createSamsTable(
   });
 }
 
-/** Placeholder table for entity definitions — wired with docClient at runtime via toolbox-client */
-export const SamsTable = createSamsTable();
+/** Shared SAMS table — entities and runtime use this instance */
+export const SamsTable = createSamsTable(docClient);

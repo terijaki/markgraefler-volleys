@@ -1,5 +1,6 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Table } from "dynamodb-toolbox/table";
+import { docClient } from "../client";
 import { getContentTableName } from "../env";
 import { ContentTableIndexes } from "../table-indexes";
 
@@ -38,5 +39,5 @@ export function createContentTable(
   });
 }
 
-/** Placeholder table for entity definitions — wired with docClient at runtime via toolbox-client */
-export const ContentTable = createContentTable();
+/** Shared content table — entities and runtime use this instance */
+export const ContentTable = createContentTable(docClient);

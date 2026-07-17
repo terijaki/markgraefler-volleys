@@ -12,14 +12,17 @@ export function contentMetadataKeys() {
     gsi3sk: string()
       .link(() => SK_METADATA)
       .savedAs("gsi3sk")
-      .hidden(),
+      .hidden()
+      .optional(),
     gsi4sk: string()
       .link(() => SK_METADATA)
       .savedAs("gsi4sk")
-      .hidden(),
+      .hidden()
+      .optional(),
     gsi5sk: string()
       .link(() => SK_METADATA)
       .savedAs("gsi5sk")
-      .hidden(),
+      .hidden()
+      .optional(),
   } as const;
 }
