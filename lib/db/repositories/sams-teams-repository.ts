@@ -1,8 +1,8 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { EntityRepository } from "dynamodb-toolbox/entity/actions/repository";
-import { z } from "zod";
 import { docClient } from "../client";
 import { SamsTeamEntity } from "../entities/sams/team";
+import { isoTimestampNow, parseWithSchema } from "../repository-utils";
 import { samsTeamSchema, type SamsTeamInput } from "../schemas";
 import { SamsTableIndexes } from "../table-indexes";
 import { getSamsTable } from "../toolbox-client";
@@ -12,14 +12,7 @@ export type SamsTeamUpsertInput = Omit<SamsTeamInput, "type" | "updatedAt"> & {
 };
 
 function parseTeam(value: unknown, message: string): SamsTeamInput {
-  try {
-    return samsTeamSchema.parse(value);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(message, { cause: error });
-    }
-    throw error;
-  }
+  return parseWithSchema(samsTeamSchema, value, message);
 }
 
 export class SamsTeamsRepository {
@@ -71,7 +64,7 @@ export class SamsTeamsRepository {
       {
         ...input,
         type: "team",
-        updatedAt: input.updatedAt ?? new Date().toISOString(),
+        updatedAt: input.updatedAt ?? isoTimestampNow(),
       },
       "Failed to parse SAMS team upsert input",
     );

@@ -1,8 +1,8 @@
 import {
-  type ClubResponse,
-  ClubResponseSchema,
-  type TeamResponse,
-  TeamResponseSchema,
+    type ClubResponse,
+    ClubResponseSchema,
+    type TeamResponse,
+    TeamResponseSchema,
 } from "@/lambda/sams/types";
 import { membersRepository, samsClubsRepository, samsTeamsRepository } from "@/lib/db/repositories";
 import type { Member, PaginationCursor } from "@/lib/db/types";
@@ -36,7 +36,10 @@ export async function getMemberByProxyEmail(proxyEmail: string): Promise<Member 
 
 export async function getAllSamsClubs(): Promise<PaginatedResult<ClubResponse>> {
   const items = await samsClubsRepository.listAll();
-  return { items: items.map((item) => ClubResponseSchema.parse(item)) };
+  return {
+    items: items.map((item) => ClubResponseSchema.parse(item)),
+    lastEvaluatedKey: undefined,
+  };
 }
 
 export async function getSamsClubBySportsclubUuid(
@@ -58,7 +61,10 @@ export async function getSamsClubByNameSlugPrefix(prefix: string): Promise<ClubR
 
 export async function getAllSamsTeams(): Promise<PaginatedResult<TeamResponse>> {
   const items = await samsTeamsRepository.listAll();
-  return { items: items.map((item) => TeamResponseSchema.parse(item)) };
+  return {
+    items: items.map((item) => TeamResponseSchema.parse(item)),
+    lastEvaluatedKey: undefined,
+  };
 }
 
 export async function getSamsTeamByUuid(uuid: string): Promise<TeamResponse | null> {

@@ -6,10 +6,11 @@ import { z } from "zod";
 import { docClient } from "../client";
 import { LocationEntity } from "../entities/content/location";
 import { resolveNullableUpdates } from "../nullable-updates";
+import { isoTimestampNow, parseWithSchema, withTimestamps } from "../repository-utils";
 import { locationSchema } from "../schemas";
 import { ContentTableIndexes } from "../table-indexes";
 import { getContentTable } from "../toolbox-client";
-import type { Location } from "../types";
+import type { Location, PaginatedListResult } from "../types";
 
 const locationInputSchema = locationSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
@@ -23,26 +24,8 @@ export const locationUpdateInputSchema = locationSchema
 export type LocationCreateInput = z.infer<typeof locationInputSchema>;
 export type LocationUpdateInput = z.infer<typeof locationUpdateInputSchema>;
 
-function withTimestamps<T extends Record<string, unknown>>(
-  item: T,
-): T & { createdAt: string; updatedAt: string } {
-  const now = new Date().toISOString();
-  return {
-    ...item,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
 function parseLocation(value: unknown, message: string): Location {
-  try {
-    return locationSchema.parse(value);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(message, { cause: error });
-    }
-    throw error;
-  }
+  return parseWithSchema(locationSchema, value, message);
 }
 
 export class LocationsRepository {
@@ -53,7 +36,7 @@ export class LocationsRepository {
     return LocationEntity.build(EntityRepository);
   }
 
-  async listAll(): Promise<{ items: Location[] }> {
+  async listAll(): Promise<PaginatedListResult<Location>> {
     const { Items } = await this.entityRepository().query(
       {
         index: ContentTableIndexes.gsi1,
@@ -96,7 +79,7 @@ export class LocationsRepository {
 
     const updateItem: UpdateItemInput<typeof LocationEntity> = {
       id,
-      updatedAt: new Date().toISOString(),
+      updatedAt: isoTimestampNow(),
       ...restUpdates,
       ...nullableFields,
       ...(removeKeys.includes("description") ? { description: $remove() } : {}),

@@ -49,23 +49,45 @@ vi.mock("@/lib/db/repositories", () => ({
 
 let adapter: typeof MemberAuthAdapter;
 
-// biome-ignore lint/suspicious/noExplicitAny: better-auth adapter internal type
-let adaptClient: (args: any) => Promise<unknown>;
-
-async function findOne(args: {
+type AuthAdapterFindOneArgs = {
   model: string;
-  where: Array<{ field: string; value: unknown; operator?: string }>;
+  where: Array<{ field: string; value: string; operator?: string }>;
   select?: string[];
-}) {
-  // biome-ignore lint/suspicious/noExplicitAny: adapter internal
+};
+
+type AuthUserView = {
+  id?: string;
+  email?: string;
+  emailVerified?: boolean;
+  role?: string;
+  name?: string;
+  privateEmail?: string;
+};
+
+type AuthAdapterClient = {
+  findOne: (args: AuthAdapterFindOneArgs) => Promise<AuthUserView | null>;
+};
+
+type AuthAdapterFactory = (ctx: { getModelName: (model: string) => string }) => AuthAdapterClient;
+
+let adaptClient: AuthAdapterClient["findOne"];
+
+async function findOne(args: AuthAdapterFindOneArgs): Promise<AuthUserView | null> {
   return adaptClient(args);
+}
+
+function requireAuthUser(user: AuthUserView | null): AuthUserView {
+  expect(user).not.toBeNull();
+  if (!user) {
+    throw new Error("Expected auth user");
+  }
+  return user;
 }
 
 beforeEach(async () => {
   adapter = (await import("./auth-member-adapter")).memberAuthAdapter;
 
-  // biome-ignore lint/suspicious/noExplicitAny: factory introspection
-  const built = (adapter as any)({ getModelName: (model: string) => model });
+  const built = (adapter as AuthAdapterFactory)({ getModelName: (model: string) => model });
   adaptClient = built.findOne.bind(built);
 });
 
@@ -86,52 +108,58 @@ describe("findOne — user model", () => {
   });
 
   it("finds an Admin member by privateEmail and maps it to email in auth view", async () => {
-    const result = (await findOne({
-      model: "user",
-      where: [{ field: "email", value: "admin@example.com" }],
-    })) as Record<string, unknown>;
+    const result = requireAuthUser(
+      await findOne({
+        model: "user",
+        where: [{ field: "email", value: "admin@example.com" }],
+      }),
+    );
 
-    expect(result).not.toBeNull();
     expect(result.id).toBe("m-admin");
     expect(result.email).toBe("admin@example.com");
     expect(result.privateEmail).toBeUndefined();
   });
 
   it("finds a Moderator member by privateEmail", async () => {
-    const result = (await findOne({
-      model: "user",
-      where: [{ field: "email", value: "mod@example.com" }],
-    })) as Record<string, unknown>;
+    const result = requireAuthUser(
+      await findOne({
+        model: "user",
+        where: [{ field: "email", value: "mod@example.com" }],
+      }),
+    );
 
-    expect(result).not.toBeNull();
     expect(result.id).toBe("m-mod");
     expect(result.email).toBe("mod@example.com");
   });
 
   it("always returns emailVerified: true in auth view", async () => {
-    const result = (await findOne({
-      model: "user",
-      where: [{ field: "email", value: "mod@example.com" }],
-    })) as Record<string, unknown>;
-    expect(result).not.toBeNull();
+    const result = requireAuthUser(
+      await findOne({
+        model: "user",
+        where: [{ field: "email", value: "mod@example.com" }],
+      }),
+    );
     expect(result.emailVerified).toBe(true);
 
-    const admin = (await findOne({
-      model: "user",
-      where: [{ field: "email", value: "admin@example.com" }],
-    })) as Record<string, unknown>;
+    const admin = requireAuthUser(
+      await findOne({
+        model: "user",
+        where: [{ field: "email", value: "admin@example.com" }],
+      }),
+    );
     expect(admin.emailVerified).toBe(true);
   });
 
   it("finds a member by proxyEmail alias when privateEmail lookup fails, and still exposes privateEmail as email", async () => {
     mockGetByPrivateEmail.mockResolvedValueOnce(null);
 
-    const result = (await findOne({
-      model: "user",
-      where: [{ field: "email", value: "public-admin@proxy.example.com" }],
-    })) as Record<string, unknown>;
+    const result = requireAuthUser(
+      await findOne({
+        model: "user",
+        where: [{ field: "email", value: "public-admin@proxy.example.com" }],
+      }),
+    );
 
-    expect(result).not.toBeNull();
     expect(result.id).toBe("m-admin");
     expect(result.email).toBe("admin@example.com");
   });
@@ -158,12 +186,13 @@ describe("findOne — user model", () => {
   });
 
   it("finds a member by id and maps privateEmail to email", async () => {
-    const result = (await findOne({
-      model: "user",
-      where: [{ field: "id", value: "m-mod" }],
-    })) as Record<string, unknown>;
+    const result = requireAuthUser(
+      await findOne({
+        model: "user",
+        where: [{ field: "id", value: "m-mod" }],
+      }),
+    );
 
-    expect(result).not.toBeNull();
     expect(result.id).toBe("m-mod");
     expect(result.email).toBe("mod@example.com");
   });
@@ -186,13 +215,14 @@ describe("findOne — user model", () => {
   });
 
   it("applies field selection when select is provided", async () => {
-    const result = (await findOne({
-      model: "user",
-      where: [{ field: "email", value: "admin@example.com" }],
-      select: ["id", "email"],
-    })) as Record<string, unknown>;
+    const result = requireAuthUser(
+      await findOne({
+        model: "user",
+        where: [{ field: "email", value: "admin@example.com" }],
+        select: ["id", "email"],
+      }),
+    );
 
-    expect(result).not.toBeNull();
     expect(result.id).toBe("m-admin");
     expect(result.email).toBe("admin@example.com");
     expect(result.role).toBeUndefined();

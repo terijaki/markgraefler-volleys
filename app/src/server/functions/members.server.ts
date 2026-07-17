@@ -6,25 +6,27 @@ import { membersRepository } from "@/lib/db/repositories";
 import type { MemberUpdateInput } from "@/lib/db/repositories";
 import { memberSchema } from "@/lib/db/schemas";
 import {
-  canonicalizeProxyAlias,
-  getProxyAliasBranchName,
-  getProxyAliasDomain,
-  suggestProxyAlias,
+    canonicalizeProxyAlias,
+    getProxyAliasBranchName,
+    getProxyAliasDomain,
+    suggestProxyAlias,
 } from "./member-alias";
 
 const publicMemberSchema = memberSchema.omit({ privateEmail: true, authRole: true });
 
 export async function handleListPublicMembers() {
-  const { items } = await membersRepository.listAll();
+  const result = await membersRepository.listAll();
   return {
-    items: items.map((member) => publicMemberSchema.parse(member)),
+    items: result.items.map((member) => publicMemberSchema.parse(member)),
+    lastEvaluatedKey: result.lastEvaluatedKey,
   };
 }
 
 export async function handleGetTrainers() {
-  const { items } = await membersRepository.listTrainers();
+  const result = await membersRepository.listTrainers();
   return {
-    items: items.map((member) => publicMemberSchema.parse(member)),
+    items: result.items.map((member) => publicMemberSchema.parse(member)),
+    lastEvaluatedKey: result.lastEvaluatedKey,
   };
 }
 

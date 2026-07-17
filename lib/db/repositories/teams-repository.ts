@@ -7,10 +7,11 @@ import { z } from "zod";
 import { docClient } from "../client";
 import { TeamEntity } from "../entities/content/team";
 import { resolveNullableUpdates } from "../nullable-updates";
+import { isoTimestampNow, parseWithSchema, withTimestamps } from "../repository-utils";
 import { teamSchema } from "../schemas";
 import { ContentTableIndexes } from "../table-indexes";
 import { getContentTable } from "../toolbox-client";
-import type { Team } from "../types";
+import type { PaginatedListResult, Team } from "../types";
 
 const teamInputSchema = teamSchema.omit({ id: true, createdAt: true, updatedAt: true, slug: true });
 
@@ -27,26 +28,8 @@ export const teamUpdateInputSchema = teamSchema
 export type TeamCreateInput = z.infer<typeof teamInputSchema>;
 export type TeamUpdateInput = z.infer<typeof teamUpdateInputSchema>;
 
-function withTimestamps<T extends Record<string, unknown>>(
-  item: T,
-): T & { createdAt: string; updatedAt: string } {
-  const now = new Date().toISOString();
-  return {
-    ...item,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
 function parseTeam(value: unknown, message: string): Team {
-  try {
-    return teamSchema.parse(value);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(message, { cause: error });
-    }
-    throw error;
-  }
+  return parseWithSchema(teamSchema, value, message);
 }
 
 export class TeamsRepository {
@@ -60,7 +43,7 @@ export class TeamsRepository {
     return TeamEntity.build(EntityRepository);
   }
 
-  async listAll(): Promise<{ items: Team[] }> {
+  async listAll(): Promise<PaginatedListResult<Team>> {
     const { Items } = await this.entityRepository().query(
       {
         index: ContentTableIndexes.gsi1,
@@ -120,7 +103,7 @@ export class TeamsRepository {
 
     const updateItem: UpdateItemInput<typeof TeamEntity> = {
       id,
-      updatedAt: new Date().toISOString(),
+      updatedAt: isoTimestampNow(),
       ...restUpdates,
       ...nullableFields,
       ...(name !== undefined ? { name, slug: slugify(name, true) } : {}),

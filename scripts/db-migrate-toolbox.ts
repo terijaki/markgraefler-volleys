@@ -9,18 +9,20 @@
  *   bun run db:migrate -- --table sams --force
  */
 
+import * as readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 import "varlock/auto-load";
 import { execSync } from "node:child_process";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
-  DeleteCommand,
-  DynamoDBDocumentClient,
-  PutCommand,
-  ScanCommand,
+    DeleteCommand,
+    DynamoDBDocumentClient,
+    PutCommand,
+    ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
-  buildMigratedPutParams,
-  shouldSkipMigrationItem,
+    buildMigratedPutParams,
+    shouldSkipMigrationItem,
 } from "@/lib/db/migration/electrodb-migration";
 import { getContentTable, getSamsTable } from "@/lib/db/toolbox-client";
 import { computeContentTableName, computeSamsDataTableName } from "@/lib/db/env";
@@ -46,6 +48,23 @@ const CDK_ENVIRONMENT = process.env.CDK_ENVIRONMENT || "dev";
 if (CDK_ENVIRONMENT === "prod" && !force) {
   console.error("❌ Refusing to migrate production without --force");
   process.exit(1);
+}
+
+async function confirmProdMigration(): Promise<void> {
+  if (CDK_ENVIRONMENT !== "prod" || dryRun) {
+    return;
+  }
+
+  const rl = readline.createInterface({ input, output });
+  try {
+    const answer = await rl.question('Type "migrate-prod" to confirm production migration: ');
+    if (answer.trim() !== "migrate-prod") {
+      console.error("❌ Production migration not confirmed");
+      process.exit(1);
+    }
+  } finally {
+    rl.close();
+  }
 }
 
 function checkAwsSession() {
@@ -141,6 +160,8 @@ async function migrateTable(tableName: string, bindTable: () => void): Promise<M
 }
 
 async function main() {
+  await confirmProdMigration();
+
   console.log(
     `🚀 ElectroDB → Toolbox migration (${CDK_ENVIRONMENT}${sanitizedBranch ? `/${sanitizedBranch}` : ""})`,
   );

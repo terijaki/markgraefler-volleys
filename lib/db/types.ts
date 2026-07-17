@@ -7,11 +7,11 @@
 
 import type { z } from "zod";
 import type {
-  locationSchema,
-  mediaSchema,
-  memberSchema,
-  sponsorSchema,
-  teamSchema,
+    locationSchema,
+    mediaSchema,
+    memberSchema,
+    sponsorSchema,
+    teamSchema,
 } from "./schemas";
 
 /** Inferred types from Zod schemas */
@@ -29,3 +29,9 @@ export type BaseEntity = {
 
 /** Pagination cursor for paginated repository results */
 export type PaginationCursor = string;
+
+/** Standard list result shape (cursor omitted when all pages are fetched). */
+export type PaginatedListResult<T> = {
+  items: T[];
+  lastEvaluatedKey?: PaginationCursor;
+};

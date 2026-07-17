@@ -36,3 +36,19 @@ export function trimMemberEmails<T extends MemberEmailFields>(member: T): T {
     ...(typeof member.proxyEmail === "string" ? { proxyEmail: member.proxyEmail.trim() } : {}),
   };
 }
+
+/** Trim member email fields on a DynamoDB item before Zod parse (no casts). */
+export function trimMemberEmailsFromUnknown(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value;
+  }
+
+  const record = { ...value };
+  if ("privateEmail" in record && typeof record.privateEmail === "string") {
+    record.privateEmail = record.privateEmail.trim();
+  }
+  if ("proxyEmail" in record && typeof record.proxyEmail === "string") {
+    record.proxyEmail = record.proxyEmail.trim();
+  }
+  return record;
+}

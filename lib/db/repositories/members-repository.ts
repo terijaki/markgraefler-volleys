@@ -10,11 +10,16 @@ import { docClient } from "../client";
 import { MemberEntity } from "../entities/content/member";
 import { SK_METADATA } from "../key-constants";
 import { resolveNullableUpdates } from "../nullable-updates";
+import { isoTimestampNow, parseWithSchema, withTimestamps } from "../repository-utils";
 import { memberSchema } from "../schemas";
 import { ContentTableIndexes } from "../table-indexes";
 import { getContentTable } from "../toolbox-client";
-import type { Member } from "../types";
-import { applyMemberEmailIndexKeys, trimMemberEmails } from "./member-email-keys";
+import type { Member, PaginatedListResult } from "../types";
+import {
+    applyMemberEmailIndexKeys,
+    trimMemberEmails,
+    trimMemberEmailsFromUnknown,
+} from "./member-email-keys";
 import type { MemberEmailFields } from "./member-email-keys";
 import { TeamsRepository } from "./teams-repository";
 
@@ -35,27 +40,8 @@ export const memberUpdateInputSchema = memberSchema
 export type MemberCreateInput = z.infer<typeof memberInputSchema>;
 export type MemberUpdateInput = z.infer<typeof memberUpdateInputSchema>;
 
-function withTimestamps<T extends Record<string, unknown>>(
-  item: T,
-): T & { createdAt: string; updatedAt: string } {
-  const now = new Date().toISOString();
-  return {
-    ...item,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
 function parseMember(value: unknown, message: string): Member {
-  try {
-    const trimmed = trimMemberEmails(value as MemberEmailFields & Record<string, unknown>);
-    return memberSchema.parse(trimmed);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(message, { cause: error });
-    }
-    throw error;
-  }
+  return parseWithSchema(memberSchema, trimMemberEmailsFromUnknown(value), message);
 }
 
 function normalizeMemberWriteInput<T extends MemberEmailFields>(input: T): T {
@@ -98,7 +84,7 @@ export class MembersRepository {
     );
   }
 
-  async listAll(): Promise<{ items: Member[] }> {
+  async listAll(): Promise<PaginatedListResult<Member>> {
     const { Items } = await this.entityRepository().query(
       {
         index: ContentTableIndexes.gsi1,
@@ -113,7 +99,7 @@ export class MembersRepository {
     return { items };
   }
 
-  async listTrainers(): Promise<{ items: Member[] }> {
+  async listTrainers(): Promise<PaginatedListResult<Member>> {
     const { items } = await this.listAll();
     return { items: items.filter((member) => member.isTrainer === true) };
   }
@@ -193,7 +179,7 @@ export class MembersRepository {
 
     const updateItem: UpdateItemInput<typeof MemberEntity> = {
       id,
-      updatedAt: new Date().toISOString(),
+      updatedAt: isoTimestampNow(),
       ...restUpdates,
       ...nullableFields,
       ...(removeKeys.includes("privateEmail") ? { privateEmail: $remove() } : {}),

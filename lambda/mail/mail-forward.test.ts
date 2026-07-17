@@ -92,10 +92,11 @@ const mockLambdaContext = {
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
+type MailForwardResult = { statusCode: number; body: string };
+type MailForwardHandler = (event: unknown, context: unknown) => Promise<MailForwardResult>;
+
 describe("mail-forward Lambda", () => {
-  // Typed loosely because Sentry.wrapHandler wraps to the full 3-arg Lambda Handler
-  // signature; tests only need to call it as async (event, context).
-  let handler: (event: unknown, context: unknown) => Promise<unknown>;
+  let handler: MailForwardHandler;
 
   beforeEach(async () => {
     process.env.FORWARD_FROM_EMAIL = "postmaster@markgraefler-volleys.de";
@@ -124,7 +125,7 @@ describe("mail-forward Lambda", () => {
     mockListTrainers.mockResolvedValue({ items: [] });
 
     const mod = await import("./mail-forward");
-    handler = mod.handler as unknown as (event: unknown, context: unknown) => Promise<unknown>;
+    handler = mod.handler as MailForwardHandler;
     vi.mocked(Sentry.captureException).mockClear();
   });
 
@@ -307,7 +308,7 @@ describe("mail-forward Lambda", () => {
       });
 
       const { handler: devHandler } = await import("./mail-forward");
-      const result = await (devHandler as unknown as (e: unknown, c: unknown) => Promise<unknown>)(
+      const result = await (devHandler as MailForwardHandler)(
         makeEvent("emails/test-dev-domain.eml"),
         mockLambdaContext as never,
       );

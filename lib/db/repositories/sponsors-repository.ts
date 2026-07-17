@@ -6,10 +6,11 @@ import { z } from "zod";
 import { docClient } from "../client";
 import { SponsorEntity } from "../entities/content/sponsor";
 import { resolveNullableUpdates } from "../nullable-updates";
+import { isoTimestampNow, parseWithSchema, withTimestamps } from "../repository-utils";
 import { sponsorSchema } from "../schemas";
 import { ContentTableIndexes } from "../table-indexes";
 import { getContentTable } from "../toolbox-client";
-import type { Sponsor } from "../types";
+import type { PaginatedListResult, Sponsor } from "../types";
 
 const sponsorInputSchema = sponsorSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
@@ -26,26 +27,8 @@ export const sponsorUpdateInputSchema = sponsorSchema
 export type SponsorCreateInput = z.infer<typeof sponsorInputSchema>;
 export type SponsorUpdateInput = z.infer<typeof sponsorUpdateInputSchema>;
 
-function withTimestamps<T extends Record<string, unknown>>(
-  item: T,
-): T & { createdAt: string; updatedAt: string } {
-  const now = new Date().toISOString();
-  return {
-    ...item,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
 function parseSponsor(value: unknown, message: string): Sponsor {
-  try {
-    return sponsorSchema.parse(value);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(message, { cause: error });
-    }
-    throw error;
-  }
+  return parseWithSchema(sponsorSchema, value, message);
 }
 
 export class SponsorsRepository {
@@ -56,7 +39,7 @@ export class SponsorsRepository {
     return SponsorEntity.build(EntityRepository);
   }
 
-  async listAll(): Promise<{ items: Sponsor[] }> {
+  async listAll(): Promise<PaginatedListResult<Sponsor>> {
     const { Items } = await this.entityRepository().query(
       {
         index: ContentTableIndexes.gsi1,
@@ -102,7 +85,7 @@ export class SponsorsRepository {
 
     const updateItem: UpdateItemInput<typeof SponsorEntity> = {
       id,
-      updatedAt: new Date().toISOString(),
+      updatedAt: isoTimestampNow(),
       ...restUpdates,
       ...nullableFields,
       ...(removeKeys.includes("description") ? { description: $remove() } : {}),
