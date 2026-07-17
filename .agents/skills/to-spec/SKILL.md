@@ -1,12 +1,12 @@
 ---
 name: to-spec
-description: Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.
+description: Turn the current conversation into a spec and publish it as a GitHub issue — no interview, just synthesis of what you've already discussed.
 disable-model-invocation: true
 ---
 
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
-The issue tracker should have been provided in repo docs. If not, ask the user for tracker workflow details before publishing.
+This repo uses **GitHub Issues** exclusively. Publish the spec with `gh issue create` — see [`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md).
 
 ## Process
 
@@ -16,7 +16,7 @@ The issue tracker should have been provided in repo docs. If not, ask the user f
 
 Check with the user that these seams match their expectations.
 
-3. Write the spec using the template below, then publish it to the project issue tracker.
+3. Write the spec using the template below, then publish it as a GitHub issue with `gh issue create`.
 
 <spec-template>
 
