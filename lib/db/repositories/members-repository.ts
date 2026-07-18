@@ -16,9 +16,9 @@ import { ContentTableIndexes } from "../table-indexes";
 import { getContentTable } from "../toolbox-client";
 import type { Member, PaginatedListResult } from "../types";
 import {
-    applyMemberEmailIndexKeys,
-    trimMemberEmails,
-    trimMemberEmailsFromUnknown,
+  applyMemberEmailIndexKeys,
+  trimMemberEmails,
+  trimMemberEmailsFromUnknown,
 } from "./member-email-keys";
 import type { MemberEmailFields } from "./member-email-keys";
 import { TeamsRepository } from "./teams-repository";

@@ -39,3 +39,9 @@ export {
   SamsTeamsRepository,
 } from "./repositories/sams-teams-repository";
 export type { SamsTeamUpsertInput } from "./repositories/sams-teams-repository";
+export {
+  createSamsRostersRepository,
+  samsRostersRepository,
+  SamsRostersRepository,
+} from "./repositories/sams-rosters-repository";
+export type { SamsRosterUpsertInput } from "./repositories/sams-rosters-repository";

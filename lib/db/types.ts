@@ -7,11 +7,11 @@
 
 import type { z } from "zod";
 import type {
-    locationSchema,
-    mediaSchema,
-    memberSchema,
-    sponsorSchema,
-    teamSchema,
+  locationSchema,
+  mediaSchema,
+  memberSchema,
+  sponsorSchema,
+  teamSchema,
 } from "./schemas";
 
 /** Inferred types from Zod schemas */

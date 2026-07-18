@@ -9,6 +9,7 @@ let getSamsClubBySportsclubUuid: typeof import("./queries").getSamsClubBySportsc
 let getSamsClubByNameSlug: typeof import("./queries").getSamsClubByNameSlug;
 let getAllSamsTeams: typeof import("./queries").getAllSamsTeams;
 let getSamsTeamByUuid: typeof import("./queries").getSamsTeamByUuid;
+let getSamsRosterByTeamUuid: typeof import("./queries").getSamsRosterByTeamUuid;
 
 describe("server/queries", () => {
   beforeAll(async () => {
@@ -21,6 +22,7 @@ describe("server/queries", () => {
     getSamsClubByNameSlug = q.getSamsClubByNameSlug;
     getAllSamsTeams = q.getAllSamsTeams;
     getSamsTeamByUuid = q.getSamsTeamByUuid;
+    getSamsRosterByTeamUuid = q.getSamsRosterByTeamUuid;
   });
 
   beforeEach(() => {
@@ -187,6 +189,40 @@ describe("server/queries", () => {
     it("returns null when not found", async () => {
       ddbMock.on(GetCommand).resolves({ Item: undefined });
       const result = await getSamsTeamByUuid("missing");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("getSamsRosterByTeamUuid", () => {
+    it("gets roster by teamUuid primary key via repository", async () => {
+      const mockRoster = {
+        pk: "roster#t1",
+        sk: "METADATA",
+        _et: "SamsRoster",
+        gsi1pk: "roster",
+        gsi1sk: "t1",
+        teamUuid: "t1",
+        type: "roster",
+        players: [{ uuid: "p1", name: "Jane Doe", jerseyNumber: 7, position: "Zuspiel" }],
+        officials: [{ uuid: "o1", name: "Coach Smith", role: "Trainer" }],
+        updatedAt: "2024-01-01T00:00:00.000Z",
+        ttl: 123,
+      };
+      ddbMock.on(GetCommand).resolves({ Item: mockRoster });
+
+      const result = await getSamsRosterByTeamUuid("t1");
+
+      expect(result).not.toBeNull();
+      expect(result?.teamUuid).toBe("t1");
+      expect(result?.players).toHaveLength(1);
+      expect(result?.officials).toHaveLength(1);
+      const calls = ddbMock.commandCalls(GetCommand);
+      expect(calls[0].args[0].input.TableName).toBe("test-sams-table");
+    });
+
+    it("returns null when not found", async () => {
+      ddbMock.on(GetCommand).resolves({ Item: undefined });
+      const result = await getSamsRosterByTeamUuid("missing");
       expect(result).toBeNull();
     });
   });

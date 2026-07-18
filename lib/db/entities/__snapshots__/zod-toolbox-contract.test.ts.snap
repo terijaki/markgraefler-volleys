@@ -90,6 +90,36 @@ exports[`Zod ↔ Toolbox contract suite > SamsClub entity > SamsClub-saved-item 
 }
 `;
 
+exports[`Zod ↔ Toolbox contract suite > SamsRoster entity > SamsRoster-saved-item 1`] = `
+{
+  "_et": "SamsRoster",
+  "gsi1pk": "roster",
+  "gsi1sk": "bb0e8400-e29b-41d4-a716-446655440006",
+  "officials": [
+    {
+      "name": "Coach Smith",
+      "role": "Trainer",
+      "uuid": "o1",
+    },
+  ],
+  "pk": "roster#bb0e8400-e29b-41d4-a716-446655440006",
+  "players": [
+    {
+      "jerseyNumber": 7,
+      "name": "Jane Doe",
+      "portraitImageLink": "https://example.com/p.png",
+      "position": "Zuspiel",
+      "uuid": "p1",
+    },
+  ],
+  "sk": "METADATA",
+  "teamUuid": "bb0e8400-e29b-41d4-a716-446655440006",
+  "ttl": 1700000000,
+  "type": "roster",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+}
+`;
+
 exports[`Zod ↔ Toolbox contract suite > SamsTeam entity > SamsTeam-saved-item 1`] = `
 {
   "_et": "SamsTeam",
