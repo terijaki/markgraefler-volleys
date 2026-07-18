@@ -6,10 +6,10 @@ import { membersRepository } from "@/lib/db/repositories";
 import type { MemberUpdateInput } from "@/lib/db/repositories";
 import { memberSchema } from "@/lib/db/schemas";
 import {
-    canonicalizeProxyAlias,
-    getProxyAliasBranchName,
-    getProxyAliasDomain,
-    suggestProxyAlias,
+  canonicalizeProxyAlias,
+  getProxyAliasBranchName,
+  getProxyAliasDomain,
+  suggestProxyAlias,
 } from "./member-alias";
 
 const publicMemberSchema = memberSchema.omit({ privateEmail: true, authRole: true });

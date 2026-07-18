@@ -14,6 +14,7 @@ import {
   getClubLogoUrlsBatchFn,
   getSamsMatchesFn,
   getSamsRankingByLeagueUuidFn,
+  getSamsRosterByTeamUuidFn,
   getSamsTickerFn,
   listSamsTeamsFn,
 } from "../server/functions/sams";
@@ -113,6 +114,19 @@ export const useSamsTeams = () => {
   return useQuery({
     queryKey: ["samsTeams"],
     queryFn: () => listSamsTeamsFn(),
+  });
+};
+
+export const useSamsRoster = (teamUuid?: string) => {
+  return useQuery({
+    queryKey: ["samsRoster", teamUuid],
+    queryFn: () => {
+      if (!teamUuid) {
+        throw new Error("teamUuid is required");
+      }
+      return getSamsRosterByTeamUuidFn({ data: teamUuid });
+    },
+    enabled: !!teamUuid,
   });
 };
 

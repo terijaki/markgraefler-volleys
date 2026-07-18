@@ -1,10 +1,17 @@
 import {
-    type ClubResponse,
-    ClubResponseSchema,
-    type TeamResponse,
-    TeamResponseSchema,
+  type ClubResponse,
+  ClubResponseSchema,
+  type RosterResponse,
+  RosterResponseSchema,
+  type TeamResponse,
+  TeamResponseSchema,
 } from "@/lambda/sams/types";
-import { membersRepository, samsClubsRepository, samsTeamsRepository } from "@/lib/db/repositories";
+import {
+  membersRepository,
+  samsClubsRepository,
+  samsRostersRepository,
+  samsTeamsRepository,
+} from "@/lib/db/repositories";
 import type { Member, PaginationCursor } from "@/lib/db/types";
 
 type PaginatedResult<T> = {
@@ -70,4 +77,9 @@ export async function getAllSamsTeams(): Promise<PaginatedResult<TeamResponse>> 
 export async function getSamsTeamByUuid(uuid: string): Promise<TeamResponse | null> {
   const item = await samsTeamsRepository.getById(uuid);
   return item ? TeamResponseSchema.parse(item) : null;
+}
+
+export async function getSamsRosterByTeamUuid(teamUuid: string): Promise<RosterResponse | null> {
+  const item = await samsRostersRepository.getByTeamUuid(teamUuid);
+  return item ? RosterResponseSchema.parse(item) : null;
 }

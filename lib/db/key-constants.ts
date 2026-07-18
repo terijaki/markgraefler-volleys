@@ -8,3 +8,4 @@ export const locationPk = (id: string): string => `location#${id}`;
 export const mediaPk = (id: string): string => `media#${id}`;
 export const samsClubPk = (sportsclubUuid: string): string => `club#${sportsclubUuid}`;
 export const samsTeamPk = (uuid: string): string => `team#${uuid}`;
+export const samsRosterPk = (teamUuid: string): string => `roster#${teamUuid}`;

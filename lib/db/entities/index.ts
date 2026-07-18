@@ -4,10 +4,11 @@ import { MemberEntity } from "./content/member";
 import { SponsorEntity } from "./content/sponsor";
 import { TeamEntity } from "./content/team";
 import { SamsClubEntity } from "./sams/club";
+import { SamsRosterEntity } from "./sams/roster";
 import { SamsTeamEntity } from "./sams/team";
 
 export { LocationEntity, MediaEntity, MemberEntity, SponsorEntity, TeamEntity };
-export { SamsClubEntity, SamsTeamEntity };
+export { SamsClubEntity, SamsRosterEntity, SamsTeamEntity };
 
 export const ContentEntities = {
   team: TeamEntity,
@@ -20,6 +21,7 @@ export const ContentEntities = {
 export const SamsEntities = {
   club: SamsClubEntity,
   team: SamsTeamEntity,
+  roster: SamsRosterEntity,
 } as const;
 
 export type ContentEntityName = keyof typeof ContentEntities;

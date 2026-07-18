@@ -4,6 +4,7 @@ import {
   mediaSchema,
   memberSchema,
   samsClubSchema,
+  samsRosterSchema,
   samsTeamSchema,
   sponsorSchema,
   teamSchema,
@@ -13,6 +14,7 @@ import {
   MediaEntity,
   MemberEntity,
   SamsClubEntity,
+  SamsRosterEntity,
   SamsTeamEntity,
   SponsorEntity,
   TeamEntity,
@@ -23,6 +25,7 @@ import {
   mediaPk,
   memberPk,
   samsClubPk,
+  samsRosterPk,
   samsTeamPk,
   SK_METADATA,
   sponsorPk,
@@ -278,6 +281,49 @@ describe("Zod ↔ Toolbox contract suite", () => {
       _et: "SamsTeam",
       gsi1pk: "team",
       gsi1sk: "mv-herren",
+    });
+  });
+
+  it("SamsRoster entity", () => {
+    const minimal = {
+      teamUuid: SAMS_TEAM_UUID,
+      type: "roster" as const,
+      players: [],
+      officials: [],
+      updatedAt: iso,
+      ttl: 1_700_000_000,
+    };
+    const maximal = {
+      ...minimal,
+      players: [
+        {
+          uuid: "p1",
+          name: "Jane Doe",
+          jerseyNumber: 7,
+          position: "Zuspiel",
+          portraitImageLink: "https://example.com/p.png",
+        },
+      ],
+      officials: [{ uuid: "o1", name: "Coach Smith", role: "Trainer" }],
+    };
+    assertZodToolboxContract({
+      entityName: "SamsRoster",
+      zodSchema: samsRosterSchema,
+      entity: SamsRosterEntity,
+      minimalFixture: minimal,
+      maximalFixture: maximal,
+      keyFields: ["teamUuid", "type"],
+      keyIsolationVariant: {
+        ...maximal,
+        players: [{ uuid: "p2", name: "Other Player" }],
+      },
+    });
+    assertKeyEncoding(SamsRosterEntity, maximal, {
+      pk: samsRosterPk(SAMS_TEAM_UUID),
+      sk: SK_METADATA,
+      _et: "SamsRoster",
+      gsi1pk: "roster",
+      gsi1sk: SAMS_TEAM_UUID,
     });
   });
 });
