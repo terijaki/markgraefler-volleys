@@ -109,6 +109,8 @@ vpr cdk:deploy:prod # Deploy all stacks (prod, requires mv-prod credentials)
 | `main`    | prod        | `arn:aws:iam::883425316554:role/GitHubActionsCDKRole` |
 | any other | dev         | `arn:aws:iam::926634327887:role/GitHubActionsCDKRole` |
 
+Feature-branch deploys create branch-scoped app stacks only. **Budget** and **Monitoring** stacks are account-baseline resources and deploy for prod and shared dev (`main`) — not per feature branch.
+
 Deployments use OIDC — no long-lived access keys. Each AWS account needs an IAM role named `GitHubActionsCDKRole` that GitHub Actions can assume.
 
 Required IAM setup in each account:
