@@ -170,7 +170,7 @@ describe("WebAppStack", () => {
             HeaderBehavior: "none",
           },
           QueryStringsConfig: {
-            QueryStringBehavior: "all",
+            QueryStringBehavior: "none",
           },
         },
       },
@@ -187,6 +187,10 @@ describe("WebAppStack", () => {
           Match.objectLike({ PathPattern: "/assets/*" }),
           Match.objectLike({ PathPattern: "/_build/*" }),
           Match.objectLike({ PathPattern: "/docs/*" }),
+        ]),
+        CustomErrorResponses: Match.arrayWith([
+          Match.objectLike({ ErrorCode: 404, ErrorCachingMinTTL: 600 }),
+          Match.objectLike({ ErrorCode: 403, ErrorCachingMinTTL: 600 }),
         ]),
         PriceClass: "PriceClass_100",
       },
