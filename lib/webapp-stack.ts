@@ -234,8 +234,12 @@ export class WebAppStack extends cdk.Stack {
     // `s-maxage` so CloudFront can absorb most traffic without invoking the Lambda —
     // this is what keeps traffic spikes from throttling the WebApp Lambda. Pages that don't
     // set an explicit Cache-Control (e.g. /admin/**, /api/**) fall back to `defaultTtl: 0`,
-    // i.e. never cached. Query strings must be in the cache key so
-    // /api/sams/logos?clubSlug=X is cached separately from /api/sams/logos?clubSlug=Y.
+    // i.e. never cached.
+    //
+    // Query strings are intentionally excluded from the cache key: public HTML pages do not
+    // vary by query string, and `/api/**` is `no-store` so it is never cached anyway.
+    // Including all query strings previously let tracking params (`utm_*`, `fbclid`, …)
+    // bust the edge cache and invoke Lambda once per unique URL.
     const ssrCachePolicy = new cloudfront.CachePolicy(this, "SsrCachePolicy", {
       cachePolicyName: `mv-webapp-ssr-${environment}${branchSuffix}`,
       defaultTtl: cdk.Duration.seconds(0),
@@ -244,7 +248,7 @@ export class WebAppStack extends cdk.Stack {
       comment: "SSR + API: cache duration driven by origin Cache-Control (see Nitro routeRules)",
       headerBehavior: cloudfront.CacheHeaderBehavior.none(),
       cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
     });
 
     // ── CloudFront distribution ────────────────────────────────────────────
@@ -290,6 +294,19 @@ export class WebAppStack extends cdk.Stack {
           compress: true,
         },
       },
+      // Bot/scanner storms hit random paths (wp-admin, .env, …). Those 404s have no
+      // Cache-Control from the origin, so without this every probe invokes Lambda and
+      // quickly exhausts account concurrency (mv-webapp-throttles-* alarms).
+      errorResponses: [
+        {
+          httpStatus: 404,
+          ttl: cdk.Duration.minutes(10),
+        },
+        {
+          httpStatus: 403,
+          ttl: cdk.Duration.minutes(10),
+        },
+      ],
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       comment: isProd
         ? "Markgräfler Volleys WebApp (Prod)"
