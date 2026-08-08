@@ -85,13 +85,13 @@ jobs:
         env:
           SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
           CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
-        run: npx sst diff --stage "$SST_STAGE"
+        run: npx sst diff --stage "$SST_STAGE" --print-logs
 
       - name: SST Deploy
         env:
           SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
           CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
-        run: npx sst deploy --stage "$SST_STAGE"
+        run: npx sst deploy --stage "$SST_STAGE" --print-logs
 
       - name: Resolve deployed web app URL
         id: resolve-webapp-url
