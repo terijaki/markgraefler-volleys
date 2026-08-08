@@ -1,0 +1,155 @@
+name: SST Deploy
+
+concurrency:
+  group: sst-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths-ignore:
+      - "**.md"
+      - ".github/copilot**"
+      - ".vscode/**"
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy SST Stage
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      webapp_url: ${{ steps.resolve-webapp-url.outputs.webapp_url }}
+    env:
+      CDK_ENVIRONMENT: dev
+      SENTRY_ENVIRONMENT: dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::926634327887:role/GitHubActionsCDKRole
+          aws-region: eu-central-1
+
+      - name: Load environment variables
+        uses: dmno-dev/varlock-action@v1.0.5
+
+      - name: Resolve SST stage
+        id: stage
+        env:
+          CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
+        run: |
+          SST_STAGE=$(vp exec tsx -e '
+            import { resolveSstStage } from "./utils/sst-stage.ts";
+            process.stdout.write(resolveSstStage());
+          ')
+          echo "sst_stage=$SST_STAGE" >> "$GITHUB_OUTPUT"
+          echo "Using SST stage: $SST_STAGE"
+
+      - name: Lint check
+        run: vp lint
+
+      - name: Run tests
+        run: vp test
+
+      - name: SST Diff
+        env:
+          SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
+          CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
+        run: npx sst diff --stage "$SST_STAGE"
+
+      - name: SST Deploy
+        env:
+          SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
+          CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
+        run: npx sst deploy --stage "$SST_STAGE"
+
+      - name: Resolve deployed web app URL
+        id: resolve-webapp-url
+        env:
+          SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
+          CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
+        run: |
+          WEBAPP_URL=$(vp exec tsx -e '
+            import { getDeploymentContext } from "./utils/sst-stage.ts";
+            import { buildWebappUrl } from "./utils/webapp-url.ts";
+
+            const ctx = getDeploymentContext(process.env.SST_STAGE);
+            process.stdout.write(buildWebappUrl(ctx.environment, ctx.branch));
+          ')
+
+          echo "webapp_url=$WEBAPP_URL" >> "$GITHUB_OUTPUT"
+          echo "Using computed URL: $WEBAPP_URL"
+
+      - name: Add deployment summary
+        run: |
+          echo "## 🔧 SST Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Stage** | \`${{ steps.stage.outputs.sst_stage }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Webapp URL** | \`${{ steps.resolve-webapp-url.outputs.webapp_url }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This stage will be removed automatically when the branch is deleted or the PR is closed." >> $GITHUB_STEP_SUMMARY
+
+  e2e-tests:
+    name: E2E Tests
+    needs: deploy
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Install Playwright browser
+        run: vp exec playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        id: playwright
+        timeout-minutes: 15
+        env:
+          WEBAPP_URL: ${{ needs.deploy.outputs.webapp_url }}
+        run: vp run test:e2e
+
+      - name: Add E2E summary
+        if: always()
+        run: |
+          ICON="✅"
+          RESULT="Passed"
+          if [ "${{ steps.playwright.outcome }}" != "success" ]; then
+            ICON="❌"
+            RESULT="Failed"
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ${ICON} Playwright E2E Smoke" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Base URL** | \`${{ needs.deploy.outputs.webapp_url }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Result** | ${RESULT} |" >> $GITHUB_STEP_SUMMARY

@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - "**" # All branches
     paths-ignore:
       - "**.md" # Ignore markdown files
       - ".github/copilot**" # Ignore copilot files
