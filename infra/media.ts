@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import { LambdaLayers } from "@/project.config";
 import type { DeploymentContext } from "@utils/sst-stage";
 import { buildMediaDomainConfig, getMediaBucketName } from "./dns";
@@ -23,7 +25,7 @@ export function createMediaResources(ctx: DeploymentContext): MediaResources {
       maxAge: "3000 seconds",
     },
     transform: {
-      bucket: (args) => {
+      bucket: (args: aws.s3.BucketV2Args) => {
         args.bucket = bucketName;
       },
     },
@@ -60,7 +62,7 @@ export function createMediaResources(ctx: DeploymentContext): MediaResources {
       },
     },
     transform: {
-      cdn: (args) => {
+      cdn: (args: aws.cloudfront.DistributionArgs) => {
         args.comment = ctx.isProd
           ? "MV Media Distribution (Prod)"
           : `MV Media Distribution (${ctx.environment}${ctx.branchSuffix})`;

@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import type { DeploymentContext } from "@utils/sst-stage";
 import type { DatabaseResources } from "./database";
 import type { MediaResources } from "./media";
@@ -51,7 +53,7 @@ export function createSamsResources(
     schedule: `cron(0 2 ? ${SAMS_SYNC_ACTIVE_MONTHS} THU *)`,
     function: clubsSync,
     transform: {
-      rule: (args) => {
+      rule: (args: aws.cloudwatch.EventRuleArgs) => {
         args.name = `sams-clubs-weekly-sync-${ctx.environment}${ctx.branchSuffix}`;
         args.description = `Trigger SAMS clubs sync every Thursday at 2 AM UTC, except June/July (${ctx.environment}${ctx.branchSuffix})`;
       },
@@ -62,7 +64,7 @@ export function createSamsResources(
     schedule: `cron(0 7 ? ${SAMS_SYNC_ACTIVE_MONTHS} * *)`,
     function: teamsSync,
     transform: {
-      rule: (args) => {
+      rule: (args: aws.cloudwatch.EventRuleArgs) => {
         args.name = `sams-teams-nightly-sync-${ctx.environment}${ctx.branchSuffix}`;
         args.description = `Trigger SAMS teams sync every night at 7 AM UTC, except June/July (${ctx.environment}${ctx.branchSuffix})`;
       },

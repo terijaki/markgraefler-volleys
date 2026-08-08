@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import { Club, DNS } from "@/project.config";
 import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 import { buildWebappDomain } from "@utils/webapp-url";
@@ -33,7 +35,7 @@ export function buildWebappDomainConfig(ctx: DeploymentContext) {
 
 export function buildMediaDomain(ctx: DeploymentContext): string {
   const envPrefix = ctx.isProd ? "" : `${ctx.environment}${ctx.branchSuffix}-`;
-  const baseDomain = ctx.isProd ? "markgraefler-volleys.de" : `new.markgraefler-volleys.de`;
+  const baseDomain = ctx.isProd ? Club.domain : `new.${Club.domain}`;
   return `${envPrefix}media.${baseDomain}`;
 }
 

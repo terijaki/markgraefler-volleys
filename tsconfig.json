@@ -36,6 +36,8 @@
     "codegen/sams/generated/**",
     "data/migrations",
     "apps/*/src/**", // required to avoid TS errors between different app tsconfigs
-    "app/src/**" // required to avoid TS errors between different app tsconfigs
+    "app/src/**", // required to avoid TS errors between different app tsconfigs
+    "infra/**",
+    "sst.config.ts"
   ]
 }

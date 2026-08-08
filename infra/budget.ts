@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import type { DeploymentContext } from "@utils/sst-stage";
 
 export function createBudgetResources(ctx: DeploymentContext, alertEmail: string) {

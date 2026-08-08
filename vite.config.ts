@@ -20,7 +20,12 @@ export default defineConfig({
     ignorePatterns: ["app/src/routeTree.gen.ts", "codegen/sams/generated/**", "env.d.ts"],
   },
   lint: {
-    ignorePatterns: ["codegen/sams/generated/**", "app/src/routeTree.gen.ts"],
+    ignorePatterns: [
+      "codegen/sams/generated/**",
+      "app/src/routeTree.gen.ts",
+      "infra/**",
+      "sst.config.ts",
+    ],
     plugins: ["react"],
     options: {
       typeAware: true,

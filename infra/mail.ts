@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import { Club } from "@/project.config";
 import { computeMailInboundBucketName, getMailEnvironmentConfig } from "@/lib/mail-env";
 import type { DeploymentContext } from "@utils/sst-stage";
@@ -15,7 +17,7 @@ export function createMailResources(
 
   const dlq = new sst.aws.Queue("MailForwardDlq", {
     transform: {
-      queue: (args) => {
+      queue: (args: aws.sqs.QueueArgs) => {
         args.name = `mail-forward-dlq-${ctx.environment}${ctx.branchSuffix}`;
       },
     },

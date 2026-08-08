@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import type { DeploymentContext } from "@utils/sst-stage";
 import type { DatabaseResources } from "./database";
 import { createMvFunction } from "./function";
@@ -24,7 +26,7 @@ export function createSocialResources(ctx: DeploymentContext, tables: DatabaseRe
     schedule: "cron(0 7-21 * * ? *)",
     function: beholdSync,
     transform: {
-      rule: (args) => {
+      rule: (args: aws.cloudwatch.EventRuleArgs) => {
         args.name = `behold-sync-schedule-${ctx.environment}${ctx.branchSuffix}`;
         args.description = `Trigger Behold Instagram feed sync hourly during German daytime (${ctx.environment}${ctx.branchSuffix})`;
       },

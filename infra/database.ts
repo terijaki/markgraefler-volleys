@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import {
   CACHE_TABLE_ENV_VAR,
   CONTENT_TABLE_ENV_VAR,
@@ -43,7 +45,7 @@ export function createDatabaseResources(ctx: DeploymentContext): DatabaseResourc
     ttl: "ttl",
     deletionProtection: ctx.isProd,
     transform: {
-      table: (args) => {
+      table: (args: aws.dynamodb.TableArgs) => {
         args.name = contentTableName;
         args.pointInTimeRecovery = { enabled: true };
       },
@@ -58,7 +60,7 @@ export function createDatabaseResources(ctx: DeploymentContext): DatabaseResourc
     primaryIndex: { hashKey: "pk", rangeKey: "sk" },
     ttl: "ttl",
     transform: {
-      table: (args) => {
+      table: (args: aws.dynamodb.TableArgs) => {
         args.name = cacheTableName;
       },
     },
@@ -77,7 +79,7 @@ export function createDatabaseResources(ctx: DeploymentContext): DatabaseResourc
     },
     ttl: "ttl",
     transform: {
-      table: (args) => {
+      table: (args: aws.dynamodb.TableArgs) => {
         args.name = samsTableName;
       },
     },

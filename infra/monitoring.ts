@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import type { DeploymentContext } from "@utils/sst-stage";
 import type { DatabaseResources } from "./database";
 import type { WebappResources } from "./webapp";
@@ -29,7 +31,7 @@ export function createMonitoringResources(
     });
   }
 
-  webapp.web.nodes.server.apply((server) => {
+  webapp.web.nodes.server.apply((server: sst.aws.Function) => {
     const functionName = server.nodes.function.name;
 
     new aws.cloudwatch.MetricAlarm("WebappErrorRateAlarm", {

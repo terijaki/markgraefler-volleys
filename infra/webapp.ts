@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import { Club } from "@/project.config";
 import { buildWebappUrl } from "@utils/webapp-url";
 import type { DeploymentContext } from "@utils/sst-stage";
@@ -48,7 +50,9 @@ export function createWebappResources(
     permissions: [
       {
         actions: ["ses:SendEmail", "ses:SendRawEmail"],
-        resources: [$interpolate`arn:aws:ses:${aws.getRegionOutput().name}:${aws.getCallerIdentityOutput().accountId}:identity/${sesIdentity}`],
+        resources: [
+          $interpolate`arn:aws:ses:${aws.getRegionOutput().name}:${aws.getCallerIdentityOutput().accountId}:identity/${sesIdentity}`,
+        ],
       },
       {
         actions: ["lambda:InvokeFunction"],
@@ -63,8 +67,8 @@ export function createWebappResources(
       },
     ],
     transform: {
-      server: (args) => {
-        args.name = `mv-webapp-${ctx.environment}${ctx.branchSuffix}`;
+      server: (args: aws.lambda.FunctionArgs) => {
+        args.functionName = `mv-webapp-${ctx.environment}${ctx.branchSuffix}`;
       },
     },
   });

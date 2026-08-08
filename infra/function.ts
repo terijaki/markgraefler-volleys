@@ -1,3 +1,5 @@
+/// <reference path="./sst-reference.d.ts" />
+
 import type { DeploymentContext } from "@utils/sst-stage";
 
 interface MvFunctionArgs {
@@ -8,7 +10,7 @@ interface MvFunctionArgs {
   timeout?: `${number} minute` | `${number} minutes` | `${number} second` | `${number} seconds`;
   environment?: Record<string, string>;
   layers?: string[];
-  link?: any[];
+  link?: sst.aws.FunctionArgs["link"];
   permissions?: sst.aws.FunctionArgs["permissions"];
 }
 
@@ -33,10 +35,10 @@ export function createMvFunction(
       install: ["@aws-lambda-powertools/logger", "@aws-lambda-powertools/tracer"],
     },
     transform: {
-      function: (fnArgs) => {
+      function: (fnArgs: aws.lambda.FunctionArgs) => {
         fnArgs.name = functionName;
       },
-      logGroup: (logArgs) => {
+      logGroup: (logArgs: aws.cloudwatch.LogGroupArgs) => {
         logArgs.name = logGroupName;
         logArgs.retentionInDays = 60;
       },
