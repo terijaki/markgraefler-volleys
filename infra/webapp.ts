@@ -29,7 +29,8 @@ export function createWebappResources(
   const sesIdentity = ctx.isProd ? Club.domain : `new.${Club.domain}`;
 
   const web = new sst.aws.TanStackStart("Webapp", {
-    buildCommand: "npm run build",
+    path: "app",
+    buildCommand: "cd .. && vp build",
     domain: buildWebappDomainConfig(ctx),
     link: [tables.contentTable, tables.cacheTable, tables.samsTable, media.bucket],
     environment: {
