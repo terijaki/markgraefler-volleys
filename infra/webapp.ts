@@ -30,7 +30,7 @@ export function createWebappResources(
 
   const web = new sst.aws.TanStackStart("Webapp", {
     path: "app",
-    buildCommand: "cd .. && vp build",
+    buildCommand: "cd .. && vp build && cp .output/nitro.json app/.output/nitro.json",
     domain: buildWebappDomainConfig(ctx),
     link: [tables.contentTable, tables.cacheTable, tables.samsTable, media.bucket],
     environment: {

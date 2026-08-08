@@ -82,6 +82,7 @@ export function createMailResources(
       arn: dlq.arn,
     },
     retryPolicy: {
+      maximumEventAgeInSeconds: 3600,
       maximumRetryAttempts: 2,
     },
   });
