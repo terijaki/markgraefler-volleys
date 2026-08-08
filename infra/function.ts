@@ -24,7 +24,7 @@ export function createMvFunction(
 
   return new sst.aws.Function(componentName, {
     handler: args.handler,
-    runtime: "nodejs24.x",
+    runtime: "nodejs22.x",
     memory: args.memory ?? "512 MB",
     timeout: args.timeout ?? "30 seconds",
     environment: args.environment,
