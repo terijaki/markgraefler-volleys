@@ -85,7 +85,18 @@ jobs:
         env:
           SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
           CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
-        run: npx sst diff --stage "$SST_STAGE" --print-logs
+        run: |
+          set +e
+          npx sst diff --stage "$SST_STAGE" --print-logs 2>&1 | tee /tmp/sst-diff.log
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            if grep -qi "stage not found" /tmp/sst-diff.log; then
+              echo "Stage '$SST_STAGE' does not exist yet — skipping diff before first deploy."
+              exit 0
+            fi
+            exit "$status"
+          fi
 
       - name: SST Deploy
         env:
