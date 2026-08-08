@@ -49,6 +49,17 @@ jobs:
           role-to-assume: arn:aws:iam::926634327887:role/GitHubActionsCDKRole
           aws-region: eu-central-1
 
+      - name: Ensure SST bootstrap IAM permissions
+        run: |
+          POLICY=$(sed \
+            -e "s/ACCOUNT/926634327887/g" \
+            -e "s/REGION/eu-central-1/g" \
+            docs/github-actions-sst-bootstrap-policy.json)
+          aws iam put-role-policy \
+            --role-name GitHubActionsCDKRole \
+            --policy-name SSTBootstrap \
+            --policy-document "$POLICY"
+
       - name: Load environment variables
         uses: dmno-dev/varlock-action@v1.0.5
 

@@ -133,6 +133,7 @@ Current working policy set on `GitHubActionsCDKRole`:
 - `AmazonS3FullAccess`
 - `CloudFrontFullAccess`
 - `AmazonSSMReadOnlyAccess`
+- SST bootstrap inline policy (`SSTBootstrap`) — attached automatically by `sst-deploy.yml` / `sst-destroy.yml` using `docs/github-actions-sst-bootstrap-policy.json` (ECR repo `sst-asset`, SSM `/sst/*`). Requires `IAMFullAccess` so the role can update itself.
 
 The trust policy shape is documented in:
 
