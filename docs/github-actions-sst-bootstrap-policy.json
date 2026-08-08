@@ -48,6 +48,8 @@
         "logs:*",
         "sns:*",
         "sqs:*",
+        "cloudwatch:*",
+        "events:*",
         "route53:ChangeResourceRecordSets",
         "route53:GetChange",
         "route53:ListResourceRecordSets"
