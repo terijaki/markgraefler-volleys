@@ -51,7 +51,7 @@ export function createSamsResources(
 
   new sst.aws.Cron("SamsClubsSyncCron", {
     schedule: `cron(0 2 ? ${SAMS_SYNC_ACTIVE_MONTHS} THU *)`,
-    function: clubsSync,
+    function: clubsSync.arn,
     transform: {
       rule: (args: aws.cloudwatch.EventRuleArgs) => {
         args.name = `sams-clubs-weekly-sync-${ctx.environment}${ctx.branchSuffix}`;
@@ -62,7 +62,7 @@ export function createSamsResources(
 
   new sst.aws.Cron("SamsTeamsSyncCron", {
     schedule: `cron(0 7 ? ${SAMS_SYNC_ACTIVE_MONTHS} * *)`,
-    function: teamsSync,
+    function: teamsSync.arn,
     transform: {
       rule: (args: aws.cloudwatch.EventRuleArgs) => {
         args.name = `sams-teams-nightly-sync-${ctx.environment}${ctx.branchSuffix}`;

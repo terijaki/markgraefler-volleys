@@ -24,7 +24,7 @@ export function createSocialResources(ctx: DeploymentContext, tables: DatabaseRe
 
   new sst.aws.Cron("BeholdSyncCron", {
     schedule: "cron(0 7-21 * * ? *)",
-    function: beholdSync,
+    function: beholdSync.arn,
     transform: {
       rule: (args: aws.cloudwatch.EventRuleArgs) => {
         args.name = `behold-sync-schedule-${ctx.environment}${ctx.branchSuffix}`;
