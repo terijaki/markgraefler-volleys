@@ -1,18 +1,19 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { PluginOption } from "vite-plus";
 import {
   CACHE_TABLE_ENV_VAR,
   CONTENT_TABLE_ENV_VAR,
-  computeCacheTableName,
-  computeSamsDataTableName,
+  SAMS_TABLE_ENV_VAR,
 } from "../../lib/db/env.ts";
-import { getSanitizedBranch } from "../../utils/deploy-branch.ts";
 
-function buildBranchLambdaName(
-  baseName: string,
-  environment: string,
-  branchSuffix: string,
-): string {
-  return `mv-${baseName}-${environment}${branchSuffix}`;
+interface SstOutputs {
+  contentTable?: string;
+  cacheTable?: string;
+  samsTable?: string;
+  mediaBucket?: string;
+  mediaUrl?: string;
+  webappUrl?: string;
 }
 
 function setDefaultEnv(name: string, value: string) {
@@ -21,46 +22,52 @@ function setDefaultEnv(name: string, value: string) {
   }
 }
 
+function readSstOutputs(): SstOutputs | undefined {
+  const outputsPath = resolve(process.cwd(), ".sst/outputs.json");
+  try {
+    return JSON.parse(readFileSync(outputsPath, "utf8")) as SstOutputs;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Computes AWS resource names using the sanitized branch suffix.
- * Varlock runs before this plugin (see vite.config.ts) and sets BRANCH_NAME from $VARLOCK_BRANCH.
+ * Load AWS resource names from a deployed SST stage (`.sst/outputs.json`).
+ *
+ * Run `vp run sst:deploy -- --stage <stage>` once, then `vp dev` picks up linked
+ * resource names from the outputs file.
  */
 export function localAwsResourceEnvPlugin(): PluginOption {
   return {
     name: "local-aws-resource-env",
     apply: "serve",
     config() {
-      const environment = process.env.CDK_ENVIRONMENT || "dev";
+      const outputs = readSstOutputs();
+      if (!outputs) {
+        console.warn(
+          "[local-aws-resource-env] No .sst/outputs.json found — deploy an SST stage first or set resource env vars manually.",
+        );
+        return;
+      }
 
-      // Skip resource name computation in production
-      if (environment === "prod") return;
-
-      // Compute sanitized branch for resource names (e.g., DynamoDB tables, S3 buckets)
-      const sanitizedBranch = getSanitizedBranch();
-      const branchSuffix = sanitizedBranch ? `-${sanitizedBranch}` : "";
-
-      // Set resource names that require the sanitized branch
-      setDefaultEnv(CONTENT_TABLE_ENV_VAR, `mv-content-${environment}${branchSuffix}`);
-      setDefaultEnv(CACHE_TABLE_ENV_VAR, computeCacheTableName(environment, sanitizedBranch));
-      setDefaultEnv("SAMS_TABLE_NAME", computeSamsDataTableName(environment, sanitizedBranch));
-      setDefaultEnv(
-        "SAMS_CLUBS_SYNC_FUNCTION_NAME",
-        buildBranchLambdaName("sams-clubs-sync", environment, branchSuffix),
-      );
-      setDefaultEnv(
-        "SAMS_TEAMS_SYNC_FUNCTION_NAME",
-        buildBranchLambdaName("sams-teams-sync", environment, branchSuffix),
-      );
-      setDefaultEnv(
-        "MEDIA_BUCKET_NAME",
-        `markgraefler-volleys-media-${environment}${branchSuffix}`,
-      );
-
-      const envPrefix = `${environment}${branchSuffix}-`;
-      setDefaultEnv(
-        "MEDIA_CLOUDFRONT_URL",
-        `https://${envPrefix}media.new.markgraefler-volleys.de`,
-      );
+      if (outputs.contentTable) {
+        setDefaultEnv(CONTENT_TABLE_ENV_VAR, outputs.contentTable);
+      }
+      if (outputs.cacheTable) {
+        setDefaultEnv(CACHE_TABLE_ENV_VAR, outputs.cacheTable);
+      }
+      if (outputs.samsTable) {
+        setDefaultEnv(SAMS_TABLE_ENV_VAR, outputs.samsTable);
+      }
+      if (outputs.mediaBucket) {
+        setDefaultEnv("MEDIA_BUCKET_NAME", outputs.mediaBucket);
+      }
+      if (outputs.mediaUrl) {
+        setDefaultEnv("MEDIA_CLOUDFRONT_URL", outputs.mediaUrl);
+      }
+      if (outputs.webappUrl) {
+        setDefaultEnv("APP_BASE_URL", outputs.webappUrl);
+      }
     },
   };
 }

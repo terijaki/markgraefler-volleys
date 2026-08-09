@@ -65,7 +65,7 @@
       "matchCommandLine": true
     }
   },
-  "github-actions.workflows.pinned.workflows": [".github/workflows/cdk-deploy.yml"],
+  "github-actions.workflows.pinned.workflows": [".github/workflows/sst-deploy.yml"],
   "window.autoDetectColorScheme": true,
   "chat.mcp.serverSampling": {
     "markgraefler-volleys/.vscode/mcp.json: Sentry.io": {

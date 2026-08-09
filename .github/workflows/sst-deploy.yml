@@ -6,8 +6,6 @@ concurrency:
 
 on:
   push:
-    branches-ignore:
-      - main
     paths-ignore:
       - "**.md"
       - ".github/copilot**"
@@ -25,8 +23,8 @@ jobs:
     outputs:
       webapp_url: ${{ steps.resolve-webapp-url.outputs.webapp_url }}
     env:
-      CDK_ENVIRONMENT: dev
-      SENTRY_ENVIRONMENT: dev
+      CDK_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
 
     steps:
       - name: Checkout code
@@ -46,13 +44,14 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::926634327887:role/GitHubActionsCDKRole
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && 'arn:aws:iam::883425316554:role/GitHubActionsCDKRole' || 'arn:aws:iam::926634327887:role/GitHubActionsCDKRole' }}
           aws-region: eu-central-1
 
       - name: Ensure SST bootstrap IAM permissions
         run: |
+          ACCOUNT="${{ github.ref == 'refs/heads/main' && '883425316554' || '926634327887' }}"
           POLICY=$(sed \
-            -e "s/ACCOUNT/926634327887/g" \
+            -e "s/ACCOUNT/${ACCOUNT}/g" \
             -e "s/REGION/eu-central-1/g" \
             docs/github-actions-sst-bootstrap-policy.json)
           aws iam put-role-policy \
@@ -113,16 +112,62 @@ jobs:
 
       - name: Add deployment summary
         run: |
-          echo "## 🔧 SST Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ${{ github.ref == 'refs/heads/main' && '🚀' || '🔧' }} SST Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| **Stage** | \`${{ steps.stage.outputs.sst_stage }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | \`${{ env.CDK_ENVIRONMENT }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Webapp URL** | \`${{ steps.resolve-webapp-url.outputs.webapp_url }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "This stage will be removed automatically when the branch is deleted or the PR is closed." >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "This stage will be removed automatically when the branch is deleted or the PR is closed." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  synth:
+    name: SST Diff (Dependabot)
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    env:
+      CDK_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Install SST platform
+        run: vp run sst:install
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && 'arn:aws:iam::883425316554:role/GitHubActionsCDKRole' || 'arn:aws:iam::926634327887:role/GitHubActionsCDKRole' }}
+          aws-region: eu-central-1
+
+      - name: Load environment variables
+        uses: dmno-dev/varlock-action@v1.0.5
+
+      - name: Lint check
+        run: vp lint
+
+      - name: Run tests
+        run: vp test
+
+      - name: SST Diff
+        env:
+          SST_STAGE: production
+        run: vp run sst:diff -- --stage production --print-logs || true
 
   e2e-tests:
     name: E2E Tests

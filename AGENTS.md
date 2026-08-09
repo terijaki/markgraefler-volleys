@@ -8,22 +8,22 @@ Subfolder-level `AGENTS.md` files contain additional context for specific areas 
 - **Unified monorepo** with bun workspaces: `app` (single TanStack Start app + Nitro backend).
 - **Frontend & SSR:** TanStack Start with file-based routes, Mantine UI components — see [`app/AGENTS.md`](app/AGENTS.md).
 - **Server functions:** Nitro-backed server functions under `app/src/server/functions/` — use the `*.ts` / `*.server.ts` split documented in [`app/AGENTS.md`](app/AGENTS.md).
-- **Backend/Infra:** AWS CDK (in `lib/`, `bin/cdk.ts`) producing WebApp Lambda, API Gateway, DynamoDB, S3 — see [`lib/AGENTS.md`](lib/AGENTS.md).
+- **Backend/Infra:** SST (`sst.config.ts`, `infra/`) — see [`infra/AGENTS.md`](infra/AGENTS.md).
 - **Background Lambdas:** Sync tasks, ICS/Sitemap/Social handlers under `lambda/` — see [`lambda/AGENTS.md`](lambda/AGENTS.md).
-- **Shared runtime code:** `lib/db/` (repository layer), `lib/*-stack.ts` (CDK stacks), `lib/db/schemas.ts` (DB schemas).
+- **Shared runtime code:** `lib/db/` (repository layer), `lib/db/schemas.ts` (DB schemas).
 
 ## Commands you will use often
 
 - **Install deps:** `vp install` at repo root.
 - **Run webapp locally:**
-  - `vp dev` — start unified webapp dev server (includes website public routes + admin auth).
+  - `vp dev` — start unified webapp dev server (deploy an SST stage first so `.sst/outputs.json` exists).
 - **Build:** `vp build`.
 - **Lint / format / typecheck:**
   - `vp check` / `vp check --fix` (lint + format + typecheck)
   - `vpr verify` (combined check + tests)
 - **Tests:** `vp test` (or `vp test <path/to/test>` for a single file).
 - **DB / scripts:** `vpr db:seed`, `vpr db:seed:sams`
-- **CDK:** `vpr cdk:synth`, `vpr cdk:deploy`, `vpr cdk:deploy:all` (dev scripts use AWS profile `mv-dev`; prod scripts use `mv-prod`). Authenticate via AWS SSO before running CDK commands — see `docs/SETUP.md` for setup instructions.
+- **SST:** `vp run sst:install`, `vp run sst:deploy -- --stage <stage>` (dev uses AWS profile `mv-dev`; prod uses `mv-prod`). See [`infra/AGENTS.md`](infra/AGENTS.md) and `docs/SETUP.md`.
 - **WebApp build prep:** `vp build` (outputs `.output/` with Nitro server + static assets).
 
 ## Global codebase conventions
@@ -40,14 +40,14 @@ Subfolder-level `AGENTS.md` files contain additional context for specific areas 
 
 ## What NOT to change / be cautious about
 
-- Don't change project-wide Vite+, bun workspace, or CDK bootstrapping without coordinating — these affect CI and deployments.
+- Don't change project-wide Vite+, bun workspace, or SST bootstrapping without coordinating — these affect CI and deployments.
 - Avoid introducing new runtime dependencies lightly; prefer reusing packages listed in `package.json` catalog.
 
 ## When creating code suggestions
 
 - Keep edits minimal and focused: follow existing file patterns (imports, export shapes, naming).
 - Prefer small, reviewable PRs that change one area (frontend, lambda, or infra) at a time.
-- When updating infra (`lib/*.ts`), include `cdk synth` output notes and required context (e.g., environment variables, AWS profile).
+- When updating infra (`infra/*.ts`), note required context (stage name, environment variables, AWS profile).
 
 ## Agent skills
 

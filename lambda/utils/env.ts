@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { enrichLambdaEnv } from "@/lib/runtime/aws-resource";
+import { mergeLinkedEnv } from "@/lib/runtime/aws-resource";
 
 export const requiredEnvString = z.string().trim().min(1, "must be set");
 
@@ -18,5 +18,5 @@ export function parseLambdaEnv<TSchema extends z.ZodTypeAny>(
   schema: TSchema,
   env: Record<string, string | undefined> = process.env,
 ): z.infer<TSchema> {
-  return schema.parse(enrichLambdaEnv(env));
+  return schema.parse(mergeLinkedEnv(env));
 }

@@ -1,6 +1,6 @@
 # SST Infrastructure
 
-SST replaces CDK for feature-branch deployments (phases 1–4). Production (`main`) still uses CDK until the prod cutover (phase 5).
+All AWS infrastructure is deployed via SST. There is no CDK.
 
 ## Entry point
 
@@ -9,32 +9,38 @@ SST replaces CDK for feature-branch deployments (phases 1–4). Production (`mai
 
 ## Stage naming
 
-| Branch         | SST stage                    | Environment |
-| -------------- | ---------------------------- | ----------- |
-| `main`         | `production`                 | `prod`      |
-| feature branch | `feature-<sanitized-branch>` | `dev`       |
+| Branch                    | SST stage                    | Environment |
+| ------------------------- | ---------------------------- | ----------- |
+| `main`                    | `production`                 | `prod`      |
+| feature branch            | `feature-<sanitized-branch>` | `dev`       |
+| mail infra (dev account)  | `mail-infra`                 | `dev`       |
+| mail infra (prod account) | `mail-infra-prod`            | `prod`      |
 
 SST stage names must be alphanumeric + hyphens (no slashes). See `utils/sst-stage.ts`.
 
 ## Commands
 
-Use the pinned `sst` devDependency via repo scripts:
-
 ```bash
-vp run sst:install   # once per machine / CI run
+vp run sst:install
+SST_STAGE=production vp run sst:deploy -- --stage production
 SST_STAGE=feature-my-branch vp run sst:deploy -- --stage feature-my-branch
-SST_STAGE=feature-my-branch vp run sst:diff -- --stage feature-my-branch
-SST_STAGE=feature-my-branch vp run sst:remove -- --stage feature-my-branch
+vp run sst:deploy:mail-infra          # dev account mail infra
+vp run sst:deploy:mail-infra:prod     # prod account mail infra
 ```
 
-CI uses `.github/workflows/sst-deploy.yml` (feature branches) and `sst-destroy.yml`.
+CI uses `.github/workflows/sst-deploy.yml` (all branches) and `sst-destroy.yml` (feature branch cleanup).
 
 ## Linking
 
-- Shared tables, buckets, routers, and sync Lambdas are **linked** into consumers instead of hand-wiring env vars and IAM.
-- `infra/deployment.ts` exposes `DeploymentEnv` (`CDK_ENVIRONMENT`, `BRANCH_NAME`) as a linkable resource.
-- Runtime code resolves linked values via `lib/runtime/aws-resource.ts` (reads `SST_RESOURCE_*` env vars injected by SST), falling back to legacy `process.env` names for CDK and `vp dev`.
+Resources are **linked** into consumers instead of hand-wiring env vars and IAM. Runtime code reads `SST_RESOURCE_*` env vars via `lib/runtime/aws-resource.ts`. Local `vp dev` loads resource names from `.sst/outputs.json` after deploying a stage.
+
+## Production cutover
+
+1. Deploy SST `production` stage to prod account
+2. Run `vp run migrate:cdk-data` to copy DynamoDB + media from CDK-named resources
+3. Destroy legacy CDK CloudFormation stacks manually
+4. DNS cutover happens automatically via SST domain config on deploy
 
 ## Mail infra
 
-`MailInfraStack` (SES identity, inbound bucket, MX/DKIM) remains on CDK. SST deploys branch-scoped mail-forward only.
+Shared SES identity, inbound bucket, MX/DKIM deploy via `sst:deploy:mail-infra` (separate stage, not per-branch). Branch-scoped mail-forward lives in `infra/mail.ts`.

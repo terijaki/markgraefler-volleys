@@ -121,8 +121,6 @@ export default defineConfig({
     env: {
       // Suppress Powertools structured log output during tests
       POWERTOOLS_LOG_LEVEL: "SILENT",
-      // Suppress jsii deprecation warnings from aws-cdk-lib
-      JSII_DEPRECATED: "quiet",
       CONTENT_TABLE_NAME: "test-content-table",
       SAMS_TABLE_NAME: "test-sams-table",
       APP_BASE_URL: "https://test.markgraefler-volleys.de",
@@ -130,9 +128,8 @@ export default defineConfig({
   },
   run: {
     tasks: {
-      // CDK deploy guarded by full check + tests
       deploy: {
-        command: "bun run cdk:deploy:all",
+        command: "vp run sst:deploy",
         dependsOn: ["lint", "test"],
         cache: false,
       },

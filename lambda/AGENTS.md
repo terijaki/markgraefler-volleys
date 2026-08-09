@@ -30,6 +30,6 @@ This file provides instructions specific to the `lambda/` directory, which conta
 - Run a single test file: `vp test lambda/sams/sams-clubs.test.ts`
 - Mock AWS SDK calls with `aws-sdk-client-mock` (see existing tests for patterns).
 
-## CDK wiring
+## SST wiring
 
-Lambda functions are declared and wired up in the CDK stacks under `lib/` (e.g., `lib/sams-api-stack.ts`, `lib/social-media-stack.ts`). When adding a new Lambda, update the corresponding CDK stack as well.
+Lambda functions are declared in `infra/` (e.g., `infra/sams.ts`, `infra/social.ts`). When adding a new Lambda, add a `createMvFunction` call and link required resources.

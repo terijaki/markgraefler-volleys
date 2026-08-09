@@ -2,9 +2,13 @@
 
 export default $config({
   app(input) {
+    const isMailInfra =
+      process.env.SST_DEPLOY_MAIL_INFRA === "true" || input.stage.startsWith("mail-infra");
+    const retain = input.stage === "production" || isMailInfra;
+
     return {
       name: "markgraefler-volleys",
-      removal: input.stage === "production" ? "retain" : "remove",
+      removal: retain ? "retain" : "remove",
       home: "aws",
       providers: {
         aws: {
@@ -17,11 +21,13 @@ export default $config({
     await import("varlock/auto-load");
 
     const { ENV } = await import("varlock/env");
-    const { shouldDeployAccountOpsStacks } = await import("@utils/sst-deploy");
+    const { shouldDeployAccountOpsStacks } = await import("@utils/deploy");
     const { getDeploymentContext } = await import("@utils/sst-stage");
     const { createBudgetResources } = await import("./infra/budget");
     const { createDatabaseResources } = await import("./infra/database");
     const { createDeploymentLinkable } = await import("./infra/deployment");
+    const { createDevSubdomainDelegation } = await import("./infra/dns-delegation");
+    const { createMailInfraResources } = await import("./infra/mail-infra");
     const { createMailResources } = await import("./infra/mail");
     const { createMediaResources } = await import("./infra/media");
     const { createMonitoringResources } = await import("./infra/monitoring");
@@ -29,8 +35,23 @@ export default $config({
     const { createSocialResources } = await import("./infra/social");
     const { createWebappResources } = await import("./infra/webapp");
 
+    if (process.env.SST_DEPLOY_MAIL_INFRA === "true") {
+      const { getMailInfraContext } = await import("@utils/sst-stage");
+      const ctx = getMailInfraContext();
+      const mailInfra = createMailInfraResources(ctx);
+
+      return {
+        inboundBucketName: mailInfra.inboundBucketName,
+        environment: ctx.environment,
+      };
+    }
+
     const ctx = getDeploymentContext($app.stage);
     const deployment = createDeploymentLinkable(ctx);
+
+    if (ctx.isProd) {
+      createDevSubdomainDelegation();
+    }
 
     const tables = createDatabaseResources(ctx);
     const media = createMediaResources(ctx, deployment);
@@ -67,6 +88,9 @@ export default $config({
       webappUrl: webapp.url,
       mediaUrl: media.url,
       contentTable: tables.contentTable.name,
+      cacheTable: tables.cacheTable.name,
+      samsTable: tables.samsTable.name,
+      mediaBucket: media.bucket.name,
       stage: ctx.stage,
       environment: ctx.environment,
       branch: ctx.branch,

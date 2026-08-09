@@ -1,7 +1,6 @@
 /// <reference path="./sst-reference.d.ts" />
 
 import { Club } from "@/project.config";
-import { buildWebappDomain } from "@utils/webapp-url";
 import type { DeploymentContext } from "@utils/sst-stage";
 import type { DatabaseResources } from "./database";
 import { buildWebappDomainConfig } from "./dns";
@@ -41,7 +40,6 @@ export function createWebappResources(
       sams.teamsSync,
     ],
     environment: {
-      APP_BASE_URL: `https://${buildWebappDomain(ctx.environment, ctx.branch)}`,
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
       NODE_ENV: "production",
       ...(process.env.SAMS_API_KEY ? { SAMS_API_KEY: process.env.SAMS_API_KEY } : {}),

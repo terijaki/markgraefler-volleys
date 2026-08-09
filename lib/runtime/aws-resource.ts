@@ -1,8 +1,8 @@
 /**
- * Resolve SST-linked AWS resources with CDK / local env fallbacks.
+ * Resolve SST-linked AWS resources.
  *
  * SST injects linked resources as `SST_RESOURCE_<Component>` JSON env vars at
- * deploy time. CDK and `vp dev` continue to provide the legacy `process.env` names.
+ * deploy time. Local dev and tests set the legacy `process.env` names directly.
  */
 
 type LinkedResource = {
@@ -87,8 +87,8 @@ export function resolveDeploymentEnv(env: Record<string, string | undefined> = p
   };
 }
 
-/** Build a Lambda env object with SST-linked values merged over process.env. */
-export function enrichLambdaEnv(
+/** Map SST-linked resources onto the env var names runtime code expects. */
+export function mergeLinkedEnv(
   env: Record<string, string | undefined> = process.env,
 ): Record<string, string | undefined> {
   const deployment = getLinkedResource("DeploymentEnv", env);

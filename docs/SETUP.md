@@ -6,7 +6,7 @@ Source code for the [Markgräfler Volleys](https://markgraefler-volleys.de) webs
 
 - [Vite+](https://viteplus.dev/) — installs Bun automatically if absent
 - [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) — for AWS access
-- [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting-started.html) — for infrastructure deployments
+- [SST](https://sst.dev/) — installed as a devDependency (`vp run sst:install`)
 
 ## Getting started
 
@@ -79,7 +79,7 @@ export AWS_PROFILE=mv-dev
 export AWS_REGION=eu-central-1
 ```
 
-After this, all `vpr cdk:*` and `vpr db:*` commands will use your dev account automatically.
+After this, SST deploy and `vpr db:*` commands will use your dev account automatically.
 
 For prod operations, replace `mv-dev` with `mv-prod` in step 2.
 
@@ -94,10 +94,10 @@ vpr verify      # Lint + typecheck + tests (full quality gate)
 vpr db:seed         # Seed dev DynamoDB with fake data
 vpr db:seed:sams    # Trigger SAMS sync Lambdas
 
-vpr cdk:synth       # Synthesize CDK stacks (dev)
-vpr cdk:diff        # Show changes vs deployed (dev)
-vpr cdk:deploy:all  # Deploy all stacks (dev)
-vpr cdk:deploy:prod # Deploy all stacks (prod, requires mv-prod credentials)
+vp run sst:install
+SST_STAGE=feature-my-branch vp run sst:deploy -- --stage feature-my-branch   # dev
+SST_STAGE=production vp run sst:deploy -- --stage production                 # prod
+vp run sst:deploy:mail-infra                                                 # shared mail infra (dev)
 ```
 
 ## GitHub Actions / CI

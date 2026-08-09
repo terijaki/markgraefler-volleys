@@ -1,65 +1,15 @@
-# Infrastructure & Backend Guidelines
+# Shared Libraries (`lib/`)
 
-This file provides instructions specific to the `lib/` directory, which contains AWS CDK stacks and the database layer.
+Runtime and domain code shared across the webapp, Lambdas, and SST infra.
 
-## Structure
+## Infrastructure
 
-- `lib/*-stack.ts` — AWS CDK stack definitions (one file per stack):
-  - `lib/webapp-stack.ts` — Unified TanStack Start webapp (Nitro Lambda, CloudFront, S3)
-  - `lib/content-db-stack.ts` — DynamoDB tables for content (news, events, teams, members, sponsors, bus, locations, users, auth)
-  - `lib/sams-api-stack.ts` — SAMS API proxy (Lambda + API Gateway + Lambda@Edge)
-  - `lib/social-media-stack.ts` — Instagram sync Lambda + DynamoDB
-  - `lib/media-stack.ts` — S3 bucket + CloudFront distribution for media assets
-  - `lib/mail-infra-stack.ts` — Environment-scoped SES identity, inbound S3, receipt rules, mail DNS
-  - `lib/mail-stack.ts` — Branch-scoped mail forwarding (EventBridge, Lambda, DLQ)
-  - `lib/dns-stack.ts` — Route53 hosted zones and DNS records
-  - `lib/monitoring-stack.ts` — CloudWatch alarms and SNS topics (prod + shared-dev only)
-  - `lib/budget-stack.ts` — AWS Billing and cost alerts (prod + shared-dev only)
-- `lib/db/` — DynamoDB client, schemas, repositories, and types
-- `bin/cdk.ts` — CDK app entry point that instantiates all stacks
+AWS resources are defined in `infra/` and deployed via SST — see [`infra/AGENTS.md`](../infra/AGENTS.md).
 
-## Key files to reference
+## Key modules
 
-- CDK entry: `bin/cdk.ts`
-- Account-baseline stacks: `BudgetStack` and `MonitoringStack` deploy for **prod** and **shared dev** (`main` / empty sanitized branch) only — not on feature-branch deploys. See `shouldDeployAccountOpsStacks` in `utils/cdk-deploy.ts`.
-- Active stacks: `lib/webapp-stack.ts`, `lib/content-db-stack.ts`, `lib/sams-api-stack.ts`, `lib/social-media-stack.ts`, `lib/media-stack.ts`, `lib/mail-infra-stack.ts`, `lib/mail-stack.ts`, `lib/dns-stack.ts`, `lib/monitoring-stack.ts`, `lib/budget-stack.ts`
-- DB client: `lib/db/client.ts` (DynamoDB DocumentClient with X-Ray tracing)
-- DB schemas: `lib/db/schemas.ts` (Zod schemas for all entities)
-- DB repositories: `lib/db/repositories.ts` (repository pattern for CRUD + queries)
-- DB types: `lib/db/types.ts` (derived types from schemas)
-
-## CDK conventions
-
-- Use AWS SSO for authentication. Authenticate with your configured SSO session and export credentials for the appropriate profile before running CDK commands — see `docs/SETUP.md` for setup instructions.
-- Dev CDK commands use the `mv-dev` profile; prod commands use the `mv-prod` profile.
-- Before deploying, always run `vpr cdk:synth` and `vpr cdk:diff` to verify changes.
-- Deploy a single stack: `vpr cdk:deploy {StackName}`
-- Deploy all stacks: `vpr cdk:deploy:all`
-- Scheduled tasks use EventBridge constructs — see existing stacks for patterns.
-
-## Integration points / external services
-
-- **AWS:** CDK stacks create Lambdas, DynamoDB tables, S3 buckets, and Cognito resources. Use the `mv-dev` profile for dev and `mv-prod` for prod.
-- **SAMS API:** `codegen/sams/` contains the Swagger spec and client generation for the external SAMS sports data API used by sync Lambdas. Regenerate the client with `vpr sams:codegen`.
-- **Background/schedulers:** EventBridge rules are defined in CDK constructs.
-
-## DB conventions
-
-- DynamoDB access goes through the repository pattern in `lib/db/repositories.ts`.
-- Schemas are defined in `lib/db/schemas.ts` — update schemas and repositories together.
-- Use `lib/db/types.ts` for shared DB-related types.
-
-## Server functions (replacing tRPC)
-
-The webapp uses **TanStack React Start server functions** instead of tRPC. All data fetching is server-side rendered in `app/src/server/functions/`:
-
-- Each server function is a `createServerFn()` with optional middleware (`requireAuthMiddleware`) and input validators (Zod).
-- Results are used via React Query hooks under `app/src/hooks/dataQueries.ts`.
-- Server-only logic (DynamoDB, AWS SDK, etc.) belongs in `*.server.ts` files — see `app/AGENTS.md` for the full file-layout convention.
-- This approach eliminates the need for a separate tRPC API layer.
-
-## Testing
-
-- Stack unit tests live alongside stack files (e.g., `lib/sams-api-stack.test.ts`).
-- Use `aws-sdk-client-mock` for AWS SDK calls in tests.
-- Run tests: `vp test`
+| Path                          | Purpose                                                         |
+| ----------------------------- | --------------------------------------------------------------- |
+| `lib/db/`                     | DynamoDB schemas, repositories, table env helpers               |
+| `lib/mail-env.ts`             | Mail bucket/rule naming (shared by SST mail infra + forwarding) |
+| `lib/runtime/aws-resource.ts` | Resolve SST-linked resources from `SST_RESOURCE_*` env vars     |

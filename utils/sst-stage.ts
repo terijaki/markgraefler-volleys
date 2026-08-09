@@ -67,6 +67,19 @@ export function parseDeploymentFromStage(stage: string): DeploymentContext {
   };
 }
 
+export function getMailInfraContext(): DeploymentContext {
+  const deployEnv = process.env.CDK_ENVIRONMENT === "prod" ? "prod" : "dev";
+  const stage = deployEnv === "prod" ? "mail-infra-prod" : "mail-infra";
+
+  return {
+    stage,
+    environment: deployEnv,
+    branch: "",
+    branchSuffix: "",
+    isProd: deployEnv === "prod",
+  };
+}
+
 export function getDeploymentContext(stage = resolveSstStage()): DeploymentContext {
   return parseDeploymentFromStage(stage);
 }
