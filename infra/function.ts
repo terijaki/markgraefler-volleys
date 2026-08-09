@@ -25,7 +25,7 @@ export function createMvFunction(
     link: [deployment, ...(args.link ?? [])],
     permissions: args.permissions,
     nodejs: {
-      install: ["@aws-lambda-powertools/logger", "@aws-lambda-powertools/tracer", "sst"],
+      install: ["@aws-lambda-powertools/logger", "@aws-lambda-powertools/tracer"],
     },
     transform: {
       logGroup: (logArgs: aws.cloudwatch.LogGroupArgs) => {

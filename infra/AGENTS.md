@@ -33,7 +33,7 @@ CI uses `.github/workflows/sst-deploy.yml` (feature branches) and `sst-destroy.y
 
 - Shared tables, buckets, routers, and sync Lambdas are **linked** into consumers instead of hand-wiring env vars and IAM.
 - `infra/deployment.ts` exposes `DeploymentEnv` (`CDK_ENVIRONMENT`, `BRANCH_NAME`) as a linkable resource.
-- Runtime code resolves linked values via `lib/runtime/aws-resource.ts`, falling back to legacy `process.env` names for CDK and `vp dev`.
+- Runtime code resolves linked values via `lib/runtime/aws-resource.ts` (reads `SST_RESOURCE_*` env vars injected by SST), falling back to legacy `process.env` names for CDK and `vp dev`.
 
 ## Mail infra
 

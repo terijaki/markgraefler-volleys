@@ -1,8 +1,8 @@
 /**
  * Resolve SST-linked AWS resources with CDK / local env fallbacks.
  *
- * SST injects linked resources at deploy time (`Resource.*`). CDK and `vp dev`
- * continue to provide the legacy `process.env` names.
+ * SST injects linked resources as `SST_RESOURCE_<Component>` JSON env vars at
+ * deploy time. CDK and `vp dev` continue to provide the legacy `process.env` names.
  */
 
 type LinkedResource = {
@@ -12,21 +12,29 @@ type LinkedResource = {
   BRANCH_NAME?: string;
 };
 
-function getLinkedValue(component: string, field: "name" | "url"): string | undefined {
-  try {
-    const { Resource } = require("sst") as { Resource: Record<string, LinkedResource> };
-    return Resource?.[component]?.[field];
-  } catch {
+function getLinkedResource(
+  component: string,
+  env: Record<string, string | undefined> = process.env,
+): LinkedResource | undefined {
+  if (env.SST_RESOURCES_JSON) {
+    try {
+      const all = JSON.parse(env.SST_RESOURCES_JSON) as Record<string, LinkedResource>;
+      const fromJson = all[component];
+      if (fromJson) {
+        return fromJson;
+      }
+    } catch {
+      // Fall through to per-resource env vars.
+    }
+  }
+
+  const value = env[`SST_RESOURCE_${component}`];
+  if (!value) {
     return undefined;
   }
-}
 
-function getLinkedDeploymentEnv(): LinkedResource | undefined {
   try {
-    const { Resource } = require("sst") as {
-      Resource: { DeploymentEnv?: LinkedResource };
-    };
-    return Resource?.DeploymentEnv;
+    return JSON.parse(value) as LinkedResource;
   } catch {
     return undefined;
   }
@@ -48,7 +56,7 @@ export function resolveLinkedName(
   if (fromEnv) {
     return fromEnv;
   }
-  const linked = getLinkedValue(component, "name");
+  const linked = getLinkedResource(component, env)?.name;
   return required(linked, `linked ${component} or ${envVar}`);
 }
 
@@ -61,7 +69,7 @@ export function resolveLinkedUrl(
   if (fromEnv) {
     return fromEnv;
   }
-  const linked = getLinkedValue(component, "url");
+  const linked = getLinkedResource(component, env)?.url;
   return required(linked, `linked ${component} url or ${envVar}`);
 }
 
@@ -69,7 +77,7 @@ export function resolveDeploymentEnv(env: Record<string, string | undefined> = p
   cdkEnvironment: string;
   branchName: string;
 } {
-  const deployment = getLinkedDeploymentEnv();
+  const deployment = getLinkedResource("DeploymentEnv", env);
   return {
     cdkEnvironment: required(
       deployment?.CDK_ENVIRONMENT ?? env.CDK_ENVIRONMENT,
@@ -83,21 +91,21 @@ export function resolveDeploymentEnv(env: Record<string, string | undefined> = p
 export function enrichLambdaEnv(
   env: Record<string, string | undefined> = process.env,
 ): Record<string, string | undefined> {
-  const deployment = getLinkedDeploymentEnv();
+  const deployment = getLinkedResource("DeploymentEnv", env);
 
   return {
     ...env,
     CDK_ENVIRONMENT: deployment?.CDK_ENVIRONMENT ?? env.CDK_ENVIRONMENT,
     BRANCH_NAME: deployment?.BRANCH_NAME ?? env.BRANCH_NAME,
-    CONTENT_TABLE_NAME: getLinkedValue("ContentTable", "name") ?? env.CONTENT_TABLE_NAME,
-    CACHE_TABLE_NAME: getLinkedValue("CacheTable", "name") ?? env.CACHE_TABLE_NAME,
-    SAMS_TABLE_NAME: getLinkedValue("SamsTable", "name") ?? env.SAMS_TABLE_NAME,
-    MEDIA_BUCKET_NAME: getLinkedValue("MediaBucket", "name") ?? env.MEDIA_BUCKET_NAME,
-    MEDIA_CLOUDFRONT_URL: getLinkedValue("MediaRouter", "url") ?? env.MEDIA_CLOUDFRONT_URL,
+    CONTENT_TABLE_NAME: getLinkedResource("ContentTable", env)?.name ?? env.CONTENT_TABLE_NAME,
+    CACHE_TABLE_NAME: getLinkedResource("CacheTable", env)?.name ?? env.CACHE_TABLE_NAME,
+    SAMS_TABLE_NAME: getLinkedResource("SamsTable", env)?.name ?? env.SAMS_TABLE_NAME,
+    MEDIA_BUCKET_NAME: getLinkedResource("MediaBucket", env)?.name ?? env.MEDIA_BUCKET_NAME,
+    MEDIA_CLOUDFRONT_URL: getLinkedResource("MediaRouter", env)?.url ?? env.MEDIA_CLOUDFRONT_URL,
     SAMS_CLUBS_SYNC_FUNCTION_NAME:
-      getLinkedValue("SamsClubsSync", "name") ?? env.SAMS_CLUBS_SYNC_FUNCTION_NAME,
+      getLinkedResource("SamsClubsSync", env)?.name ?? env.SAMS_CLUBS_SYNC_FUNCTION_NAME,
     SAMS_TEAMS_SYNC_FUNCTION_NAME:
-      getLinkedValue("SamsTeamsSync", "name") ?? env.SAMS_TEAMS_SYNC_FUNCTION_NAME,
-    APP_BASE_URL: getLinkedValue("Webapp", "url") ?? env.APP_BASE_URL,
+      getLinkedResource("SamsTeamsSync", env)?.name ?? env.SAMS_TEAMS_SYNC_FUNCTION_NAME,
+    APP_BASE_URL: getLinkedResource("Webapp", env)?.url ?? env.APP_BASE_URL,
   };
 }
