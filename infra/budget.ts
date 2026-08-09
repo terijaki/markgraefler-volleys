@@ -7,7 +7,6 @@ export function createBudgetResources(ctx: DeploymentContext, alertEmail: string
   const capThreshold = 10;
 
   new aws.budgets.Budget("MonthlyBudget", {
-    name: `mv-monthly-budget-${ctx.environment}${ctx.branchSuffix}`,
     budgetType: "COST",
     timeUnit: "MONTHLY",
     limitAmount: String(capThreshold),

@@ -13,6 +13,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "sst:install": "sst install",
     "sst:deploy": "sst deploy",
     "sst:diff": "sst diff",
     "sst:remove": "sst remove",
@@ -111,7 +112,7 @@
     "postcss": "^8.5.19",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
-    "sst": "^3.19.3",
+    "sst": "3.19.3",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",

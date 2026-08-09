@@ -55,6 +55,7 @@ export class MvNodejsFunction extends cdk.Resource {
       bundling: {
         minify: true,
         sourceMap: true,
+        externalModules: ["sst", ...(bundling?.externalModules ?? [])],
         ...bundling,
       },
       logGroup,

@@ -13,6 +13,7 @@ import {
   type LeagueMatchDto,
 } from "@codegen/sams/generated";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
+import { resolveLinkedName, resolveLinkedUrl } from "@/lib/runtime/aws-resource";
 import * as Sentry from "@sentry/tanstackstart-react";
 import { createCacheKey, createExpiringCache, getOrSetExpiringCacheValue } from "@utils/cache";
 import dayjs from "dayjs";
@@ -43,7 +44,8 @@ import {
 } from "@/utils/sams";
 import { buildLeagueOrderingContext } from "@webapp/utils/ranking";
 
-const MEDIA_CLOUDFRONT_URL = () => process.env.MEDIA_CLOUDFRONT_URL || "";
+const MEDIA_CLOUDFRONT_URL = () =>
+  resolveLinkedUrl("MediaRouter", "MEDIA_CLOUDFRONT_URL", process.env);
 
 const SAMS_API_TIMEOUT_MS = 10_000;
 
@@ -640,13 +642,19 @@ export async function invokeSamsLambdaAsync(functionName: string, label: string)
 }
 
 export async function handleTriggerSamsClubsSync() {
-  const functionName = process.env.SAMS_CLUBS_SYNC_FUNCTION_NAME;
-  if (!functionName) throw new Error("SAMS_CLUBS_SYNC_FUNCTION_NAME is not configured");
+  const functionName = resolveLinkedName(
+    "SamsClubsSync",
+    "SAMS_CLUBS_SYNC_FUNCTION_NAME",
+    process.env,
+  );
   await invokeSamsLambdaAsync(functionName, "SAMS clubs sync");
 }
 
 export async function handleTriggerSamsTeamsSync() {
-  const functionName = process.env.SAMS_TEAMS_SYNC_FUNCTION_NAME;
-  if (!functionName) throw new Error("SAMS_TEAMS_SYNC_FUNCTION_NAME is not configured");
+  const functionName = resolveLinkedName(
+    "SamsTeamsSync",
+    "SAMS_TEAMS_SYNC_FUNCTION_NAME",
+    process.env,
+  );
   await invokeSamsLambdaAsync(functionName, "SAMS teams sync");
 }

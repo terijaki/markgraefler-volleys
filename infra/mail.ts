@@ -8,6 +8,7 @@ import { createMvFunction } from "./function";
 
 export function createMailResources(
   ctx: DeploymentContext,
+  deployment: sst.Linkable,
   tables: DatabaseResources,
   alertEmail?: string,
 ) {
@@ -15,48 +16,36 @@ export function createMailResources(
   const inboundBucketName = computeMailInboundBucketName(ctx.environment);
   const sesIdentity = ctx.isProd ? Club.domain : `new.${Club.domain}`;
 
-  const dlq = new sst.aws.Queue("MailForwardDlq", {
-    transform: {
-      queue: (args: aws.sqs.QueueArgs) => {
-        args.name = `mail-forward-dlq-${ctx.environment}${ctx.branchSuffix}`;
-      },
-    },
-  });
+  const dlq = new sst.aws.Queue("MailForwardDlq");
 
-  const mailForward = createMvFunction(ctx, "MailForward", {
-    namespace: "mail",
-    name: "mail-forward",
-    handler: "lambda/mail/mail-forward.handler",
-    memory: "128 MB",
-    environment: {
-      CDK_ENVIRONMENT: ctx.environment,
-      BRANCH_NAME: ctx.isProd ? "" : ctx.branch,
-      CONTENT_TABLE_NAME: tables.contentTable.name,
-      FORWARD_FROM_EMAIL: mailConfig.systemFromEmail,
-      RECIPIENT_DOMAIN: mailConfig.recipientDomain,
+  const mailForward = createMvFunction(
+    "MailForward",
+    {
+      handler: "lambda/mail/mail-forward.handler",
+      memory: "128 MB",
+      environment: {
+        FORWARD_FROM_EMAIL: mailConfig.systemFromEmail,
+        RECIPIENT_DOMAIN: mailConfig.recipientDomain,
+      },
+      link: [tables.contentTable],
+      permissions: [
+        {
+          actions: ["s3:GetObject"],
+          resources: [$interpolate`arn:aws:s3:::${inboundBucketName}/*`],
+        },
+        {
+          actions: ["ses:SendEmail", "ses:SendRawEmail"],
+          resources: [
+            $interpolate`arn:aws:ses:${aws.getRegionOutput().name}:${aws.getCallerIdentityOutput().accountId}:identity/${sesIdentity}`,
+          ],
+        },
+      ],
     },
-    link: [tables.contentTable],
-    permissions: [
-      {
-        actions: ["s3:GetObject"],
-        resources: [$interpolate`arn:aws:s3:::${inboundBucketName}/*`],
-      },
-      {
-        actions: ["ses:SendEmail", "ses:SendRawEmail"],
-        resources: [
-          $interpolate`arn:aws:ses:${aws.getRegionOutput().name}:${aws.getCallerIdentityOutput().accountId}:identity/${sesIdentity}`,
-        ],
-      },
-      {
-        actions: ["dynamodb:Query"],
-        resources: [$interpolate`${tables.contentTable.arn}/index/*`],
-      },
-    ],
-  });
+    deployment,
+  );
 
   const rule = new aws.cloudwatch.EventRule("MailInboundRule", {
-    name: `mail-inbound-${ctx.environment}${ctx.branchSuffix}`,
-    description: `Route inbound SES emails from S3 to mail-forward Lambda (${ctx.environment}${ctx.branchSuffix})`,
+    description: "Route inbound SES emails from S3 to mail-forward Lambda",
     eventPattern: JSON.stringify({
       source: ["aws.s3"],
       "detail-type": ["Object Created"],
@@ -88,9 +77,7 @@ export function createMailResources(
   });
 
   if (alertEmail) {
-    const alarmTopic = new aws.sns.Topic("MailForwardAlarmTopic", {
-      name: `mail-forward-alarm-${ctx.environment}${ctx.branchSuffix}`,
-    });
+    const alarmTopic = new aws.sns.Topic("MailForwardAlarmTopic");
 
     new aws.sns.TopicSubscription("MailForwardAlarmSubscription", {
       topic: alarmTopic.arn,
@@ -99,7 +86,6 @@ export function createMailResources(
     });
 
     new aws.cloudwatch.MetricAlarm("MailForwardDlqAlarm", {
-      name: `mail-forward-dlq-${ctx.environment}${ctx.branchSuffix}`,
       alarmDescription: "Mail forwarding Lambda has failed processing — check DLQ",
       comparisonOperator: "GreaterThanOrEqualToThreshold",
       evaluationPeriods: 1,
@@ -110,7 +96,7 @@ export function createMailResources(
       period: 300,
       statistic: "Maximum",
       dimensions: {
-        QueueName: `mail-forward-dlq-${ctx.environment}${ctx.branchSuffix}`,
+        QueueName: dlq.name,
       },
       alarmActions: [alarmTopic.arn],
     });

@@ -1,10 +1,6 @@
 /// <reference path="./sst-reference.d.ts" />
 
-import type { DeploymentContext } from "@utils/sst-stage";
-
 interface MvFunctionArgs {
-  namespace: string;
-  name: string;
   handler: string;
   memory?: `${number} MB` | `${number} GB`;
   timeout?: `${number} minute` | `${number} minutes` | `${number} second` | `${number} seconds`;
@@ -15,13 +11,10 @@ interface MvFunctionArgs {
 }
 
 export function createMvFunction(
-  ctx: DeploymentContext,
   componentName: string,
   args: MvFunctionArgs,
+  deployment: sst.Linkable,
 ) {
-  const functionName = `mv-${args.name}-${ctx.environment}${ctx.branchSuffix}`;
-  const logGroupName = `/mv/${ctx.environment}${ctx.branchSuffix}/${args.namespace}/${args.name}`;
-
   return new sst.aws.Function(componentName, {
     handler: args.handler,
     runtime: "nodejs22.x",
@@ -29,17 +22,13 @@ export function createMvFunction(
     timeout: args.timeout ?? "30 seconds",
     environment: args.environment,
     layers: args.layers,
-    link: args.link,
+    link: [deployment, ...(args.link ?? [])],
     permissions: args.permissions,
     nodejs: {
-      install: ["@aws-lambda-powertools/logger", "@aws-lambda-powertools/tracer"],
+      install: ["@aws-lambda-powertools/logger", "@aws-lambda-powertools/tracer", "sst"],
     },
     transform: {
-      function: (fnArgs: aws.lambda.FunctionArgs) => {
-        fnArgs.name = functionName;
-      },
       logGroup: (logArgs: aws.cloudwatch.LogGroupArgs) => {
-        logArgs.name = logGroupName;
         logArgs.retentionInDays = 60;
       },
     },

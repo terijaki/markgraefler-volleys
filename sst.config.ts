@@ -21,6 +21,7 @@ export default $config({
     const { getDeploymentContext } = await import("@utils/sst-stage");
     const { createBudgetResources } = await import("./infra/budget");
     const { createDatabaseResources } = await import("./infra/database");
+    const { createDeploymentLinkable } = await import("./infra/deployment");
     const { createMailResources } = await import("./infra/mail");
     const { createMediaResources } = await import("./infra/media");
     const { createMonitoringResources } = await import("./infra/monitoring");
@@ -29,17 +30,13 @@ export default $config({
     const { createWebappResources } = await import("./infra/webapp");
 
     const ctx = getDeploymentContext($app.stage);
-
-    process.env.CDK_ENVIRONMENT = ctx.environment;
-    if (ctx.branch) {
-      process.env.BRANCH_NAME = ctx.branch;
-    }
+    const deployment = createDeploymentLinkable(ctx);
 
     const tables = createDatabaseResources(ctx);
-    const media = createMediaResources(ctx);
-    const sams = createSamsResources(ctx, tables, media);
-    createSocialResources(ctx, tables);
-    const webapp = createWebappResources(ctx, tables, media, sams);
+    const media = createMediaResources(ctx, deployment);
+    const sams = createSamsResources(ctx, deployment, tables, media);
+    createSocialResources(ctx, deployment, tables);
+    const webapp = createWebappResources(ctx, deployment, tables, media, sams);
 
     const monitoringEmail = ENV.CDK_MONITORING_ALERT_EMAIL || ENV.CDK_BUDGET_ALERT_EMAIL;
     const budgetEmail = ENV.CDK_BUDGET_ALERT_EMAIL;
@@ -48,13 +45,15 @@ export default $config({
       branch: ctx.branch,
     });
 
-    createMailResources(ctx, tables, monitoringEmail || budgetEmail);
+    createMailResources(ctx, deployment, tables, monitoringEmail || budgetEmail);
 
     if (deployAccountOps) {
       if (monitoringEmail) {
         createMonitoringResources(ctx, tables, webapp, monitoringEmail);
       } else if (ctx.isProd) {
-        throw new Error("CDK_MONITORING_ALERT_EMAIL not set — production requires monitoring alerts");
+        throw new Error(
+          "CDK_MONITORING_ALERT_EMAIL not set — production requires monitoring alerts",
+        );
       }
 
       if (budgetEmail) {

@@ -4,9 +4,7 @@
     {
       "Sid": "ManageBootstrapECRRepo",
       "Effect": "Allow",
-      "Action": [
-        "ecr:GetAuthorizationToken"
-      ],
+      "Action": ["ecr:GetAuthorizationToken"],
       "Resource": "*"
     },
     {
@@ -44,14 +42,7 @@
     {
       "Sid": "SSTDeploySupplemental",
       "Effect": "Allow",
-      "Action": [
-        "logs:*",
-        "sns:*",
-        "sqs:*",
-        "cloudwatch:*",
-        "events:*",
-        "route53:*"
-      ],
+      "Action": ["logs:*", "sns:*", "sqs:*", "cloudwatch:*", "events:*", "route53:*"],
       "Resource": "*"
     }
   ]

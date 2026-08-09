@@ -9,22 +9,31 @@ SST replaces CDK for feature-branch deployments (phases 1–4). Production (`mai
 
 ## Stage naming
 
-| Branch | SST stage | Environment |
-| --- | --- | --- |
-| `main` | `production` | `prod` |
-| feature branch | `feature-<sanitized-branch>` | `dev` |
+| Branch         | SST stage                    | Environment |
+| -------------- | ---------------------------- | ----------- |
+| `main`         | `production`                 | `prod`      |
+| feature branch | `feature-<sanitized-branch>` | `dev`       |
 
 SST stage names must be alphanumeric + hyphens (no slashes). See `utils/sst-stage.ts`.
 
 ## Commands
 
+Use the pinned `sst` devDependency via repo scripts:
+
 ```bash
-SST_STAGE=feature-my-branch npx sst deploy
-SST_STAGE=feature-my-branch npx sst diff
-SST_STAGE=feature-my-branch npx sst remove
+vp run sst:install   # once per machine / CI run
+SST_STAGE=feature-my-branch vp run sst:deploy -- --stage feature-my-branch
+SST_STAGE=feature-my-branch vp run sst:diff -- --stage feature-my-branch
+SST_STAGE=feature-my-branch vp run sst:remove -- --stage feature-my-branch
 ```
 
 CI uses `.github/workflows/sst-deploy.yml` (feature branches) and `sst-destroy.yml`.
+
+## Linking
+
+- Shared tables, buckets, routers, and sync Lambdas are **linked** into consumers instead of hand-wiring env vars and IAM.
+- `infra/deployment.ts` exposes `DeploymentEnv` (`CDK_ENVIRONMENT`, `BRANCH_NAME`) as a linkable resource.
+- Runtime code resolves linked values via `lib/runtime/aws-resource.ts`, falling back to legacy `process.env` names for CDK and `vp dev`.
 
 ## Mail infra
 

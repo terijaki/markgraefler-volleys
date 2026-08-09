@@ -5,10 +5,12 @@
 import { randomUUID } from "node:crypto";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { resolveLinkedName, resolveLinkedUrl } from "@/lib/runtime/aws-resource";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION || "eu-central-1" });
-const BUCKET_NAME = () => process.env.MEDIA_BUCKET_NAME || "";
-const MEDIA_CLOUDFRONT_URL = () => process.env.MEDIA_CLOUDFRONT_URL || "";
+const BUCKET_NAME = () => resolveLinkedName("MediaBucket", "MEDIA_BUCKET_NAME", process.env);
+const MEDIA_CLOUDFRONT_URL = () =>
+  resolveLinkedUrl("MediaRouter", "MEDIA_CLOUDFRONT_URL", process.env);
 
 export async function handleGetFileUrl(s3Key: string): Promise<string | null> {
   if (!s3Key) return null;

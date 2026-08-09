@@ -2,7 +2,7 @@
 
 import { LambdaLayers } from "@/project.config";
 import type { DeploymentContext } from "@utils/sst-stage";
-import { buildMediaDomainConfig, getMediaBucketName } from "./dns";
+import { buildMediaDomainConfig } from "./dns";
 import { createMvFunction } from "./function";
 
 export interface MediaResources {
@@ -11,8 +11,10 @@ export interface MediaResources {
   url: $util.Output<string>;
 }
 
-export function createMediaResources(ctx: DeploymentContext): MediaResources {
-  const bucketName = getMediaBucketName(ctx);
+export function createMediaResources(
+  ctx: DeploymentContext,
+  deployment: sst.Linkable,
+): MediaResources {
   const imageLayer =
     ctx.environment === "prod" ? LambdaLayers.prod.imageMagick : LambdaLayers.dev.imageMagick;
 
@@ -24,26 +26,20 @@ export function createMediaResources(ctx: DeploymentContext): MediaResources {
       allowOrigins: ["*"],
       maxAge: "3000 seconds",
     },
-    transform: {
-      bucket: (args: aws.s3.BucketV2Args) => {
-        args.bucket = bucketName;
-      },
-    },
   });
+
+  const imageProcessor = createMvFunction(
+    "ImageProcessor",
+    {
+      handler: "lambda/content/image-processor.handler",
+      timeout: "5 minutes",
+      layers: [imageLayer],
+      link: [bucket],
+    },
+    deployment,
+  );
 
   const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"] as const;
-  const imageProcessor = createMvFunction(ctx, "ImageProcessor", {
-    namespace: "media",
-    name: "image-processor",
-    handler: "lambda/content/image-processor.handler",
-    timeout: "5 minutes",
-    layers: [imageLayer],
-    environment: {
-      CDK_ENVIRONMENT: ctx.environment,
-    },
-    link: [bucket],
-  });
-
   bucket.notify({
     notifications: imageExtensions.map((suffix) => ({
       name: `ImageProcessor${suffix.replace(".", "")}`,
@@ -59,13 +55,6 @@ export function createMediaResources(ctx: DeploymentContext): MediaResources {
     routes: {
       "/*": {
         bucket,
-      },
-    },
-    transform: {
-      cdn: (args: aws.cloudfront.DistributionArgs) => {
-        args.comment = ctx.isProd
-          ? "MV Media Distribution (Prod)"
-          : `MV Media Distribution (${ctx.environment}${ctx.branchSuffix})`;
       },
     },
   });

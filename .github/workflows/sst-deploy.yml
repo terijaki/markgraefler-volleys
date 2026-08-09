@@ -41,7 +41,7 @@ jobs:
         run: vp install
 
       - name: Install SST platform
-        run: npx sst install
+        run: vp run sst:install
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -87,7 +87,7 @@ jobs:
           CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
         run: |
           set +e
-          npx sst diff --stage "$SST_STAGE" --print-logs 2>&1 | tee /tmp/sst-diff.log
+          vp run sst:diff -- --stage "$SST_STAGE" --print-logs 2>&1 | tee /tmp/sst-diff.log
           status=$?
           set -e
           if [ "$status" -ne 0 ]; then
@@ -102,24 +102,14 @@ jobs:
         env:
           SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
           CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
-        run: npx sst deploy --stage "$SST_STAGE" --print-logs
+        run: vp run sst:deploy -- --stage "$SST_STAGE" --print-logs
 
       - name: Resolve deployed web app URL
         id: resolve-webapp-url
-        env:
-          SST_STAGE: ${{ steps.stage.outputs.sst_stage }}
-          CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
         run: |
-          WEBAPP_URL=$(vp exec tsx -e '
-            import { getDeploymentContext } from "./utils/sst-stage.ts";
-            import { buildWebappUrl } from "./utils/webapp-url.ts";
-
-            const ctx = getDeploymentContext(process.env.SST_STAGE);
-            process.stdout.write(buildWebappUrl(ctx.environment, ctx.branch));
-          ')
-
+          WEBAPP_URL=$(jq -r '.webappUrl' .sst/outputs.json)
           echo "webapp_url=$WEBAPP_URL" >> "$GITHUB_OUTPUT"
-          echo "Using computed URL: $WEBAPP_URL"
+          echo "Using deployed URL: $WEBAPP_URL"
 
       - name: Add deployment summary
         run: |

@@ -10,15 +10,8 @@ export function createMonitoringResources(
   webapp: WebappResources,
   alertEmail: string,
 ) {
-  const alertTopic = new aws.sns.Topic("AlertsTopic", {
-    name: `mv-alerts-${ctx.environment}${ctx.branchSuffix}`,
-    displayName: `Markgräfler Volleys Alerts (${ctx.environment}${ctx.branchSuffix})`,
-  });
-
-  const warningTopic = new aws.sns.Topic("WarningsTopic", {
-    name: `mv-warnings-${ctx.environment}${ctx.branchSuffix}`,
-    displayName: `Markgräfler Volleys Warnings (${ctx.environment}${ctx.branchSuffix})`,
-  });
+  const alertTopic = new aws.sns.Topic("AlertsTopic");
+  const warningTopic = new aws.sns.Topic("WarningsTopic");
 
   for (const [label, topic] of [
     ["Alerts", alertTopic],
@@ -35,7 +28,6 @@ export function createMonitoringResources(
     const functionName = server.nodes.function.name;
 
     new aws.cloudwatch.MetricAlarm("WebappErrorRateAlarm", {
-      name: `mv-webapp-errors-${ctx.environment}${ctx.branchSuffix}`,
       alarmDescription: "Alert when WebApp Lambda error rate exceeds threshold",
       comparisonOperator: "GreaterThanThreshold",
       evaluationPeriods: 2,
@@ -52,7 +44,6 @@ export function createMonitoringResources(
     });
 
     new aws.cloudwatch.MetricAlarm("WebappThrottlesAlarm", {
-      name: `mv-webapp-throttles-${ctx.environment}${ctx.branchSuffix}`,
       alarmDescription: "Alert when WebApp Lambda is throttled",
       comparisonOperator: "GreaterThanOrEqualToThreshold",
       evaluationPeriods: 1,
@@ -69,7 +60,6 @@ export function createMonitoringResources(
     });
 
     new aws.cloudwatch.MetricAlarm("WebappDurationAlarm", {
-      name: `mv-webapp-duration-${ctx.environment}${ctx.branchSuffix}`,
       alarmDescription: "Alert when WebApp Lambda average duration is high",
       comparisonOperator: "GreaterThanThreshold",
       evaluationPeriods: 2,
@@ -87,7 +77,6 @@ export function createMonitoringResources(
   });
 
   new aws.cloudwatch.MetricAlarm("ContentTableSystemErrorsAlarm", {
-    name: `mv-dynamodb-errors-content-${ctx.environment}${ctx.branchSuffix}`,
     alarmDescription: "Alert when content DynamoDB system errors occur",
     comparisonOperator: "GreaterThanOrEqualToThreshold",
     evaluationPeriods: 1,

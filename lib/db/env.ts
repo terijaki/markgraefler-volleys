@@ -7,19 +7,14 @@
  */
 
 import { z } from "zod";
+import { resolveLinkedName } from "../runtime/aws-resource";
 
 /** Environment variable name for the dedicated cache table */
 export const CACHE_TABLE_ENV_VAR = "CACHE_TABLE_NAME" as const;
 
 /** Get the cache table name from the environment, throwing if not configured */
 export function getCacheTableName(): string {
-  const tableName = process.env[CACHE_TABLE_ENV_VAR];
-  if (!tableName) {
-    throw new Error(
-      `Cache table not configured. Missing environment variable: ${CACHE_TABLE_ENV_VAR}`,
-    );
-  }
-  return tableName;
+  return resolveLinkedName("CacheTable", CACHE_TABLE_ENV_VAR);
 }
 /**
  * Compute the canonical cache table name for a given environment and branch.
@@ -50,13 +45,7 @@ export function computeResourceBranchSuffix(environment: string, branch: string)
 
 /** Get the single content table name from the environment, throwing if not configured */
 export function getContentTableName(): string {
-  const tableName = process.env[CONTENT_TABLE_ENV_VAR];
-  if (!tableName) {
-    throw new Error(
-      `Content table not configured. Missing environment variable: ${CONTENT_TABLE_ENV_VAR}`,
-    );
-  }
-  return tableName;
+  return resolveLinkedName("ContentTable", CONTENT_TABLE_ENV_VAR);
 }
 /**
  * Compute the canonical content table name for a given environment and branch.
@@ -71,13 +60,7 @@ export function computeContentTableName(environment: string, branch: string): st
 export const SAMS_TABLE_ENV_VAR = "SAMS_TABLE_NAME" as const;
 /** Get the SAMS data table name from the environment, throwing if not configured */
 export function getSamsTableName(): string {
-  const tableName = process.env[SAMS_TABLE_ENV_VAR];
-  if (!tableName) {
-    throw new Error(
-      `SAMS table not configured. Missing environment variable: ${SAMS_TABLE_ENV_VAR}`,
-    );
-  }
-  return tableName;
+  return resolveLinkedName("SamsTable", SAMS_TABLE_ENV_VAR);
 }
 /**
  * Compute the canonical SAMS data table name for a given environment and branch.

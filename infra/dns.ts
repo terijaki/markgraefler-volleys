@@ -1,7 +1,6 @@
 /// <reference path="./sst-reference.d.ts" />
 
 import { Club, DNS } from "@/project.config";
-import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 import { buildWebappDomain } from "@utils/webapp-url";
 import type { DeploymentContext } from "@utils/sst-stage";
 
@@ -49,8 +48,4 @@ export function buildMediaDomainConfig(ctx: DeploymentContext) {
       zone: zone.hostedZoneId,
     }),
   };
-}
-
-export function getMediaBucketName(ctx: DeploymentContext): string {
-  return `${Club.slug}-media-${ctx.environment}${computeResourceBranchSuffix(ctx.environment, ctx.branch)}`;
 }

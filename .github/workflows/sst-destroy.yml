@@ -101,7 +101,7 @@ jobs:
           CDK_BRANCH_OVERWRITE: ${{ steps.branch.outputs.branch }}
         run: |
           echo "Removing SST stage: $SST_STAGE"
-          npx sst remove --stage "$SST_STAGE"
+          vp run sst:remove -- --stage "$SST_STAGE"
 
       - name: Add destroy summary
         run: |
