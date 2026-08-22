@@ -6,7 +6,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
-import { chmodSync, copyFileSync, mkdirSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { buildLambdaFunctionName } from "./mv-nodejs-function";
@@ -90,10 +90,15 @@ export class MvBunFunction extends cdk.Resource {
                     path.join(outputDir, "index.js"),
                     "--target=bun",
                     "--minify",
-                    "--sourcemap=linked",
                   ],
                   { cwd: repoRoot, stdio: "inherit" },
                 );
+                const indexPath = path.join(outputDir, "index.js");
+                if (!existsSync(indexPath)) {
+                  throw new Error(
+                    `Bun build did not produce ${indexPath}. Do not combine --outfile with --sourcemap=linked for CDK temp output dirs.`,
+                  );
+                }
                 const bootstrapPath = path.join(outputDir, "bootstrap");
                 copyFileSync(path.join(__dirname, "../buntime/bootstrap"), bootstrapPath);
                 chmodSync(bootstrapPath, 0o755);
