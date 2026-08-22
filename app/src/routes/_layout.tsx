@@ -102,9 +102,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
           px={isMobile ? "lg" : "xl"}
           py="xl"
           display="flex"
+          style={{ flexDirection: "column" }}
           mih={`calc(100vh - ${HEADER_HEIGHT}px)`}
         >
-          <Stack justify="space-between" maw="100%">
+          <Stack justify="space-between" flex={1} w="100%">
             {children}
             <Footer />
           </Stack>
