@@ -51,6 +51,19 @@ describe("MvBunFunction", () => {
     });
   });
 
+  it("sets writable temp paths for the Bun runtime on Lambda", () => {
+    const template = createTemplate();
+    template.hasResourceProperties("AWS::Lambda::Function", {
+      Environment: {
+        Variables: {
+          TMPDIR: "/tmp",
+          HOME: "/tmp",
+          BUN_RUNTIME_TRANSPILER_CACHE_PATH: "/tmp",
+        },
+      },
+    });
+  });
+
   it("applies custom timeout and memory", () => {
     const template = createTemplate({
       timeout: cdk.Duration.minutes(5),

@@ -72,6 +72,9 @@ export class MvBunFunction extends cdk.Resource {
       layers: [bunLayer],
       environment: {
         CDK_ENVIRONMENT: process.env.CDK_ENVIRONMENT || "dev",
+        TMPDIR: "/tmp",
+        HOME: "/tmp",
+        BUN_RUNTIME_TRANSPILER_CACHE_PATH: "/tmp",
         ...environment,
       },
       code: lambda.Code.fromAsset(path.dirname(entryPath), {
