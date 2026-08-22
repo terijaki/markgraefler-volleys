@@ -93,7 +93,18 @@ export class TeamsRepository {
       throw new Error("Team not found");
     }
 
-    const { description, sbvvTeamId, ageGroup, league, name, ...restUpdates } = updates;
+    const {
+      description,
+      sbvvTeamId,
+      ageGroup,
+      league,
+      name,
+      pictureS3Keys,
+      trainerIds,
+      pointOfContactIds,
+      trainingSchedules,
+      ...restUpdates
+    } = updates;
     const { setFields: nullableFields, removeKeys } = resolveNullableUpdates({
       description,
       sbvvTeamId,
@@ -101,19 +112,45 @@ export class TeamsRepository {
       league,
     });
 
-    const updateItem: UpdateItemInput<typeof TeamEntity> = {
-      id,
-      updatedAt: isoTimestampNow(),
-      ...restUpdates,
-      ...nullableFields,
-      ...(name !== undefined ? { name, slug: slugify(name, true) } : {}),
-      ...(removeKeys.includes("description") ? { description: $remove() } : {}),
-      ...(removeKeys.includes("sbvvTeamId") ? { sbvvTeamId: $remove() } : {}),
-      ...(removeKeys.includes("ageGroup") ? { ageGroup: $remove() } : {}),
-      ...(removeKeys.includes("league") ? { league: $remove() } : {}),
-    };
+    const hasListUpdate =
+      pictureS3Keys !== undefined ||
+      trainerIds !== undefined ||
+      pointOfContactIds !== undefined ||
+      trainingSchedules !== undefined;
 
-    await this.entityRepository().update(updateItem);
+    if (hasListUpdate) {
+      const merged: Team = {
+        ...existing,
+        ...restUpdates,
+        ...nullableFields,
+        updatedAt: isoTimestampNow(),
+        ...(name !== undefined ? { name, slug: slugify(name, true) } : {}),
+        ...(pictureS3Keys !== undefined ? { pictureS3Keys } : {}),
+        ...(trainerIds !== undefined ? { trainerIds } : {}),
+        ...(pointOfContactIds !== undefined ? { pointOfContactIds } : {}),
+        ...(trainingSchedules !== undefined ? { trainingSchedules } : {}),
+      };
+
+      for (const key of removeKeys) {
+        Reflect.deleteProperty(merged, key);
+      }
+
+      await this.entityRepository().put(merged);
+    } else {
+      const updateItem: UpdateItemInput<typeof TeamEntity> = {
+        id,
+        updatedAt: isoTimestampNow(),
+        ...restUpdates,
+        ...nullableFields,
+        ...(name !== undefined ? { name, slug: slugify(name, true) } : {}),
+        ...(removeKeys.includes("description") ? { description: $remove() } : {}),
+        ...(removeKeys.includes("sbvvTeamId") ? { sbvvTeamId: $remove() } : {}),
+        ...(removeKeys.includes("ageGroup") ? { ageGroup: $remove() } : {}),
+        ...(removeKeys.includes("league") ? { league: $remove() } : {}),
+      };
+
+      await this.entityRepository().update(updateItem);
+    }
 
     const refreshed = await this.getById(id);
     if (!refreshed) {
