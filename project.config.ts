@@ -59,16 +59,6 @@ export const DNS = {
       "arn:aws:acm:us-east-1:926634327887:certificate/8b243612-b168-4e93-b989-746333145fd6" as const,
   },
 } as const;
-/** AWS Lambda layer ARNs (manually published, environment-specific). */
-export const LambdaLayers = {
-  prod: {
-    imageMagick: "arn:aws:lambda:eu-central-1:883425316554:layer:image-magick:1" as const,
-  },
-  dev: {
-    imageMagick: "arn:aws:lambda:eu-central-1:926634327887:layer:image-magick:1" as const,
-  },
-} as const;
-
 /** AWS SES mail configuration (environment-specific domain and from addresses). */
 export const Mail = {
   prod: {

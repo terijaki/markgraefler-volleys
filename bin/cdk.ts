@@ -5,6 +5,7 @@ import { getSanitizedBranch } from "@utils/deploy-branch";
 import { getCdkNaming } from "@utils/cdk-naming";
 import * as cdk from "aws-cdk-lib";
 import { DNS } from "@/project.config";
+import { BunTimeStack } from "../lib/buntime-stack";
 import { BudgetStack } from "../lib/budget-stack";
 import { CacheStack } from "../lib/cache-stack";
 import { ContentDbStack } from "../lib/content-db-stack";
@@ -22,6 +23,7 @@ const app = new cdk.App();
 const environment = ENV.CDK_ENVIRONMENT || "dev";
 const isProd = environment === "prod";
 const deployMailInfra = process.env.CDK_DEPLOY_MAIL_INFRA === "true";
+const deployBuntime = process.env.CDK_DEPLOY_BUNTIME === "true";
 
 const branch = getSanitizedBranch();
 const deployAccountOpsStacks = shouldDeployAccountOpsStacks({ isProd, branch });
@@ -48,6 +50,14 @@ if (deployMailInfra) {
     description: `Mail Infrastructure (SES, DNS, Inbound S3) (${environment})`,
     hostedZoneId: isProd ? DNS.prod.hostedZoneId : DNS.dev.hostedZoneId,
     hostedZoneName: isProd ? DNS.prod.hostedZoneName : DNS.dev.hostedZoneName,
+  });
+} else if (deployBuntime) {
+  const bunTimeStackName = isProd ? "BunTimeStack-Prod" : "BunTimeStack-Dev";
+  new BunTimeStack(app, bunTimeStackName, {
+    ...commonStackProps,
+    description: `Bun ${environment} Lambda runtime layer (account-scoped)`,
+    stackProps: { environment },
+    terminationProtection: true,
   });
 } else {
   // Environment-specific configuration

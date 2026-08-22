@@ -1,4 +1,4 @@
-import { describe, it } from "vite-plus/test";
+import { describe, it, expect } from "vite-plus/test";
 import { Template } from "aws-cdk-lib/assertions";
 import { MediaStack } from "./media-stack";
 import { createTestApp } from "./test-helpers";
@@ -236,6 +236,52 @@ describe("MediaStack", () => {
           ],
         },
       });
+    });
+  });
+
+  describe("Image processor", () => {
+    it("creates a Bun image processor Lambda on provided.al2023", () => {
+      const app = createTestApp();
+      const stack = new MediaStack(app, "TestStack", {
+        stackProps: {
+          environment: "dev",
+          branch: "",
+        },
+      });
+
+      const template = Template.fromStack(stack);
+
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        FunctionName: "mv-bun-image-processor-dev",
+        Runtime: "provided.al2023",
+        Architectures: ["x86_64"],
+        Handler: "index.handler",
+        Timeout: 300,
+      });
+    });
+
+    it("does not attach an ImageMagick layer", () => {
+      const app = createTestApp();
+      const stack = new MediaStack(app, "TestStack", {
+        stackProps: {
+          environment: "dev",
+          branch: "",
+        },
+      });
+
+      const template = Template.fromStack(stack);
+      const functions = template.findResources("AWS::Lambda::Function");
+      const imageProcessor = Object.values(functions).find(
+        (resource) =>
+          (resource.Properties as { FunctionName?: string }).FunctionName ===
+          "mv-bun-image-processor-dev",
+      );
+
+      expect(imageProcessor).toBeDefined();
+      const layers =
+        (imageProcessor as { Properties: { Layers?: string[] } }).Properties.Layers ?? [];
+      expect(layers).toHaveLength(1);
+      expect(JSON.stringify(layers)).not.toContain("image-magick");
     });
   });
 });
