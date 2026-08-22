@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+import { afterEach, beforeEach, describe, it, expect } from "vite-plus/test";
 import { Template } from "aws-cdk-lib/assertions";
 import { MediaStack } from "./media-stack";
 import { createTestApp } from "./test-helpers";
@@ -240,6 +240,16 @@ describe("MediaStack", () => {
   });
 
   describe("Image processor", () => {
+    beforeEach(() => {
+      process.env.CDK_ENVIRONMENT = "dev";
+      process.env.CDK_BRANCH_OVERWRITE = "main";
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(process.env, "CDK_ENVIRONMENT");
+      Reflect.deleteProperty(process.env, "CDK_BRANCH_OVERWRITE");
+    });
+
     it("creates a Bun image processor Lambda on provided.al2023", () => {
       const app = createTestApp();
       const stack = new MediaStack(app, "TestStack", {
