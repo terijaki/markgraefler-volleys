@@ -230,6 +230,49 @@ describe("WebAppStack", () => {
     });
   });
 
+  it("configures image processor invoke permissions when function name is provided", () => {
+    const app = createTestApp();
+    const dependencies = createDependencies();
+
+    const stack = new WebAppStack(app, "TestStack", {
+      env: testEnv,
+      stackProps: {
+        environment: "dev",
+        branch: "",
+      },
+      imageProcessorFunctionName: "mv-bun-image-processor-dev",
+      ...dependencies,
+    });
+
+    const template = Template.fromStack(stack);
+
+    template.hasResourceProperties("AWS::Lambda::Function", {
+      FunctionName: "mv-webapp-dev",
+      Environment: {
+        Variables: Match.objectLike({
+          IMAGE_PROCESSOR_FUNCTION_NAME: "mv-bun-image-processor-dev",
+        }),
+      },
+    });
+
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: "lambda:InvokeFunction",
+            Resource: Match.arrayWith([
+              Match.objectLike({
+                "Fn::Join": Match.arrayWith([
+                  Match.arrayWith([Match.stringLikeRegexp("mv-bun-image-processor-dev")]),
+                ]),
+              }),
+            ]),
+          }),
+        ]),
+      },
+    });
+  });
+
   it("configures production aliases for apex and www domains", () => {
     const app = createTestApp();
     const dependencies = createDependencies();

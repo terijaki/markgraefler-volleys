@@ -13,7 +13,6 @@ import {
   Text,
 } from "@mantine/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getRequest } from "@tanstack/react-start/server";
 import CardTitle from "@webapp/components/CardTitle";
 import CenteredLoader from "@webapp/components/CenteredLoader";
 import EntityNotFound from "@webapp/components/EntityNotFound";
@@ -22,7 +21,6 @@ import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import MapsLink from "@webapp/components/MapsLink";
 import Matches from "@webapp/components/Matches";
 import RankingTable from "@webapp/components/RankingTable";
-import { createWebcalLink, getWebcalOrigin } from "@webapp/utils/webcal";
 import dayjs from "dayjs";
 import de from "dayjs/locale/de";
 import weekday from "dayjs/plugin/weekday";
@@ -42,6 +40,7 @@ import {
   peekSamsRankingsCacheFn,
 } from "@/app/src/server/functions/sams";
 import { getTeamBySlugFn } from "@/app/src/server/functions/teams";
+import { getWebcalLinkFn } from "@/app/src/server/functions/webcal";
 import type { LeagueMatchesResponse } from "@/lambda/sams/types";
 
 dayjs.locale(de);
@@ -50,11 +49,10 @@ dayjs.extend(weekday);
 export const Route = createFileRoute("/_layout/teams/$slug")({
   loader: async ({ params }) => {
     const { slug } = params;
-    const origin = getWebcalOrigin(getRequest());
-    const webcalLink = createWebcalLink(`/ics/${slug}.ics`, origin);
-    const [team, samsTeamsResult] = await Promise.all([
+    const [team, samsTeamsResult, webcalLink] = await Promise.all([
       getTeamBySlugFn({ data: { slug } }),
       listSamsTeamsFn(),
+      getWebcalLinkFn({ data: { path: `/ics/${slug}.ics` } }),
     ]);
 
     if (!team) {

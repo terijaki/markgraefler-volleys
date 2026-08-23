@@ -293,5 +293,30 @@ describe("MediaStack", () => {
       expect(layers).toHaveLength(1);
       expect(JSON.stringify(layers)).not.toContain("image-magick");
     });
+
+    it("does not configure S3 upload notifications", () => {
+      const app = createTestApp();
+      const stack = new MediaStack(app, "TestStack", {
+        stackProps: {
+          environment: "dev",
+          branch: "",
+        },
+      });
+
+      const template = Template.fromStack(stack);
+      template.resourceCountIs("Custom::S3BucketNotifications", 0);
+    });
+
+    it("exposes the image processor function name", () => {
+      const app = createTestApp();
+      const stack = new MediaStack(app, "TestStack", {
+        stackProps: {
+          environment: "dev",
+          branch: "",
+        },
+      });
+
+      expect(stack.imageProcessorFunctionName).toBe("mv-bun-image-processor-dev");
+    });
   });
 });

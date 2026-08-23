@@ -1,15 +1,15 @@
 /// <reference types="bun-types" />
 /**
  * Lambda function to process uploaded images using Bun.Image
- * Triggered by S3 upload events
+ * Invoked directly with { bucket, key } after admin/seed uploads
  * Generates responsive variants (480px, 800px, 1200px) in JPEG and WebP format
  * Also compresses and overwrites the original image (capped at 5MB)
  */
 
 import type { Readable } from "node:stream";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { type ProcessImagePayload, shouldProcessImageKey } from "@/lib/media/image-processing";
 import { IMAGE_SIZES } from "@utils/image-config";
-import type { S3Event } from "aws-lambda";
 import { Sentry } from "../utils/sentry";
 import {
   compressOriginal,
@@ -21,7 +21,7 @@ import {
 
 const s3Client = new S3Client();
 
-interface ProcessingJobResult {
+export interface ProcessingJobResult {
   originalKey: string;
   variants: Record<string, string>;
   success: boolean;
@@ -64,29 +64,30 @@ const uploadImageToS3 = async (
 };
 
 /** Process image and generate variants using Bun.Image */
-const processImage = async (bucket: string, uploadKey: string): Promise<Record<string, string>> => {
+export const processImage = async (
+  bucket: string,
+  key: string,
+): Promise<Record<string, string>> => {
   const variants: Record<string, string> = {};
 
-  const { buffer: imageBuffer } = await downloadImageFromS3(bucket, uploadKey);
+  const { buffer: imageBuffer } = await downloadImageFromS3(bucket, key);
   const input = new Uint8Array(imageBuffer);
 
-  const finalKey = uploadKey.replace(/^uploads\//, "");
-
-  const keyParts = finalKey.split("/");
+  const keyParts = key.split("/");
   const filename = keyParts[keyParts.length - 1];
   const baseFilename = filename.replace(/\.[^.]+$/, "");
   const sourceExtension = getImageExtension(filename);
   const originalContentType = getContentTypeForExtension(sourceExtension);
-  const outputFolder = finalKey.substring(0, finalKey.lastIndexOf("/"));
+  const outputFolder = key.substring(0, key.lastIndexOf("/"));
 
   try {
     if (sourceExtension === "gif") {
-      await uploadImageToS3(bucket, finalKey, imageBuffer, originalContentType);
-      console.log(`Uploaded original GIF to ${finalKey} without recompression`);
+      await uploadImageToS3(bucket, key, imageBuffer, originalContentType);
+      console.log(`Uploaded original GIF to ${key} without recompression`);
     } else {
       const compressedBuffer = await compressOriginal(input, sourceExtension);
-      await uploadImageToS3(bucket, finalKey, compressedBuffer, originalContentType);
-      console.log(`Uploaded compressed original to ${finalKey}`);
+      await uploadImageToS3(bucket, key, compressedBuffer, originalContentType);
+      console.log(`Uploaded compressed original to ${key}`);
     }
   } catch (error) {
     console.error("Failed to compress and overwrite original:", error);
@@ -116,50 +117,38 @@ const processImage = async (bucket: string, uploadKey: string): Promise<Record<s
   return variants;
 };
 
-const lambdaHandler = async (event: S3Event): Promise<ProcessingJobResult[]> => {
-  const results: ProcessingJobResult[] = [];
+const lambdaHandler = async (event: ProcessImagePayload): Promise<ProcessingJobResult> => {
+  const { bucket, key } = event;
 
-  for (const record of event.Records) {
-    try {
-      const bucket = record.s3.bucket.name;
-      const key = decodeURIComponent(record.s3.object.key);
+  console.log(`Processing image: s3://${bucket}/${key}`);
 
-      console.log(`Processing image: s3://${bucket}/${key}`);
-
-      const parts = key.split("/");
-      const filename = parts[parts.length - 1];
-
-      if (/-\d{3,4}w\.\w+$/.test(filename)) {
-        console.log(`Skipping already-processed variant: ${key}`);
-        continue;
-      }
-
-      if (!/\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) {
-        console.log(`Skipping non-image file: ${key}`);
-        continue;
-      }
-
-      const variants = await processImage(bucket, key);
-
-      console.log(`Generated variants for ${key}:`, variants);
-
-      results.push({
-        originalKey: key,
-        variants,
-        success: true,
-      });
-    } catch (error) {
-      console.error(`Error processing image: ${error}`);
-      results.push({
-        originalKey: `${record.s3.bucket.name}/${record.s3.object.key}`,
-        variants: {},
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+  if (!shouldProcessImageKey(key)) {
+    console.log(`Skipping image key: ${key}`);
+    return {
+      originalKey: key,
+      variants: {},
+      success: true,
+    };
   }
 
-  return results;
+  try {
+    const variants = await processImage(bucket, key);
+    console.log(`Generated variants for ${key}:`, variants);
+
+    return {
+      originalKey: key,
+      variants,
+      success: true,
+    };
+  } catch (error) {
+    console.error(`Error processing image: ${error}`);
+    return {
+      originalKey: key,
+      variants: {},
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 };
 
 export const handler = Sentry.wrapHandler(lambdaHandler);

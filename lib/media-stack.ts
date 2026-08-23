@@ -9,10 +9,10 @@ import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as route53 from "aws-cdk-lib/aws-route53";
 import * as route53Targets from "aws-cdk-lib/aws-route53-targets";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import * as s3Notifications from "aws-cdk-lib/aws-s3-notifications";
 import type { Construct } from "constructs";
 import { Club } from "@/project.config";
 import { computeResourceBranchSuffix } from "@utils/cdk-naming";
+import { buildLambdaFunctionName } from "./construct/mv-nodejs-function";
 import { MvBunFunction } from "./construct/mv-bun-function";
 
 /**
@@ -39,6 +39,8 @@ export class MediaStack extends cdk.Stack {
   public readonly cloudFrontUrl: string;
   /** Stable plain-string bucket name — safe to pass cross-stack without creating CloudFormation exports. */
   public readonly bucketName: string;
+  /** Plain-string processor function name for cross-stack invoke grants. */
+  public readonly imageProcessorFunctionName: string;
 
   constructor(scope: Construct, id: string, props?: MediaStackProps) {
     super(scope, id, props);
@@ -134,17 +136,6 @@ export class MediaStack extends cdk.Stack {
     this.bucket.grantRead(imageProcessorFunction);
     this.bucket.grantWrite(imageProcessorFunction);
 
-    // Trigger Lambda on S3 object creation for image files in uploads/ prefix only
-    // This prevents recursion when Lambda writes processed images back to the bucket
-    const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-    imageExtensions.forEach((ext) => {
-      this.bucket.addObjectCreatedNotification(
-        new s3Notifications.LambdaDestination(imageProcessorFunction),
-        {
-          prefix: "uploads/",
-          suffix: ext,
-        },
-      );
-    });
+    this.imageProcessorFunctionName = buildLambdaFunctionName("bun-image-processor");
   }
 }

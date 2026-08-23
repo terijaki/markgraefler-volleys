@@ -5,8 +5,7 @@ import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
 import { useSamsMatches } from "@webapp/hooks/dataQueries";
 import { peekSamsMatchesCacheFn } from "@webapp/server/functions/sams";
-import { createWebcalLink, getWebcalOrigin } from "@webapp/utils/webcal";
-import { getRequest } from "@tanstack/react-start/server";
+import { getWebcalLinkFn } from "@webapp/server/functions/webcal";
 import dayjs from "dayjs";
 import { CalendarDays, Megaphone as IconSubscribe } from "lucide-react";
 import { Fragment } from "react";
@@ -21,11 +20,13 @@ export const Route = createFileRoute("/_layout/matches/")({
    * by `useSamsMatches`, which falls back to the SAMS API on its own 5-min cache miss.
    */
   loader: async () => {
-    const origin = getWebcalOrigin(getRequest());
-    const matches = await peekSamsMatchesCacheFn({ data: { range: "future" } });
+    const [matches, webcalLink] = await Promise.all([
+      peekSamsMatchesCacheFn({ data: { range: "future" } }),
+      getWebcalLinkFn({ data: { path: "/ics/all.ics" } }),
+    ]);
     return {
       matches: matches ?? undefined,
-      webcalLink: createWebcalLink("/ics/all.ics", origin),
+      webcalLink,
     };
   },
   component: RouteComponent,

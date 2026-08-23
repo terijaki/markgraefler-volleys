@@ -39,7 +39,8 @@ import {
   suggestProxyAliasFn,
   updateMemberFn,
 } from "@webapp/server/functions/members";
-import { getFileUrlFn, getPresignedUrlFn } from "@webapp/server/functions/upload";
+import { getFileUrlFn } from "@webapp/server/functions/upload";
+import { uploadImageFile } from "@webapp/utils/upload-image";
 import { Pencil, Plus, Trash2, Upload, User, X } from "lucide-react";
 import { useState } from "react";
 import z from "zod";
@@ -299,6 +300,7 @@ function MembersPage() {
   const [opened, { open, close }] = useDisclosure(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [deleteAvatar, setDeleteAvatar] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const queryClient = useQueryClient();
   const { currentUser } = Route.useRouteContext();
   const canManageMembers = currentUser.authRole === "Admin";
@@ -358,22 +360,12 @@ function MembersPage() {
       }
       // Upload new avatar if a file was selected
       else if (avatarFile) {
-        const { uploadUrl, key } = await getPresignedUrlFn({
-          data: { filename: avatarFile.name, contentType: avatarFile.type, folder: "members" },
-        });
-
-        // Upload file to S3
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "PUT",
-          body: avatarFile,
-          headers: { "Content-Type": avatarFile.type },
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error("Datei-Upload fehlgeschlagen");
+        setUploading(true);
+        try {
+          avatarS3Key = await uploadImageFile(avatarFile, "members");
+        } finally {
+          setUploading(false);
         }
-
-        avatarS3Key = key;
       }
 
       // Filter out empty strings to avoid DynamoDB GSI errors.
@@ -779,7 +771,7 @@ function MembersPage() {
                       <Button
                         type="submit"
                         variant="filled"
-                        loading={isSubmitting}
+                        loading={isSubmitting || uploading}
                         disabled={!canSubmit}
                       >
                         {editingId ? "Aktualisieren" : "Erstellen"}

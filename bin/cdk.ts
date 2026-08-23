@@ -131,6 +131,7 @@ if (deployMailInfra) {
     cloudFrontCertificate: dnsStack.cloudFrontCertificate,
     samsClubsSyncFunctionName: samsStack.samsClubsSyncFunctionName,
     samsTeamsSyncFunctionName: samsStack.samsTeamsSyncFunctionName,
+    imageProcessorFunctionName: mediaStack.imageProcessorFunctionName,
   });
 
   // Budget monitoring - requires email for alerts
