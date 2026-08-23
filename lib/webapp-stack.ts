@@ -51,6 +51,7 @@ export interface WebAppStackProps extends cdk.StackProps {
    * Use function names (strings) instead of CDK cross-stack object references so SamsStack can be updated independently without CF blocking export deletion. */
   samsClubsSyncFunctionName?: string;
   samsTeamsSyncFunctionName?: string;
+  imageProcessorFunctionName?: string;
 }
 
 export class WebAppStack extends cdk.Stack {
@@ -120,6 +121,9 @@ export class WebAppStack extends cdk.Stack {
         : {}),
       ...(props.samsTeamsSyncFunctionName
         ? { SAMS_TEAMS_SYNC_FUNCTION_NAME: props.samsTeamsSyncFunctionName }
+        : {}),
+      ...(props.imageProcessorFunctionName
+        ? { IMAGE_PROCESSOR_FUNCTION_NAME: props.imageProcessorFunctionName }
         : {}),
       NODE_ENV: "production",
     };
@@ -199,6 +203,13 @@ export class WebAppStack extends cdk.Stack {
         this,
         "SamsTeamsSyncRef",
         props.samsTeamsSyncFunctionName,
+      ).grantInvoke(this.webappLambda);
+    }
+    if (props.imageProcessorFunctionName) {
+      lambda.Function.fromFunctionName(
+        this,
+        "ImageProcessorRef",
+        props.imageProcessorFunctionName,
       ).grantInvoke(this.webappLambda);
     }
 

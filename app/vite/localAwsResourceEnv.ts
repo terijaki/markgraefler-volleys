@@ -52,6 +52,10 @@ export function localAwsResourceEnvPlugin(): PluginOption {
         buildBranchLambdaName("sams-teams-sync", environment, branchSuffix),
       );
       setDefaultEnv(
+        "IMAGE_PROCESSOR_FUNCTION_NAME",
+        buildBranchLambdaName("bun-image-processor", environment, branchSuffix),
+      );
+      setDefaultEnv(
         "MEDIA_BUCKET_NAME",
         `markgraefler-volleys-media-${environment}${branchSuffix}`,
       );

@@ -208,7 +208,7 @@ describe("MembersRepository", () => {
           trainerIds: [],
         },
       });
-    ddbMock.on(UpdateCommand).resolves({});
+    ddbMock.on(PutCommand).resolves({});
     ddbMock.on(DeleteCommand).resolves({});
 
     const repo = new MembersRepository(documentClient, CUSTOM_TABLE);
@@ -219,8 +219,11 @@ describe("MembersRepository", () => {
     const teamListQuery = ddbMock.commandCalls(QueryCommand)[0];
     expect(teamListQuery?.args[0].input.TableName).toBe(CUSTOM_TABLE);
 
-    const teamUpdate = ddbMock.commandCalls(UpdateCommand)[0];
-    expect(teamUpdate?.args[0].input.TableName).toBe(CUSTOM_TABLE);
+    const teamPut = ddbMock.commandCalls(PutCommand)[0];
+    expect(teamPut?.args[0].input.TableName).toBe(CUSTOM_TABLE);
+    expect(teamPut?.args[0].input.Item).toMatchObject({
+      trainerIds: [],
+    });
 
     const memberDelete = ddbMock.commandCalls(DeleteCommand)[0];
     expect(memberDelete?.args[0].input).toMatchObject({

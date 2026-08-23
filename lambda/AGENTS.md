@@ -5,14 +5,14 @@ This file provides instructions specific to the `lambda/` directory, which conta
 ## Structure
 
 - `lambda/sams/` — Lambdas that sync and serve SAMS sports data (clubs, teams, rankings, matches, seasons, associations)
-- `lambda/content/` — Lambdas for content management (ICS calendar, image processing, S3 cleanup, sitemap)
+- `lambda/content/` — Lambdas for content management (ICS calendar, Bun image processing, S3 cleanup, sitemap)
 - `lambda/social/` — Lambdas for social media integrations (Instagram)
 - `lambda/utils/` — Shared Lambda utilities (e.g., Sentry error reporting)
 
 ## Key files to reference
 
 - `lambda/sams/sams-clubs.ts` — example of a typical SAMS sync Lambda
-- `lambda/content/handler.ts` — content Lambda handler
+- `lambda/content/image-processor.ts` — S3-triggered Bun.Image processor (`mv-bun-image-processor-*`)
 - `lambda/social/behold-sync.ts` — social media Lambda example
 - Generated SAMS API client: `codegen/sams/generated/` (do not edit generated files manually; run `vpr sams:codegen` to regenerate)
 

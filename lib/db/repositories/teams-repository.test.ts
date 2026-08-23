@@ -121,6 +121,36 @@ describe("TeamsRepository", () => {
     });
   });
 
+  it("update puts pictureS3Keys when the list attribute was not set on create", async () => {
+    ddbMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: storedTeamItem })
+      .resolvesOnce({
+        Item: {
+          ...storedTeamItem,
+          pictureS3Keys: ["teams/pic.jpg"],
+        },
+      });
+    ddbMock.on(PutCommand).resolves({});
+
+    const repo = new TeamsRepository(documentClient);
+    const updated = await repo.update(TEAM_ID, {
+      pictureS3Keys: ["teams/pic.jpg"],
+    });
+
+    expect(updated.pictureS3Keys).toEqual(["teams/pic.jpg"]);
+
+    expect(ddbMock.commandCalls(UpdateCommand)).toHaveLength(0);
+
+    const [put] = ddbMock.commandCalls(PutCommand);
+    expect(put.args[0].input).toMatchObject({
+      TableName: TABLE,
+      Item: expect.objectContaining({
+        pictureS3Keys: ["teams/pic.jpg"],
+      }),
+    });
+  });
+
   it("update removes nullable fields and regenerates slug on name change", async () => {
     ddbMock
       .on(GetCommand)

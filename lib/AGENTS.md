@@ -9,7 +9,8 @@ This file provides instructions specific to the `lib/` directory, which contains
   - `lib/content-db-stack.ts` — DynamoDB tables for content (news, events, teams, members, sponsors, bus, locations, users, auth)
   - `lib/sams-api-stack.ts` — SAMS API proxy (Lambda + API Gateway + Lambda@Edge)
   - `lib/social-media-stack.ts` — Instagram sync Lambda + DynamoDB
-  - `lib/media-stack.ts` — S3 bucket + CloudFront distribution for media assets
+  - `lib/media-stack.ts` — S3 bucket + CloudFront distribution for media assets; Bun image processor Lambda
+  - `lib/buntime-stack.ts` — Account-scoped Bun 1.4 Lambda runtime layer (deploy once per environment)
   - `lib/mail-infra-stack.ts` — Environment-scoped SES identity, inbound S3, receipt rules, mail DNS
   - `lib/mail-stack.ts` — Branch-scoped mail forwarding (EventBridge, Lambda, DLQ)
   - `lib/dns-stack.ts` — Route53 hosted zones and DNS records
@@ -22,7 +23,7 @@ This file provides instructions specific to the `lib/` directory, which contains
 
 - CDK entry: `bin/cdk.ts`
 - Account-baseline stacks: `BudgetStack` and `MonitoringStack` deploy for **prod** and **shared dev** (`main` / empty sanitized branch) only — not on feature-branch deploys. See `shouldDeployAccountOpsStacks` in `utils/cdk-deploy.ts`.
-- Active stacks: `lib/webapp-stack.ts`, `lib/content-db-stack.ts`, `lib/sams-api-stack.ts`, `lib/social-media-stack.ts`, `lib/media-stack.ts`, `lib/mail-infra-stack.ts`, `lib/mail-stack.ts`, `lib/dns-stack.ts`, `lib/monitoring-stack.ts`, `lib/budget-stack.ts`
+- Active stacks: `lib/webapp-stack.ts`, `lib/content-db-stack.ts`, `lib/sams-api-stack.ts`, `lib/social-media-stack.ts`, `lib/media-stack.ts`, `lib/buntime-stack.ts`, `lib/mail-infra-stack.ts`, `lib/mail-stack.ts`, `lib/dns-stack.ts`, `lib/monitoring-stack.ts`, `lib/budget-stack.ts`
 - DB client: `lib/db/client.ts` (DynamoDB DocumentClient with X-Ray tracing)
 - DB schemas: `lib/db/schemas.ts` (Zod schemas for all entities)
 - DB repositories: `lib/db/repositories.ts` (repository pattern for CRUD + queries)

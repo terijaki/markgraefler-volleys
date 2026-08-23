@@ -32,6 +32,7 @@ import {
   sponsorsRepository,
   teamsRepository,
 } from "@/lib/db/repositories";
+import { invokeImageProcessorAsync } from "@/lib/media/image-processing";
 import type { Location, Member, Team } from "@/lib/db/types";
 import { Club } from "@/project.config";
 import { getSanitizedBranch } from "@/utils/deploy-branch";
@@ -393,9 +394,9 @@ async function seedMembersData() {
 
     if (member.withAvatar) {
       try {
-        const uploadKey = `uploads/members/${created.id}-avatar.jpg`;
         const finalKey = `members/${created.id}-avatar.jpg`;
-        await uploadImageToS3(avatarUrls[avatarIndex], uploadKey);
+        await uploadImageToS3(avatarUrls[avatarIndex], finalKey);
+        await invokeImageProcessorAsync(S3_BUCKET, finalKey);
         await membersRepository.update(created.id, { avatarS3Key: finalKey });
         avatarIndex++;
         await new Promise((resolve) => setTimeout(resolve, 200));
@@ -512,9 +513,9 @@ async function seedTeamsData() {
     const pictureS3Keys: string[] = [];
     for (const [pictureIndex, pictureUrl] of pictureUrls.entries()) {
       try {
-        const uploadKey = `uploads/teams/${created.id}-${pictureIndex}.jpg`;
         const finalKey = `teams/${created.id}-${pictureIndex}.jpg`;
-        await uploadImageToS3(pictureUrl, uploadKey);
+        await uploadImageToS3(pictureUrl, finalKey);
+        await invokeImageProcessorAsync(S3_BUCKET, finalKey);
         pictureS3Keys.push(finalKey);
         await new Promise((resolve) => setTimeout(resolve, 200));
       } catch (error) {
@@ -586,9 +587,9 @@ async function seedSponsorsData() {
     });
 
     try {
-      const uploadKey = `uploads/sponsors/${created.id}-logo.jpg`;
       const finalKey = `sponsors/${created.id}-logo.jpg`;
-      await uploadImageToS3(logoUrls[i], uploadKey);
+      await uploadImageToS3(logoUrls[i], finalKey);
+      await invokeImageProcessorAsync(S3_BUCKET, finalKey);
       await sponsorsRepository.update(created.id, { logoS3Key: finalKey });
       await new Promise((resolve) => setTimeout(resolve, 200));
     } catch (error) {

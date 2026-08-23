@@ -21,7 +21,6 @@ import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import MapsLink from "@webapp/components/MapsLink";
 import Matches from "@webapp/components/Matches";
 import RankingTable from "@webapp/components/RankingTable";
-import { createWebcalLink } from "@webapp/utils/webcal";
 import dayjs from "dayjs";
 import de from "dayjs/locale/de";
 import weekday from "dayjs/plugin/weekday";
@@ -41,6 +40,7 @@ import {
   peekSamsRankingsCacheFn,
 } from "@/app/src/server/functions/sams";
 import { getTeamBySlugFn } from "@/app/src/server/functions/teams";
+import { getWebcalLinkFn } from "@/app/src/server/functions/webcal";
 import type { LeagueMatchesResponse } from "@/lambda/sams/types";
 
 dayjs.locale(de);
@@ -49,19 +49,20 @@ dayjs.extend(weekday);
 export const Route = createFileRoute("/_layout/teams/$slug")({
   loader: async ({ params }) => {
     const { slug } = params;
-    const [team, samsTeamsResult] = await Promise.all([
+    const [team, samsTeamsResult, webcalLink] = await Promise.all([
       getTeamBySlugFn({ data: { slug } }),
       listSamsTeamsFn(),
+      getWebcalLinkFn({ data: { path: `/ics/${slug}.ics` } }),
     ]);
 
     if (!team) {
-      return { team: null, rankings: undefined, matches: undefined };
+      return { team: null, rankings: undefined, matches: undefined, webcalLink };
     }
 
     const samsTeam = samsTeamsResult.teams.find((t) => t.uuid === team.sbvvTeamId);
 
     if (!samsTeam) {
-      return { team, samsTeam: undefined, rankings: undefined, matches: undefined };
+      return { team, samsTeam: undefined, rankings: undefined, matches: undefined, webcalLink };
     }
 
     const [rankings, matches] = await Promise.all([
@@ -71,7 +72,7 @@ export const Route = createFileRoute("/_layout/teams/$slug")({
       peekSamsMatchesCacheFn({ data: { team: samsTeam.uuid } }).then((m) => m ?? undefined),
     ]);
 
-    return { team, samsTeam, rankings, matches };
+    return { team, samsTeam, rankings, matches, webcalLink };
   },
   component: RouteComponent,
 });
@@ -124,7 +125,7 @@ function RouteComponent() {
           )}
         </Suspense>
         <Suspense fallback={<CenteredLoader text="Lade Spielplan..." />}>
-          <TeamCalendar slug={slug} loaderSamsTeam={loaderData.samsTeam} />
+          <TeamCalendar loaderSamsTeam={loaderData.samsTeam} webcalLink={loaderData.webcalLink} />
         </Suspense>
         <Suspense fallback={<CenteredLoader text="Lade Spielplan..." />}>
           <TeamMatches loaderSamsTeam={loaderData.samsTeam} loaderMatches={loaderData.matches} />
@@ -140,15 +141,13 @@ function RouteComponent() {
 }
 
 function TeamCalendar({
-  slug,
   loaderSamsTeam,
+  webcalLink,
 }: {
-  slug: string;
   loaderSamsTeam: ReturnType<typeof Route.useLoaderData>["samsTeam"];
+  webcalLink: string;
 }) {
   if (!loaderSamsTeam) return null;
-
-  const webcalLink = createWebcalLink(`/ics/${slug}.ics`);
 
   return (
     <Card>
