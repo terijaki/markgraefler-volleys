@@ -1,6 +1,8 @@
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
-import { type Association, getAssociationByUuid, getAssociations } from "@codegen/sams/generated/";
+import type { Association } from "sams-rest-v2";
+import { getAssociationByUuid, getAssociations } from "sams-rest-v2";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type {
   APIGatewayProxyEvent,
@@ -42,10 +44,8 @@ const lambdaHandler: APIGatewayProxyHandler = async (
     if (uuid) {
       console.log(`🔍 Fetching association by UUID: ${uuid}`);
       const { data, error, response } = await getAssociationByUuid({
+        client: sams.client,
         path: { uuid },
-        headers: {
-          "X-API-Key": SAMS_API_KEY,
-        },
       });
       if (error) {
         return {
@@ -88,10 +88,8 @@ const lambdaHandler: APIGatewayProxyHandler = async (
     let hasMorePages = true;
     while (hasMorePages) {
       const { data, error, response } = await getAssociations({
+        client: sams.client,
         query: { page: currentPage, size: 100 },
-        headers: {
-          "X-API-Key": SAMS_API_KEY,
-        },
       });
 
       if (error) {

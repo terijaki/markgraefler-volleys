@@ -54,9 +54,9 @@ updates:
           - "num-words-de"
           - "ts-ics"
           - "@behold/*"
+          - "sams-rest-v2"
       toolchain:
         patterns:
-          - "@hey-api/*"
           - "@playwright/*"
           - "@rolldown/*"
           - "@sentry/vite-plugin"

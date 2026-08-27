@@ -1,6 +1,6 @@
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
-import { getAllSeasons } from "@codegen/sams/generated";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyHandler } from "aws-lambda";
 import dayjs from "dayjs";
@@ -30,11 +30,7 @@ const lambdaHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent
       };
     }
 
-    const { data: seasons } = await getAllSeasons({
-      headers: {
-        "X-API-Key": SAMS_API_KEY,
-      },
-    });
+    const { data: seasons } = await sams.getAllSeasons();
     if (!seasons || seasons.length === 0) {
       return {
         statusCode: 404,

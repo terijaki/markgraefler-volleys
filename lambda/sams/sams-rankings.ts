@@ -1,6 +1,6 @@
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
-import { getLeagueByUuid, getRankingsForLeague, getSeasonByUuid } from "@codegen/sams/generated";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyHandler } from "aws-lambda";
 import { parseLambdaEnv } from "../utils/env";
@@ -40,12 +40,9 @@ const lambdaHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent
       };
     }
 
-    const { data } = await getRankingsForLeague({
+    const { data } = await sams.getRankingsForLeague({
       path: { uuid: leagueUuid },
       query: { page: 0, size: 100 },
-      headers: {
-        "X-API-Key": SAMS_API_KEY,
-      },
     });
 
     if (!data?.content) {
@@ -62,20 +59,14 @@ const lambdaHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent
     let leagueName: string | undefined;
     let seasonName: string | undefined;
 
-    const { data: leagueData } = await getLeagueByUuid({
+    const { data: leagueData } = await sams.getLeagueByUuid({
       path: { uuid: leagueUuid },
-      headers: {
-        "X-API-Key": SAMS_API_KEY,
-      },
     });
     if (leagueData?.name) leagueName = leagueData.name;
 
     if (leagueData?.seasonUuid) {
-      const { data: seasonData } = await getSeasonByUuid({
+      const { data: seasonData } = await sams.getSeasonByUuid({
         path: { uuid: leagueData.seasonUuid },
-        headers: {
-          "X-API-Key": SAMS_API_KEY,
-        },
       });
       if (seasonData?.name) seasonName = seasonData.name;
     }

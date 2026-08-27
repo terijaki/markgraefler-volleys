@@ -1,6 +1,6 @@
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
-import { getTeamByUuid } from "@codegen/sams/generated";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { createSamsRepositories } from "@/lib/db/repositories";
@@ -48,11 +48,8 @@ const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
 
       if (!storedTeam) {
         console.log(`🔍 Fetching team by UUID: ${uuid}`);
-        const { data } = await getTeamByUuid({
+        const { data } = await sams.getTeamByUuid({
           path: { uuid },
-          headers: {
-            "X-API-Key": SAMS_API_KEY,
-          },
         });
         if (data) {
           // Parse with TeamItemSchema, then convert to response format
