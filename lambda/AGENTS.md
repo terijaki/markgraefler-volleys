@@ -22,7 +22,7 @@ This file provides instructions specific to the `lambda/` directory, which conta
 - Unit tests live alongside the Lambda file (e.g., `sams-clubs.test.ts` next to `sams-clubs.ts`).
 - Use `aws-sdk-client-mock` in tests wherever AWS SDK calls are present.
 - Use the Sentry utility (`lambda/utils/sentry.ts`) for error reporting.
-- The SAMS API client comes from the `sams-rest-v2` npm package — use `getProjectSamsClient(apiKey)` from `utils/sams-client.ts`.
+- The SAMS API client comes from the `sams-rest-v2` npm package — use `import { sams } from "@/utils/sams-client"`.
 
 ## Testing
 

@@ -1,6 +1,6 @@
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
-import { getProjectSamsClient } from "@/utils/sams-client";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { createSamsRepositories } from "@/lib/db/repositories";
@@ -21,7 +21,6 @@ const docClient = createDynamoDocClient(tracer);
 const env = parseLambdaEnv(SamsTeamsLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
 const SAMS_API_KEY = env.SAMS_API_KEY;
-const sams = getProjectSamsClient(SAMS_API_KEY);
 const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {

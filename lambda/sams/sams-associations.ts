@@ -2,7 +2,7 @@ import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import type { Association } from "sams-rest-v2";
 import { getAssociationByUuid, getAssociations } from "sams-rest-v2";
-import { getProjectSamsClient } from "@/utils/sams-client";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type {
   APIGatewayProxyEvent,
@@ -18,7 +18,6 @@ const { logger, tracer } = createLambdaResources("sams-associations");
 
 const env = parseLambdaEnv(SamsAssociationsLambdaEnvironmentSchema);
 const SAMS_API_KEY = env.SAMS_API_KEY;
-const sams = getProjectSamsClient(SAMS_API_KEY);
 
 const lambdaHandler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent,

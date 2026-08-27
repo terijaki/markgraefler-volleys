@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import { getTeamRosterByTeamUuid } from "sams-rest-v2";
-import { getProjectSamsClient } from "@/utils/sams-client";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { createSamsRepositories } from "@/lib/db/repositories";
@@ -19,7 +19,6 @@ const docClient = createDynamoDocClient(tracer);
 
 const env = parseLambdaEnv(SamsTeamsSyncLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
-const sams = getProjectSamsClient(env.SAMS_API_KEY);
 const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 type SyncedTeamItem = {

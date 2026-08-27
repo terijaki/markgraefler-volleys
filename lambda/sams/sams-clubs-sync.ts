@@ -2,7 +2,7 @@ import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getAllSportsclubs, getAssociationByUuid, getAssociations } from "sams-rest-v2";
-import { getProjectSamsClient } from "@/utils/sams-client";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { EventBridgeEvent } from "aws-lambda";
 import { createSamsRepositories } from "@/lib/db/repositories";
@@ -19,7 +19,6 @@ const docClient = createDynamoDocClient(tracer);
 const env = parseLambdaEnv(SamsClubsSyncLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
 const MEDIA_BUCKET_NAME = env.MEDIA_BUCKET_NAME;
-const sams = getProjectSamsClient(env.SAMS_API_KEY);
 const ASSOCIATION_NAME = SAMS.association.name; // SBVV
 
 const s3Client = new S3Client({});

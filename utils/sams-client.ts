@@ -3,28 +3,27 @@ import { SAMS } from "@project.config";
 
 export type { SamsClient };
 
-export function createProjectSamsClient(apiKey: string): SamsClient {
-  return createSamsClient({
-    baseUrl: `${SAMS.server}/api/v2`,
-    apiKey,
-  });
-}
+let cachedClient: SamsClient | undefined;
 
-const clientCache = new Map<string, SamsClient>();
-
-export function getProjectSamsClient(apiKey: string): SamsClient {
-  let client = clientCache.get(apiKey);
-  if (!client) {
-    client = createProjectSamsClient(apiKey);
-    clientCache.set(apiKey, client);
-  }
-  return client;
-}
-
-export function getEnvSamsClient(): SamsClient {
+export function getSamsClient(): SamsClient {
   const apiKey = process.env.SAMS_API_KEY;
   if (!apiKey) {
     throw new Error("SAMS_API_KEY is not configured");
   }
-  return getProjectSamsClient(apiKey);
+
+  cachedClient ??= createSamsClient({
+    baseUrl: `${SAMS.server}/api/v2`,
+    apiKey,
+  });
+
+  return cachedClient;
 }
+
+/** Lazy singleton — all SAMS API callers should import this. */
+export const sams: SamsClient = new Proxy({} as SamsClient, {
+  get(_target, prop) {
+    const client = getSamsClient();
+    const value = client[prop as keyof SamsClient];
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});

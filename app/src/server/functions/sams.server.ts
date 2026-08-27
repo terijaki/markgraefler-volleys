@@ -6,7 +6,7 @@
  */
 
 import type { LeagueMatchDto } from "sams-rest-v2";
-import { getEnvSamsClient } from "@/utils/sams-client";
+import { sams } from "@/utils/sams-client";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import * as Sentry from "@sentry/tanstackstart-react";
 import { createCacheKey, createExpiringCache, getOrSetExpiringCacheValue } from "@utils/cache";
@@ -195,7 +195,7 @@ async function fetchSamsLeagueMatchesForSportsclub({
   let hasMorePages = true;
 
   while (hasMorePages) {
-    const { data: pageData } = await getEnvSamsClient().getAllLeagueMatches({
+    const { data: pageData } = await sams.getAllLeagueMatches({
       query: { ...defaultQueryParams, page: currentPage, size: 100 },
       signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
     });
@@ -262,7 +262,6 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
     cacheKey,
     softTtlMs: 5 * 60 * 1000,
     refresh: async () => {
-      const sams = getEnvSamsClient();
       const [{ data: rankingsData }, { data: leagueData }] = await Promise.all([
         sams.getRankingsForLeague({
           path: { uuid: leagueUuid },

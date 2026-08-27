@@ -1,7 +1,7 @@
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import type { LeagueMatchDto } from "sams-rest-v2";
-import { getProjectSamsClient } from "@/utils/sams-client";
+import { sams } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { APIGatewayProxyEvent, APIGatewayProxyHandler } from "aws-lambda";
 import dayjs from "dayjs";
@@ -28,7 +28,6 @@ const env = parseLambdaEnv(SamsLeagueMatchesLambdaEnvironmentSchema);
 const SAMS_API_KEY = env.SAMS_API_KEY;
 const TABLE_NAME = env.SAMS_TABLE_NAME;
 const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
-const sams = getProjectSamsClient(SAMS_API_KEY);
 
 async function resolveConfiguredSamsSportsclubUuidsFromStorage(): Promise<string[]> {
   const clubs = await samsRepos.clubs.listAll();

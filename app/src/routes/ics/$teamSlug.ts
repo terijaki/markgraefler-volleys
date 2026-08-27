@@ -7,7 +7,7 @@
  */
 
 import type { LeagueMatchDto } from "sams-rest-v2";
-import { getEnvSamsClient } from "@/utils/sams-client";
+import { sams } from "@/utils/sams-client";
 import { Club } from "@project.config";
 import { createFileRoute } from "@tanstack/react-router";
 import dayjs from "dayjs";
@@ -27,7 +27,7 @@ async function fetchMatchesForTeam(teamUuid: string): Promise<LeagueMatchDto[]> 
   let hasMorePages = true;
 
   while (hasMorePages) {
-    const { data } = await getEnvSamsClient().getAllLeagueMatches({
+    const { data } = await sams.getAllLeagueMatches({
       query: {
         "for-team": teamUuid,
         page: currentPage,
