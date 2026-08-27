@@ -5,13 +5,8 @@
  * Server function wrappers live in `sams.ts`; tests import helpers from here.
  */
 
-import {
-  getAllLeagueMatches,
-  getLeagueByUuid,
-  getRankingsForLeague,
-  getSeasonByUuid,
-  type LeagueMatchDto,
-} from "@codegen/sams/generated";
+import type { LeagueMatchDto } from "sams-rest-v2";
+import { getEnvSamsClient } from "@/utils/sams-client";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import * as Sentry from "@sentry/tanstackstart-react";
 import { createCacheKey, createExpiringCache, getOrSetExpiringCacheValue } from "@utils/cache";
@@ -200,7 +195,7 @@ async function fetchSamsLeagueMatchesForSportsclub({
   let hasMorePages = true;
 
   while (hasMorePages) {
-    const { data: pageData } = await getAllLeagueMatches({
+    const { data: pageData } = await getEnvSamsClient().getAllLeagueMatches({
       query: { ...defaultQueryParams, page: currentPage, size: 100 },
       signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
     });
@@ -267,13 +262,14 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
     cacheKey,
     softTtlMs: 5 * 60 * 1000,
     refresh: async () => {
+      const sams = getEnvSamsClient();
       const [{ data: rankingsData }, { data: leagueData }] = await Promise.all([
-        getRankingsForLeague({
+        sams.getRankingsForLeague({
           path: { uuid: leagueUuid },
           query: { page: 0, size: 100 },
           signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
         }),
-        getLeagueByUuid({
+        sams.getLeagueByUuid({
           path: { uuid: leagueUuid },
           signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
         }),
@@ -287,7 +283,7 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
       if (leagueData?.name) leagueName = leagueData.name;
 
       if (leagueData?.seasonUuid) {
-        const { data: seasonData } = await getSeasonByUuid({
+        const { data: seasonData } = await sams.getSeasonByUuid({
           path: { uuid: leagueData.seasonUuid },
           signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
         });

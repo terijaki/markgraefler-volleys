@@ -25,15 +25,10 @@ const [owner, repo] = repository.split("/");
 const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 const date = new Date().toISOString().split("T")[0];
 
-const hasDrift = process.env.HAS_DRIFT === "true";
 const hasFixed = process.env.HAS_FIXED === "true";
 const fixedBugIds = (process.env.FIXED_BUG_IDS ?? "").split(",").filter(Boolean).map(Number);
 const checkFailedIds = (process.env.CHECK_FAILED_IDS ?? "").split(",").filter(Boolean).map(Number);
-const regenFailed = process.env.REGEN_FAILED === "true";
-const failureStep = process.env.FAILURE_STEP ?? "";
-const swaggerJobFailed = process.env.SWAGGER_DRIFT_RESULT === "failure";
 const bugCheckJobFailed = process.env.BUG_CHECK_RESULT === "failure";
-const regenJobFailed = process.env.REGENERATE_RESULT === "failure";
 
 const bugDescriptions: Record<number, string> = {
   1: "SBVV missing from `GET /associations` paginated list",
@@ -63,44 +58,16 @@ const labels = ["sams", "needs-review"];
 const sections: string[] = [];
 const titleParts: string[] = [];
 
-if (hasDrift) {
-  labels.push("drift-detection");
-  titleParts.push("⚠️ swagger drift");
-  sections.push(`## ⚠️ Swagger Drift Detected
-
-The upstream spec at \`https://www.volleyball-baden.de/api/v2/swagger.json\` has changed since the last committed raw snapshot in \`codegen/sams/generated/input.json\`.
-
-Run \`bun run sams:codegen\` locally, review \`codegen/sams/generated/input.json\` for the upstream change and \`codegen/sams/generated/source.json\` plus the generated client files for downstream impact, then commit the updated files once verified.
-
-[Full diff in workflow run](${runUrl})`);
-}
-
 if (hasFixed) {
   labels.push("bug-fixed");
   titleParts.push("✅ bugs fixed");
   sections.push(`## ✅ Upstream Bug(s) Fixed
 
-Bug(s) **${fixedBugIds.join(", ")}** are no longer reproducible against the live API. Review the relevant \`parser.patch.schemas\` entries in \`codegen/sams/generate-client.ts\` and remove any workarounds that compensate for the now-fixed behaviour.
+Bug(s) **${fixedBugIds.join(", ")}** are no longer reproducible against the live API. Review whether the corresponding workarounds in the [\`sams-rest-v2\`](https://github.com/terijaki/sams-rest-v2) package can be removed, then bump the dependency here.
 
 ${bugTable}`);
 } else {
   sections.push(`## Bug Check Results\n\n${bugTable}`);
-}
-
-if (regenFailed || regenJobFailed) {
-  titleParts.push("❌ regen failed");
-  sections.push(`## ❌ Regeneration / Verification Failed
-
-The \`${failureStep || "regenerate"}\` step failed after pulling the latest spec. The generated client or test suite may be out of sync with the current upstream API.
-
-[View step output](${runUrl})`);
-}
-
-if (swaggerJobFailed) {
-  titleParts.push("❌ drift check failed");
-  sections.push(
-    `## ❌ Swagger Drift Check Job Failed\n\nThe job itself failed (likely a network or tooling error).\n\n[View run](${runUrl})`,
-  );
 }
 
 if (bugCheckJobFailed) {

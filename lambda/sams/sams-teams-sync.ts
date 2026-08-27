@@ -1,13 +1,8 @@
 import { createHash } from "node:crypto";
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
-import {
-  getAllLeagueHierarchies,
-  getAllLeagues,
-  getAllSeasons,
-  getTeamRosterByTeamUuid,
-  getTeamsForLeague,
-} from "@codegen/sams/generated";
+import { getTeamRosterByTeamUuid } from "sams-rest-v2";
+import { getProjectSamsClient } from "@/utils/sams-client";
 import middy from "@middy/core";
 import type { APIGatewayProxyHandler } from "aws-lambda";
 import { createSamsRepositories } from "@/lib/db/repositories";
@@ -24,6 +19,7 @@ const docClient = createDynamoDocClient(tracer);
 
 const env = parseLambdaEnv(SamsTeamsSyncLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
+const sams = getProjectSamsClient(env.SAMS_API_KEY);
 const samsRepos = createSamsRepositories(docClient, TABLE_NAME);
 
 type SyncedTeamItem = {
@@ -155,7 +151,7 @@ const lambdaHandler: APIGatewayProxyHandler = async () => {
 
     // Step 2: Get current season
     console.log("Fetching current season...");
-    const { data: seasons } = await getAllSeasons({});
+    const { data: seasons } = await sams.getAllSeasons({});
 
     const currentSeason = seasons?.find((s) => s.currentSeason);
     if (!currentSeason) {
@@ -179,7 +175,7 @@ const lambdaHandler: APIGatewayProxyHandler = async () => {
       let hierarchyPage = 0;
       let hasMoreHierarchies = true;
       while (hasMoreHierarchies) {
-        const { data: hierarchyData } = await getAllLeagueHierarchies({
+        const { data: hierarchyData } = await sams.getAllLeagueHierarchies({
           query: {
             association: associationUuid,
             "for-season": currentSeason.uuid,
@@ -199,7 +195,7 @@ const lambdaHandler: APIGatewayProxyHandler = async () => {
       leaguePage = 0;
       hasMoreLeagues = true;
       while (hasMoreLeagues) {
-        const { data: leagueData } = await getAllLeagues({
+        const { data: leagueData } = await sams.getAllLeagues({
           query: {
             association: associationUuid,
             page: leaguePage,
@@ -242,7 +238,7 @@ const lambdaHandler: APIGatewayProxyHandler = async () => {
       let hasMoreTeams = true;
 
       while (hasMoreTeams) {
-        const { data: teamData } = await getTeamsForLeague({
+        const { data: teamData } = await sams.getTeamsForLeague({
           path: { uuid: league.uuid },
           query: { page: teamPage, size: 100 },
         });
@@ -313,6 +309,7 @@ const lambdaHandler: APIGatewayProxyHandler = async () => {
 
       try {
         const { data: rosterData, error: rosterError } = await getTeamRosterByTeamUuid({
+          client: sams.client,
           path: { uuid: team.uuid },
         });
         if (rosterError) {

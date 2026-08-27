@@ -56,10 +56,6 @@
       "approve": true,
       "matchCommandLine": true
     },
-    "/^vpr sams:codegen$/": {
-      "approve": true,
-      "matchCommandLine": true
-    },
     "/^vp build$/": {
       "approve": true,
       "matchCommandLine": true
