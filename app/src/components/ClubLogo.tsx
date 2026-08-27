@@ -8,7 +8,6 @@ type ClubLogoProps = (
   | { logoUrl: string | null | undefined; clubUuid?: never; clubSlug?: never }
 ) & {
   label?: string;
-  light?: boolean;
   size?: number;
 };
 
@@ -17,7 +16,6 @@ export default function ClubLogo({
   clubSlug,
   logoUrl: proppedLogoUrl,
   label,
-  light,
   size = 24,
 }: ClubLogoProps) {
   const useHook = !!(clubUuid || clubSlug);
@@ -38,8 +36,6 @@ export default function ClubLogo({
           height: "100%",
           objectFit: "contain",
           borderRadius: "50%",
-          filter: light ? "saturate(0) brightness(0) invert(1)" : undefined,
-          mixBlendMode: light ? undefined : "multiply",
         }}
       />
     </Flex>
