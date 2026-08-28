@@ -66,8 +66,11 @@ async function shouldSkipProjection(
   seasonUuid: string,
   snapshotVersion: string,
 ): Promise<boolean> {
-  const existing = await repos.schedules.get(sportsclubUuid, seasonUuid);
-  return existing?.snapshotVersion === snapshotVersion;
+  const existingSnapshotVersion = await repos.schedules.getSnapshotVersion(
+    sportsclubUuid,
+    seasonUuid,
+  );
+  return existingSnapshotVersion === snapshotVersion;
 }
 
 async function shouldSkipRanking(

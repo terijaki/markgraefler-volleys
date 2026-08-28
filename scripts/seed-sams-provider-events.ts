@@ -41,7 +41,7 @@ if (ENVIRONMENT === "prod") {
 
 const BRANCH = getSanitizedBranch();
 const REGION = process.env.CDK_REGION || "eu-central-1";
-const POLL_TIMEOUT_MS = 120_000;
+const POLL_TIMEOUT_MS = 180_000;
 const POLL_INTERVAL_MS = 3_000;
 
 function buildVariationSeed(branch: string): string {

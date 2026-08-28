@@ -29,6 +29,7 @@ function createMockRepos(): SamsRepositories {
     },
     schedules: {
       get: vi.fn().mockResolvedValue(null),
+      getSnapshotVersion: vi.fn().mockResolvedValue(undefined),
       replace: vi.fn().mockResolvedValue(undefined),
       mergeMatchesForClub: vi.fn().mockResolvedValue(undefined),
       listMatchesForSportsclubs: vi.fn().mockResolvedValue([]),
@@ -139,6 +140,29 @@ describe("processSamsProviderEvent", () => {
     await processSamsProviderEvent(event, repos);
 
     expect(repos.rankings.replace).toHaveBeenCalledOnce();
+  });
+
+  it("replaces club match schedule projections", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.clubMatchScheduleUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.schedules.replace).toHaveBeenCalledOnce();
+    const scheduleInput = vi.mocked(repos.schedules.replace).mock.calls[0]?.[0];
+    expect(scheduleInput?.matches.length).toBeGreaterThan(0);
+  });
+
+  it("processes full seed fixture stream including schedule", async () => {
+    for (const fixture of samsProviderEventFixtures) {
+      const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture));
+      await processSamsProviderEvent(event, repos);
+    }
+
+    expect(repos.schedules.replace).toHaveBeenCalledOnce();
   });
 
   it("ignores reserved event types gracefully", async () => {

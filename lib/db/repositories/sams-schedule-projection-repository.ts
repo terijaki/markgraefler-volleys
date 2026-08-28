@@ -63,7 +63,31 @@ export class SamsScheduleProjectionRepository {
       }),
     );
     if (!result.Item) return null;
-    return parseSchedule(result.Item, "Failed to parse SAMS schedule projection");
+
+    const parsed = samsClubScheduleProjectionSchema.safeParse(result.Item);
+    if (!parsed.success) {
+      console.warn("Failed to parse SAMS schedule projection; treating as missing", {
+        sportsclubUuid,
+        seasonUuid,
+        issues: parsed.error.issues.map((issue) => issue.message),
+      });
+      return null;
+    }
+    return parsed.data;
+  }
+
+  async getSnapshotVersion(
+    sportsclubUuid: string,
+    seasonUuid: string,
+  ): Promise<string | undefined> {
+    const result = await this.documentClient.send(
+      new GetCommand({
+        TableName: this.resolveTableName(),
+        Key: { pk: samsSchedulePk(sportsclubUuid), sk: samsSeasonSk(seasonUuid) },
+      }),
+    );
+    const snapshotVersion = result.Item?.snapshotVersion;
+    return typeof snapshotVersion === "string" ? snapshotVersion : undefined;
   }
 
   async replace(input: SamsClubScheduleUpsertInput): Promise<SamsClubScheduleProjectionInput> {

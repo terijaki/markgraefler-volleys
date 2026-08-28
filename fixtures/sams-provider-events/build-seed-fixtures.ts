@@ -350,14 +350,6 @@ export function buildSamsProviderSeedFixtures(
     snapshotVersion: snapshotVersion(options.variationSeed, snapshotIndex++),
   });
 
-  for (const opponentClub of SEED_OPPONENT_CLUBS) {
-    fixtures.push({
-      type: SamsEventType.clubUpdated,
-      payload: clubProjection(opponentClub),
-      snapshotVersion: snapshotVersion(options.variationSeed, snapshotIndex++),
-    });
-  }
-
   fixtures.push({
     type: SamsEventType.clubSeasonTeamsUpdated,
     payload: {
@@ -405,6 +397,14 @@ export function buildSamsProviderSeedFixtures(
     },
     snapshotVersion: snapshotVersion(options.variationSeed, snapshotIndex++),
   });
+
+  for (const opponentClub of SEED_OPPONENT_CLUBS) {
+    fixtures.push({
+      type: SamsEventType.clubUpdated,
+      payload: clubProjection(opponentClub),
+      snapshotVersion: snapshotVersion(options.variationSeed, snapshotIndex++),
+    });
+  }
 
   for (const [teamIndex, mvTeam] of activeTeams.entries()) {
     fixtures.push({
