@@ -5,7 +5,7 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { SendMessageBatchCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { getSanitizedBranch } from "@/utils/deploy-branch";
 import { computeSamsDataTableName } from "@/lib/db/env";
@@ -15,6 +15,7 @@ import {
   buildSamsProviderSeedFixtures,
   resolveMvTeamCount,
 } from "@/fixtures/sams-provider-events";
+import { SEED_MV_CLUB, SEED_SEASON } from "@/fixtures/sams-provider-events/ids";
 
 const SQS_BATCH_SIZE = 10;
 const MIN_PROJECTION_ITEMS = 12;
@@ -113,6 +114,34 @@ async function sendMockEvents(
   console.log(`✅ Sent ${entries.length} mock SAMS provider events to ${queueUrl}`);
 }
 
+async function waitForScheduleProjection(tableName: string) {
+  const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  const pk = `schedule#${SEED_MV_CLUB.uuid}`;
+  const sk = `season#${SEED_SEASON.uuid}`;
+
+  while (Date.now() < deadline) {
+    const result = await doc.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: { pk, sk },
+      }),
+    );
+    const matches = (result.Item?.matches as unknown[] | undefined) ?? [];
+    if (matches.length > 0) {
+      console.log(
+        `✅ Schedule projection ready for ${SEED_MV_CLUB.uuid} (${matches.length} matches)`,
+      );
+      return;
+    }
+    console.log("Waiting for club schedule projection after seed...");
+    await new Promise((resolveSleep) => setTimeout(resolveSleep, POLL_INTERVAL_MS));
+  }
+
+  console.error("❌ Timed out waiting for club schedule projection after seed");
+  process.exit(1);
+}
+
 async function waitForProjections(tableName: string) {
   const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
   const deadline = Date.now() + POLL_TIMEOUT_MS;
@@ -157,6 +186,7 @@ async function main() {
 
   await sendMockEvents(queueUrl, fixtures);
   await waitForProjections(tableName);
+  await waitForScheduleProjection(tableName);
   console.log("=== SAMS provider seed completed ===");
 }
 

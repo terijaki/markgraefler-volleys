@@ -34,7 +34,6 @@ import { parseServerData } from "../schema-parse";
 import {
   dedupeSamsMatchesByUuid,
   pickSyncedSeasonUuid,
-  resolveConfiguredSamsSportsclubUuids,
   SAMS_TARGET_CLUB_SLUGS,
   shouldResolveDefaultSamsSportsclubs,
 } from "@/utils/sams";
@@ -426,13 +425,12 @@ const TABELLE_GAMES_PER_TEAM = 2.3;
 export async function handleLoadTabelleRouteData() {
   const { handleListTeams } = await import("./teams.server");
 
-  const [samsTeamsResult, samsClubsResult, teamsResult] = await Promise.all([
+  const [samsTeamsResult, teamsResult, sportsclubUuids] = await Promise.all([
     getAllSamsTeams(),
-    getAllSamsClubs(),
     handleListTeams(),
+    resolveConfiguredSamsSportsclubUuidsFromStorage(),
   ]);
 
-  const sportsclubUuids = resolveConfiguredSamsSportsclubUuids(samsClubsResult.items);
   const syncedSeasonUuid = pickSyncedSeasonUuid(samsTeamsResult.items, sportsclubUuids);
   const teamsForSeason = syncedSeasonUuid
     ? samsTeamsResult.items.filter((team) => team.seasonUuid === syncedSeasonUuid)
@@ -492,12 +490,11 @@ export async function handleLoadTabelleRouteData() {
 }
 
 export async function handleLoadMatchesIndexRouteData() {
-  const [samsTeamsResult, samsClubsResult] = await Promise.all([
+  const [samsTeamsResult, sportsclubUuids] = await Promise.all([
     getAllSamsTeams(),
-    getAllSamsClubs(),
+    resolveConfiguredSamsSportsclubUuidsFromStorage(),
   ]);
 
-  const sportsclubUuids = resolveConfiguredSamsSportsclubUuids(samsClubsResult.items);
   const seasonUuid = pickSyncedSeasonUuid(samsTeamsResult.items, sportsclubUuids);
   const peekContext: SamsPeekContext = { seasonUuid, sportsclubUuids };
 

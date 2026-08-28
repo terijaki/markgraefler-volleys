@@ -205,7 +205,10 @@ export const samsProjectionMatchSchema = z
     date: z.string().nullish(),
     time: z.string().nullish(),
     matchNumber: z.string().nullish(),
-    host: z.string().nullish(),
+    host: z.preprocess(
+      (value) => (typeof value === "boolean" ? null : value),
+      z.string().nullish(),
+    ),
     leagueUuid: z.string().nullish(),
     results: z.record(z.string(), z.unknown()).nullish(),
     location: z
