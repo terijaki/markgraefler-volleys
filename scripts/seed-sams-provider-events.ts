@@ -40,7 +40,7 @@ const REGION = process.env.CDK_REGION || "eu-central-1";
 const POLL_TIMEOUT_MS = 60_000;
 const POLL_INTERVAL_MS = 3_000;
 
-function resolveQueueUrl(): string {
+function readQueueUrlFromCdkOutputs(): string | null {
   const outputsPath = resolve(process.cwd(), "cdk-outputs.json");
   try {
     const outputs = JSON.parse(readFileSync(outputsPath, "utf8")) as Record<
@@ -49,14 +49,25 @@ function resolveQueueUrl(): string {
     >;
     for (const stackOutputs of Object.values(outputs)) {
       const url = stackOutputs.SamsProviderEventsQueueUrl;
-      if (url) return url;
+      if (url && isAwsSqsQueueUrl(url)) return url;
     }
   } catch {
-    // Fall through to naming convention
+    // Fall through to AWS lookup
   }
+  return null;
+}
 
-  const queueName = computeSamsProviderEventsQueueName(ENVIRONMENT, BRANCH);
-  return `https://sqs.${REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID ?? ""}/${queueName}`;
+/** Validate SQS queue URLs without substring checks on the full URL string. */
+function isAwsSqsQueueUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    if (!parsed.hostname.endsWith(".amazonaws.com")) return false;
+    const pathSegments = parsed.pathname.split("/").filter((segment) => segment.length > 0);
+    return pathSegments.length >= 2;
+  } catch {
+    return false;
+  }
 }
 
 async function resolveQueueUrlFromAws(queueName: string): Promise<string> {
@@ -114,10 +125,7 @@ async function waitForProjections(tableName: string) {
 
 async function main() {
   const queueName = computeSamsProviderEventsQueueName(ENVIRONMENT, BRANCH);
-  let queueUrl = resolveQueueUrl();
-  if (!queueUrl.includes("amazonaws.com/") || queueUrl.endsWith("/")) {
-    queueUrl = await resolveQueueUrlFromAws(queueName);
-  }
+  const queueUrl = readQueueUrlFromCdkOutputs() ?? (await resolveQueueUrlFromAws(queueName));
 
   const tableName = computeSamsDataTableName(ENVIRONMENT, BRANCH);
   console.log("=== Seeding SAMS provider mock events ===");
