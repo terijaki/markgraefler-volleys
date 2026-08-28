@@ -174,7 +174,21 @@ async function resolveSeasonScopedSamsMatchesQuery(
   const syncedSeason = await resolveSyncedSeasonUuid();
   if (!syncedSeason) return null;
 
-  return resolveSamsMatchesQuery({ ...data, season: syncedSeason });
+  return {
+    ...baseQuery,
+    season: syncedSeason,
+    cacheKey: createSamsMatchesCacheKey(
+      {
+        league: data?.league,
+        season: syncedSeason,
+        sportsclub: data?.sportsclub,
+        team: data?.team,
+        limit: data?.limit,
+        range: data?.range,
+      },
+      baseQuery.effectiveSportsclubUuids,
+    ),
+  };
 }
 
 async function loadMatchesFromProjections({
@@ -206,6 +220,15 @@ async function loadMatchesFromProjections({
   return dedupeSamsMatchesByUuid(matches);
 }
 
+function isPastProjectionMatch(
+  match: { results?: { winner?: string | null } | null; date?: string | null },
+  anchor = dayjs(),
+): boolean {
+  if (match.results?.winner) return true;
+  if (match.date && anchor.isAfter(dayjs(match.date), "day")) return true;
+  return false;
+}
+
 async function buildMatchesResponse(
   data: SamsMatchesInput | undefined,
   query: ResolvedSamsMatchesQuery,
@@ -220,12 +243,12 @@ async function buildMatchesResponse(
 
   let filteredMatches = allMatches;
   if (data?.range === "future") {
-    filteredMatches = allMatches.filter((match) => !match.results?.winner);
+    filteredMatches = allMatches.filter((match) => !isPastProjectionMatch(match));
     filteredMatches.sort((a, b) =>
       !a.date ? 1 : !b.date ? -1 : dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1,
     );
   } else if (data?.range === "past") {
-    filteredMatches = allMatches.filter((match) => !!match.results?.winner);
+    filteredMatches = allMatches.filter((match) => isPastProjectionMatch(match));
     filteredMatches.sort((a, b) =>
       !a.date ? 1 : !b.date ? -1 : dayjs(a.date).isAfter(dayjs(b.date)) ? -1 : 1,
     );
@@ -262,10 +285,10 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
   );
 }
 
-async function peekRankingProjection(leagueUuid: string): Promise<RankingResponse | null> {
-  const seasonUuid = await resolveSyncedSeasonUuid();
-  if (!seasonUuid) return null;
-
+async function peekRankingProjectionForSeason(
+  leagueUuid: string,
+  seasonUuid: string,
+): Promise<RankingResponse | null> {
   const projection = await samsRankingProjectionRepository.get(leagueUuid, seasonUuid);
   if (!projection) return null;
 
@@ -280,6 +303,12 @@ async function peekRankingProjection(leagueUuid: string): Promise<RankingRespons
     },
     "Failed to parse SAMS rankings projection",
   );
+}
+
+async function peekRankingProjection(leagueUuid: string): Promise<RankingResponse | null> {
+  const seasonUuid = await resolveSyncedSeasonUuid();
+  if (!seasonUuid) return null;
+  return peekRankingProjectionForSeason(leagueUuid, seasonUuid);
 }
 
 // ── SAMS projections — Matches ───────────────────────────────────────────────
@@ -326,8 +355,11 @@ export async function handleGetSamsRankingByLeagueUuid(leagueUuid: string) {
 
 /** Projection peek for rankings — returns stored data regardless of age. */
 export async function handlePeekSamsRankingsCache(leagueUuids: string[]) {
+  const seasonUuid = await resolveSyncedSeasonUuid();
+  if (!seasonUuid) return [];
+
   const results = await Promise.all(
-    leagueUuids.map((leagueUuid) => peekRankingProjection(leagueUuid)),
+    leagueUuids.map((leagueUuid) => peekRankingProjectionForSeason(leagueUuid, seasonUuid)),
   );
   return results.filter((result): result is RankingResponse => result !== null);
 }

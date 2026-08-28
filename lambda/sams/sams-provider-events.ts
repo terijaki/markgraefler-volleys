@@ -172,6 +172,14 @@ async function upsertClub(
   event: SamsEvent & { type: typeof SamsEventType.clubUpdated },
 ): Promise<void> {
   const club = event.payload;
+  const nameSlug = club.slug || slugify(club.name);
+  const slugMatches = await repos.clubs.queryByNameSlugPrefix(nameSlug);
+  for (const staleClub of slugMatches) {
+    if (staleClub.sportsclubUuid !== club.uuid && staleClub.nameSlug === nameSlug) {
+      await repos.clubs.delete(staleClub.sportsclubUuid);
+    }
+  }
+
   const existing = await repos.clubs.getById(club.uuid);
   const now = event.occurredAt;
   const ttl = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;

@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { SamsEventType } from "sams-provider-events";
 import {
   matchUuid,
+  opponentTeamDisplayName,
   opponentTeamUuid,
   playerUuid,
   SEED_MV_CLUB,
@@ -64,10 +65,32 @@ function clubProjection(club: typeof SEED_MV_CLUB | (typeof SEED_OPPONENT_CLUBS)
   };
 }
 
+function leagueOpponentOffset(leagueUuid: string, variationSeed: string): number {
+  return hashVariationSeed(`${variationSeed}:${leagueUuid}`) % SEED_OPPONENT_CLUBS.length;
+}
+
+function pickOpponentClub(leagueUuid: string, opponentIndex: number, variationSeed: string) {
+  const offset = leagueOpponentOffset(leagueUuid, variationSeed);
+  return SEED_OPPONENT_CLUBS[(offset + opponentIndex) % SEED_OPPONENT_CLUBS.length];
+}
+
+function rankingStatsForRank(rank: number, leagueIndex: number) {
+  const base = 24 - rank * 2 + leagueIndex;
+  return {
+    points: base,
+    wins: Math.max(1, 8 - rank + leagueIndex),
+    setWins: base + 3,
+    setLosses: rank * 2 + leagueIndex,
+    matchesPlayed: 6 + (rank % 2),
+  };
+}
+
 function buildOpponentRankingEntries(
   mvTeam: (typeof SEED_MV_TEAMS)[number],
   mvRank: number,
   opponentsPerLeague: number,
+  leagueIndex: number,
+  variationSeed: string,
 ) {
   const totalEntries = opponentsPerLeague + 1;
   const entries: Array<{
@@ -86,34 +109,28 @@ function buildOpponentRankingEntries(
   let opponentIndex = 0;
   for (let rank = 1; rank <= totalEntries; rank++) {
     if (rank === mvRank) {
+      const stats = rankingStatsForRank(rank, leagueIndex);
       entries.push({
         rank,
         teamUuid: mvTeam.uuid,
         teamName: mvTeam.name,
         sportsclubUuid: SEED_MV_CLUB.uuid,
         logoUrl: picsumImageUrl(SEED_MV_CLUB.picsumSeed, 128, 128),
-        points: 18 - rank,
-        wins: 6 - rank,
-        setWins: 18,
-        setLosses: 6 + rank,
-        matchesPlayed: 6,
+        ...stats,
       });
       continue;
     }
 
-    const opponentClub = SEED_OPPONENT_CLUBS[opponentIndex % SEED_OPPONENT_CLUBS.length];
+    const opponentClub = pickOpponentClub(mvTeam.leagueUuid, opponentIndex, variationSeed);
     const teamUuid = opponentTeamUuid(mvTeam.leagueUuid, opponentIndex);
+    const stats = rankingStatsForRank(rank, leagueIndex + 1);
     entries.push({
       rank,
       teamUuid,
-      teamName: `${opponentClub.name} 1`,
+      teamName: opponentTeamDisplayName(opponentClub, opponentIndex),
       sportsclubUuid: opponentClub.uuid,
       logoUrl: picsumImageUrl(opponentClub.picsumSeed, 128, 128),
-      points: Math.max(0, 20 - rank * 2),
-      wins: Math.max(0, 7 - rank),
-      setWins: Math.max(0, 21 - rank * 2),
-      setLosses: rank * 2,
-      matchesPlayed: 6,
+      ...stats,
     });
     opponentIndex++;
   }
@@ -125,17 +142,19 @@ function buildMatchesForTeam(
   mvTeam: (typeof SEED_MV_TEAMS)[number],
   anchor: dayjs.Dayjs,
   opponentsPerLeague: number,
+  variationSeed: string,
 ) {
   const matches: Array<Record<string, unknown>> = [];
   const pastCount = 4;
   const futureCount = 3;
 
   for (let index = 1; index <= pastCount; index++) {
-    const opponentClub = SEED_OPPONENT_CLUBS[(index - 1) % SEED_OPPONENT_CLUBS.length];
+    const opponentClub = pickOpponentClub(mvTeam.leagueUuid, index - 1, variationSeed);
     const opponentTeamUuidValue = opponentTeamUuid(
       mvTeam.leagueUuid,
       (index - 1) % opponentsPerLeague,
     );
+    const opponentName = opponentTeamDisplayName(opponentClub, index - 1);
     const isHome = index % 2 === 1;
     const mvWon = index % 2 === 1;
     const matchDate = anchor.subtract(index * 7, "day");
@@ -154,13 +173,13 @@ function buildMatchesForTeam(
           }
         : {
             uuid: opponentTeamUuidValue,
-            name: `${opponentClub.name} 1`,
+            name: opponentName,
             sportsclubUuid: opponentClub.uuid,
           },
       team2: isHome
         ? {
             uuid: opponentTeamUuidValue,
-            name: `${opponentClub.name} 1`,
+            name: opponentName,
             sportsclubUuid: opponentClub.uuid,
           }
         : {
@@ -169,33 +188,33 @@ function buildMatchesForTeam(
             sportsclubUuid: SEED_MV_CLUB.uuid,
           },
       location: {
-        uuid: `location-seed-${index % 3}`,
-        name: `Sporthalle Seed ${(index % 3) + 1}`,
+        uuid: `location-${mvTeam.leagueUuid}-${index % 3}`,
+        name: `${opponentClub.name.split(" ")[0]} Halle ${(index % 3) + 1}`,
       },
       hasResult: true,
       result: {
         winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-        winnerName: mvWon ? mvTeam.name : `${opponentClub.name} 1`,
+        winnerName: mvWon ? mvTeam.name : opponentName,
         setPoints: mvWon ? "3:1" : "1:3",
-        ballPoints: mvWon ? "75:62" : "62:75",
+        ballPoints: mvWon ? `${75 + index}:${60 + index}` : `${60 + index}:${75 + index}`,
         sets: [
           {
             number: 1,
             ballPoints: mvWon ? "25:20" : "20:25",
             winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-            winnerName: mvWon ? mvTeam.name : `${opponentClub.name} 1`,
+            winnerName: mvWon ? mvTeam.name : opponentName,
           },
           {
             number: 2,
             ballPoints: mvWon ? "25:22" : "22:25",
             winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-            winnerName: mvWon ? mvTeam.name : `${opponentClub.name} 1`,
+            winnerName: mvWon ? mvTeam.name : opponentName,
           },
           {
             number: 3,
             ballPoints: mvWon ? "25:20" : "20:25",
             winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-            winnerName: mvWon ? mvTeam.name : `${opponentClub.name} 1`,
+            winnerName: mvWon ? mvTeam.name : opponentName,
           },
         ],
       },
@@ -203,11 +222,12 @@ function buildMatchesForTeam(
   }
 
   for (let index = 1; index <= futureCount; index++) {
-    const opponentClub = SEED_OPPONENT_CLUBS[(index + 2) % SEED_OPPONENT_CLUBS.length];
+    const opponentClub = pickOpponentClub(mvTeam.leagueUuid, index + 2, variationSeed);
     const opponentTeamUuidValue = opponentTeamUuid(
       mvTeam.leagueUuid,
       (index + 2) % opponentsPerLeague,
     );
+    const opponentName = opponentTeamDisplayName(opponentClub, index + 2);
     const isHome = index % 2 === 0;
     const matchDate = anchor.add(index * 7, "day");
 
@@ -225,13 +245,13 @@ function buildMatchesForTeam(
           }
         : {
             uuid: opponentTeamUuidValue,
-            name: `${opponentClub.name} 1`,
+            name: opponentName,
             sportsclubUuid: opponentClub.uuid,
           },
       team2: isHome
         ? {
             uuid: opponentTeamUuidValue,
-            name: `${opponentClub.name} 1`,
+            name: opponentName,
             sportsclubUuid: opponentClub.uuid,
           }
         : {
@@ -240,8 +260,8 @@ function buildMatchesForTeam(
             sportsclubUuid: SEED_MV_CLUB.uuid,
           },
       location: {
-        uuid: `location-seed-future-${index % 3}`,
-        name: `Arena Seed ${(index % 3) + 1}`,
+        uuid: `location-future-${mvTeam.leagueUuid}-${index % 3}`,
+        name: `Arena ${opponentClub.slug} ${(index % 3) + 1}`,
       },
       hasResult: false,
     });
@@ -340,7 +360,7 @@ export function buildSamsProviderSeedFixtures(
   });
 
   const allMatches = activeTeams.flatMap((team) =>
-    buildMatchesForTeam(team, anchor, opponentsPerLeague),
+    buildMatchesForTeam(team, anchor, opponentsPerLeague, options.variationSeed),
   );
 
   fixtures.push({
@@ -367,7 +387,13 @@ export function buildSamsProviderSeedFixtures(
         nextRefreshAfter: null,
         isStale: false,
         sourceMatchBlockId: `block-${mvTeam.leagueUuid}`,
-        entries: buildOpponentRankingEntries(mvTeam, teamIndex + 2, opponentsPerLeague),
+        entries: buildOpponentRankingEntries(
+          mvTeam,
+          teamIndex + 2,
+          opponentsPerLeague,
+          teamIndex,
+          options.variationSeed,
+        ),
       },
       snapshotVersion: snapshotVersion(options.variationSeed, snapshotIndex++),
     });

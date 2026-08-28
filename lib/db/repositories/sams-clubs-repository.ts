@@ -44,7 +44,9 @@ export class SamsClubsRepository {
 
   async getByNameSlug(nameSlug: string): Promise<SamsClubInput | null> {
     const matches = await this.queryByNameSlugPrefix(nameSlug);
-    return matches.find((club) => club.nameSlug === nameSlug) ?? null;
+    const exactMatches = matches.filter((club) => club.nameSlug === nameSlug);
+    if (exactMatches.length === 0) return null;
+    return exactMatches.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
   }
 
   async queryByNameSlugPrefix(nameSlugPrefix: string): Promise<SamsClubInput[]> {

@@ -14,6 +14,8 @@ function createMockRepos(): SamsRepositories {
     clubs: {
       getById: vi.fn().mockResolvedValue(null),
       upsert: vi.fn().mockResolvedValue(undefined),
+      queryByNameSlugPrefix: vi.fn().mockResolvedValue([]),
+      delete: vi.fn().mockResolvedValue(undefined),
     },
     teams: {
       listAll: vi.fn().mockResolvedValue([]),
@@ -104,6 +106,27 @@ describe("processSamsProviderEvent", () => {
     await processSamsProviderEvent(event, repos);
 
     expect(repos.teams.delete).toHaveBeenCalledWith("legacy-team-season-old");
+  });
+
+  it("removes duplicate clubs that share the same slug", async () => {
+    repos.clubs.queryByNameSlugPrefix = vi.fn().mockResolvedValue([
+      {
+        sportsclubUuid: "club-legacy",
+        nameSlug: "markgraefler-volleys",
+        updatedAt: "2020-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.clubUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.clubs.delete).toHaveBeenCalledWith("club-legacy");
+    expect(repos.clubs.upsert).toHaveBeenCalledOnce();
   });
 
   it("replaces league ranking projections", async () => {

@@ -90,6 +90,38 @@ describe("buildSamsProviderSeedFixtures", () => {
     );
   });
 
+  it("varies opponent teams and stats between leagues", () => {
+    const fixtures = buildSamsProviderSeedFixtures({
+      variationSeed: TEST_VARIATION_SEED,
+      now: new Date("2026-08-27T12:00:00.000Z"),
+      opponentsPerLeague: 7,
+    });
+    const rankings = fixtures.filter(
+      (fixture) => fixture.type === SamsEventType.leagueRankingUpdated,
+    );
+    expect(rankings.length).toBeGreaterThanOrEqual(2);
+
+    const firstEntries = rankings[0].payload.entries as Array<{
+      teamName: string;
+      points: number;
+    }>;
+    const secondEntries = rankings[1].payload.entries as Array<{
+      teamName: string;
+      points: number;
+    }>;
+
+    const firstOpponents = firstEntries
+      .slice(1, 4)
+      .map((entry) => entry.teamName)
+      .join(",");
+    const secondOpponents = secondEntries
+      .slice(1, 4)
+      .map((entry) => entry.teamName)
+      .join(",");
+    expect(firstOpponents).not.toBe(secondOpponents);
+    expect(firstEntries[0]?.points).not.toBe(secondEntries[0]?.points);
+  });
+
   it("changes snapshot versions on reseed while keeping team ids stable", () => {
     const first = buildSamsProviderSeedFixtures({
       variationSeed: "branch:1",

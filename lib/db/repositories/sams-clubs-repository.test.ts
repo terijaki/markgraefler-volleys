@@ -108,6 +108,28 @@ describe("SamsClubsRepository", () => {
     expect(club?.sportsclubUuid).toBe(CLUB_UUID);
   });
 
+  it("getByNameSlug prefers the most recently updated club when slugs collide", async () => {
+    ddbMock.on(QueryCommand).resolves({
+      Items: [
+        {
+          ...storedClubItem,
+          sportsclubUuid: "legacy-uuid",
+          updatedAt: "2020-01-01T00:00:00.000Z",
+        },
+        {
+          ...storedClubItem,
+          sportsclubUuid: "current-uuid",
+          updatedAt: "2026-08-28T00:00:00.000Z",
+        },
+      ],
+    });
+
+    const repo = new SamsClubsRepository(documentClient, TABLE);
+    const club = await repo.getByNameSlug("markgraefler-volleys");
+
+    expect(club?.sportsclubUuid).toBe("current-uuid");
+  });
+
   it("upsert puts a club with encoded keys", async () => {
     ddbMock.on(PutCommand).resolves({});
 
