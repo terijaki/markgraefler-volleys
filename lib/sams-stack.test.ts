@@ -57,6 +57,36 @@ describe("SamsStack", () => {
         TableName: "sams-data-dev-feature-xyz",
       });
     });
+
+    it("should allow GitHub Actions to seed mock events on dev queues", () => {
+      const app = createTestApp();
+      const stack = new SamsStack(app, "TestStack", {
+        env: {
+          account: "123456789012",
+          region: "eu-central-1",
+        },
+        stackProps: {
+          environment: "dev",
+          branch: "feature-xyz",
+        },
+      });
+
+      const template = Template.fromStack(stack);
+
+      template.hasResourceProperties("AWS::SQS::QueuePolicy", {
+        PolicyDocument: Match.objectLike({
+          Statement: Match.arrayWith([
+            Match.objectLike({
+              Sid: "AllowGitHubActionsCdkRoleSeed",
+              Action: Match.arrayWith(["sqs:SendMessage"]),
+              Principal: Match.objectLike({
+                AWS: Match.stringLikeRegexp("role/GitHubActionsCDKRole$"),
+              }),
+            }),
+          ]),
+        }),
+      });
+    });
   });
 
   describe("Production environment", () => {
@@ -84,7 +114,7 @@ describe("SamsStack", () => {
       });
     });
 
-    it("should allow cross-account EventBridge delivery on prod queue", () => {
+    it("should allow provider EventBridge to send messages on prod queue", () => {
       const app = createTestApp();
       const stack = new SamsStack(app, "TestStack", {
         stackProps: {

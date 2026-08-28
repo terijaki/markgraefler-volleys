@@ -107,6 +107,19 @@ export class SamsStack extends cdk.Stack {
           },
         }),
       );
+    } else {
+      // CI seeds mock events via GitHubActionsCDKRole after deploy — grant on the queue
+      // resource policy so we do not depend on manual IAM role policy updates.
+      const githubActionsRoleArn = `arn:aws:iam::${cdk.Stack.of(this).account}:role/GitHubActionsCDKRole`;
+      providerEventsQueue.addToResourcePolicy(
+        new iam.PolicyStatement({
+          sid: "AllowGitHubActionsCdkRoleSeed",
+          effect: iam.Effect.ALLOW,
+          principals: [new iam.ArnPrincipal(githubActionsRoleArn)],
+          actions: ["sqs:SendMessage", "sqs:GetQueueUrl", "sqs:GetQueueAttributes"],
+          resources: [providerEventsQueue.queueArn],
+        }),
+      );
     }
 
     const PROCESSOR_FUNCTION_NAME = "sams-provider-processor";
