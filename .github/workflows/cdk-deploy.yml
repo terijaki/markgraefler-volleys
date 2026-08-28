@@ -57,7 +57,7 @@ jobs:
 
       - name: Unit test summary
         if: always()
-        run: bun ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
+        run: vp exec tsx ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
 
       - name: CDK Diff
         run: vp exec cdk diff --all
@@ -96,7 +96,7 @@ jobs:
           DEPLOY_BRANCH: ${{ github.ref_name }}
           DEPLOY_COMMIT: ${{ github.sha }}
           WEBAPP_URL: ${{ steps.resolve-webapp-url.outputs.webapp_url }}
-        run: bun ./scripts/github-actions/write-cdk-deploy-summary.ts cdk-outputs.json
+        run: vp exec tsx ./scripts/github-actions/write-cdk-deploy-summary.ts cdk-outputs.json
 
   synth:
     name: CDK Synth
@@ -135,7 +135,7 @@ jobs:
 
       - name: Unit test summary
         if: always()
-        run: bun ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
+        run: vp exec tsx ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
 
       - name: CDK Synth
         run: vp exec cdk synth --all
