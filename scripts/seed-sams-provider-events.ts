@@ -17,6 +17,8 @@ import {
   resolveMvTeamCount,
 } from "@/fixtures/sams-provider-events";
 import { SEED_MV_CLUB, SEED_SEASON } from "@/fixtures/sams-provider-events/ids";
+import { mapProviderMatchToProjection } from "@/lambda/sams/provider-mappers";
+import { createSamsScheduleProjectionRepository } from "@/lib/db/repositories/sams-schedule-projection-repository";
 
 const SQS_BATCH_SIZE = 10;
 const MIN_PROJECTION_ITEMS = 12;
@@ -162,6 +164,51 @@ async function waitForScheduleProjection(tableName: string): Promise<boolean> {
   return false;
 }
 
+async function writeScheduleProjectionDirectly(
+  tableName: string,
+  fixtures: ReturnType<typeof buildSamsProviderSeedFixtures>,
+  variationSeed: string,
+): Promise<boolean> {
+  const scheduleFixture = fixtures.find(
+    (fixture) => fixture.type === SamsEventType.clubMatchScheduleUpdated,
+  );
+  if (!scheduleFixture) {
+    console.error("❌ No club schedule fixture found for direct projection write");
+    return false;
+  }
+
+  const payload = scheduleFixture.payload as {
+    club: { uuid: string };
+    season: { uuid: string; name: string };
+    matches: Array<Record<string, unknown>>;
+    projectedAt?: string;
+    cachedAt?: string;
+    isStale?: boolean;
+  };
+
+  const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+  const schedules = createSamsScheduleProjectionRepository(doc, tableName);
+  const mappedMatches = payload.matches.map((match) =>
+    mapProviderMatchToProjection(match as Parameters<typeof mapProviderMatchToProjection>[0]),
+  );
+
+  await schedules.replace({
+    sportsclubUuid: payload.club.uuid,
+    seasonUuid: payload.season.uuid,
+    seasonName: payload.season.name,
+    matches: mappedMatches,
+    snapshotVersion: `direct-${variationSeed}`,
+    projectedAt: payload.projectedAt,
+    cachedAt: payload.cachedAt,
+    isStale: payload.isStale,
+  });
+
+  console.log(
+    `✅ Wrote schedule projection directly (${mappedMatches.length} matches) for ${payload.club.uuid}`,
+  );
+  return true;
+}
+
 async function sendScheduleRetry(
   queueUrl: string,
   variationSeed: string,
@@ -229,6 +276,16 @@ async function main() {
   if (!scheduleReady) {
     await sendScheduleRetry(queueUrl, variationSeed, fixtures);
     scheduleReady = await waitForScheduleProjection(tableName);
+  }
+
+  if (!scheduleReady) {
+    console.warn(
+      "SQS processor did not produce a schedule projection; writing directly to DynamoDB...",
+    );
+    scheduleReady = await writeScheduleProjectionDirectly(tableName, fixtures, variationSeed);
+    if (scheduleReady) {
+      scheduleReady = await waitForScheduleProjection(tableName);
+    }
   }
 
   if (!scheduleReady) {
