@@ -6,23 +6,8 @@ import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
 import RankingTable from "@webapp/components/RankingTable";
 import { useSamsMatches } from "@webapp/hooks/dataQueries";
-import {
-  listSamsClubsFn,
-  listSamsTeamsFn,
-  peekSamsMatchesCacheFn,
-  peekSamsRankingsCacheFn,
-} from "@webapp/server/functions/sams";
-import { listTeamsFn } from "@webapp/server/functions/teams";
-import {
-  buildLeagueOrderingContext,
-  calculateLastResultCap,
-  sortLeagueUuidsByLevels,
-} from "@webapp/utils/ranking";
+import { loadTabelleRouteDataFn } from "@webapp/server/functions/sams";
 import { numToWord } from "num-words-de";
-import { pickSyncedSeasonUuid, resolveConfiguredSamsSportsclubUuids } from "@/utils/sams";
-import type { LeagueMatchesResponse, RankingResponse } from "@/lambda/sams/types";
-
-const GAMES_PER_TEAM: number = 2.3; // maximum number of games per team to shown below the rankings
 
 export const Route = createFileRoute("/_layout/tabelle")({
   /**
@@ -34,7 +19,7 @@ export const Route = createFileRoute("/_layout/tabelle")({
    * How it works:
    *  1. Loader runs server-side before navigation completes. It must be FAST — any
    *     async call that hits an external API blocks the browser from showing the page.
-   *     → Use only DDB cache-peek functions (peekSamsRankingsCacheFn, peekSamsMatchesCacheFn).
+   *     → Use `loadTabelleRouteDataFn` (single server call that peeks projections in-process).
    *     → These read DynamoDB only, never call the SAMS API, and use Infinity TTL so they
    *       always return whatever is cached regardless of age.
    *
@@ -54,59 +39,7 @@ export const Route = createFileRoute("/_layout/tabelle")({
    * PITFALL: Do NOT replace peek functions with getSamsRankingsByLeagueUuidsFn in the
    * loader. That function calls the SAMS API on cache miss, blocking navigation for 2-3s.
    */
-  loader: async () => {
-    // Main data comes from DynamoDB; only a batched SAMS metadata lookup is used for league ordering.
-    const [samsTeams, teams, samsClubs] = await Promise.all([
-      listSamsTeamsFn(),
-      listTeamsFn(),
-      listSamsClubsFn(),
-    ]);
-    const preferredSportsclubUuids = resolveConfiguredSamsSportsclubUuids(samsClubs.clubs);
-    const syncedSeasonUuid = pickSyncedSeasonUuid(samsTeams.teams, preferredSportsclubUuids);
-    const teamsForSeason = syncedSeasonUuid
-      ? samsTeams.teams.filter((team) => team.seasonUuid === syncedSeasonUuid)
-      : samsTeams.teams;
-    const orderingContext = buildLeagueOrderingContext(teamsForSeason);
-
-    if (samsTeams.teams.length === 0) {
-      return {
-        leagueUuids: [],
-        teams: teams.items,
-        lastResultCap: 6,
-        rankingsByLeagueUuid: {} satisfies Record<string, RankingResponse>,
-        matches: undefined,
-      };
-    }
-
-    // League levels are stored on each team by the sync lambda — no extra API call needed.
-    const leagueLevels = Object.fromEntries(orderingContext.leagueLevelByUuid);
-
-    const sortedLeagueUuids = sortLeagueUuidsByLevels({
-      leagueUuids: orderingContext.leagueUuids,
-      leagueLevels,
-      leagueNameByUuid: orderingContext.leagueNameByUuid,
-      leagueOrderByUuid: orderingContext.leagueOrderByUuid,
-    });
-    const lastResultCap = calculateLastResultCap(samsTeams.teams.length, GAMES_PER_TEAM);
-
-    let rankingsByLeagueUuid: Record<string, RankingResponse> = {};
-    let matches: LeagueMatchesResponse | undefined;
-    if (sortedLeagueUuids.length > 0) {
-      const [rankingsResult, matchesResult] = await Promise.all([
-        peekSamsRankingsCacheFn({ data: { leagueUuids: sortedLeagueUuids } }),
-        peekSamsMatchesCacheFn({ data: { range: "past", limit: lastResultCap } }),
-      ]);
-      rankingsByLeagueUuid = Object.fromEntries(rankingsResult.map((r) => [r.leagueUuid, r]));
-      matches = matchesResult ?? undefined;
-    }
-    return {
-      leagueUuids: sortedLeagueUuids,
-      teams: teams.items,
-      lastResultCap,
-      rankingsByLeagueUuid,
-      matches,
-    };
-  },
+  loader: async () => loadTabelleRouteDataFn(),
   component: RouteComponent,
 });
 

@@ -69,19 +69,43 @@ function leagueOpponentOffset(leagueUuid: string, variationSeed: string): number
   return hashVariationSeed(`${variationSeed}:${leagueUuid}`) % SEED_OPPONENT_CLUBS.length;
 }
 
+function mvTeamDisplayName(mvTeam: (typeof SEED_MV_TEAMS)[number], variationSeed: string): string {
+  const style = hashVariationSeed(`${variationSeed}:mv-name:${mvTeam.uuid}`) % 4;
+  switch (style) {
+    case 0:
+      return mvTeam.name;
+    case 1:
+      return `MV ${mvTeam.leagueName}`;
+    case 2:
+      return `${mvTeam.leagueName} — Markgräfler Volleys`;
+    default:
+      return `Markgräfler ${mvTeam.slug.replace(/-/g, " ")}`;
+  }
+}
+
 function pickOpponentClub(leagueUuid: string, opponentIndex: number, variationSeed: string) {
   const offset = leagueOpponentOffset(leagueUuid, variationSeed);
   return SEED_OPPONENT_CLUBS[(offset + opponentIndex) % SEED_OPPONENT_CLUBS.length];
 }
 
-function rankingStatsForRank(rank: number, leagueIndex: number) {
-  const base = 24 - rank * 2 + leagueIndex;
+function rankingStatsForRank(
+  rank: number,
+  leagueIndex: number,
+  leagueUuid: string,
+  variationSeed: string,
+) {
+  const hash = hashVariationSeed(`${variationSeed}:stats:${leagueUuid}:${rank}`);
+  const spread = hash % 5;
+  const base = 22 - rank * 2 + leagueIndex * 3 + spread;
+  const wins = Math.max(0, 9 - rank + leagueIndex + (hash % 3));
+  const setWins = base + 2 + (hash % 4);
+  const setLosses = rank * 2 + leagueIndex + spread;
   return {
-    points: base,
-    wins: Math.max(1, 8 - rank + leagueIndex),
-    setWins: base + 3,
-    setLosses: rank * 2 + leagueIndex,
-    matchesPlayed: 6 + (rank % 2),
+    points: Math.max(0, base),
+    wins,
+    setWins,
+    setLosses,
+    matchesPlayed: 5 + (rank % 3) + leagueIndex,
   };
 }
 
@@ -109,11 +133,11 @@ function buildOpponentRankingEntries(
   let opponentIndex = 0;
   for (let rank = 1; rank <= totalEntries; rank++) {
     if (rank === mvRank) {
-      const stats = rankingStatsForRank(rank, leagueIndex);
+      const stats = rankingStatsForRank(rank, leagueIndex, mvTeam.leagueUuid, variationSeed);
       entries.push({
         rank,
         teamUuid: mvTeam.uuid,
-        teamName: mvTeam.name,
+        teamName: mvTeamDisplayName(mvTeam, variationSeed),
         sportsclubUuid: SEED_MV_CLUB.uuid,
         logoUrl: picsumImageUrl(SEED_MV_CLUB.picsumSeed, 128, 128),
         ...stats,
@@ -123,11 +147,16 @@ function buildOpponentRankingEntries(
 
     const opponentClub = pickOpponentClub(mvTeam.leagueUuid, opponentIndex, variationSeed);
     const teamUuid = opponentTeamUuid(mvTeam.leagueUuid, opponentIndex);
-    const stats = rankingStatsForRank(rank, leagueIndex + 1);
+    const stats = rankingStatsForRank(
+      rank,
+      leagueIndex + 1,
+      mvTeam.leagueUuid,
+      `${variationSeed}:opp:${opponentIndex}`,
+    );
     entries.push({
       rank,
       teamUuid,
-      teamName: opponentTeamDisplayName(opponentClub, opponentIndex),
+      teamName: opponentTeamDisplayName(opponentClub, opponentIndex + leagueIndex * 2),
       sportsclubUuid: opponentClub.uuid,
       logoUrl: picsumImageUrl(opponentClub.picsumSeed, 128, 128),
       ...stats,
@@ -147,6 +176,7 @@ function buildMatchesForTeam(
   const matches: Array<Record<string, unknown>> = [];
   const pastCount = 4;
   const futureCount = 3;
+  const mvDisplayName = mvTeamDisplayName(mvTeam, variationSeed);
 
   for (let index = 1; index <= pastCount; index++) {
     const opponentClub = pickOpponentClub(mvTeam.leagueUuid, index - 1, variationSeed);
@@ -168,7 +198,7 @@ function buildMatchesForTeam(
       team1: isHome
         ? {
             uuid: mvTeam.uuid,
-            name: mvTeam.name,
+            name: mvDisplayName,
             sportsclubUuid: SEED_MV_CLUB.uuid,
           }
         : {
@@ -184,7 +214,7 @@ function buildMatchesForTeam(
           }
         : {
             uuid: mvTeam.uuid,
-            name: mvTeam.name,
+            name: mvDisplayName,
             sportsclubUuid: SEED_MV_CLUB.uuid,
           },
       location: {
@@ -194,7 +224,7 @@ function buildMatchesForTeam(
       hasResult: true,
       result: {
         winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-        winnerName: mvWon ? mvTeam.name : opponentName,
+        winnerName: mvWon ? mvDisplayName : opponentName,
         setPoints: mvWon ? "3:1" : "1:3",
         ballPoints: mvWon ? `${75 + index}:${60 + index}` : `${60 + index}:${75 + index}`,
         sets: [
@@ -202,19 +232,19 @@ function buildMatchesForTeam(
             number: 1,
             ballPoints: mvWon ? "25:20" : "20:25",
             winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-            winnerName: mvWon ? mvTeam.name : opponentName,
+            winnerName: mvWon ? mvDisplayName : opponentName,
           },
           {
             number: 2,
             ballPoints: mvWon ? "25:22" : "22:25",
             winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-            winnerName: mvWon ? mvTeam.name : opponentName,
+            winnerName: mvWon ? mvDisplayName : opponentName,
           },
           {
             number: 3,
             ballPoints: mvWon ? "25:20" : "20:25",
             winner: mvWon ? mvTeam.uuid : opponentTeamUuidValue,
-            winnerName: mvWon ? mvTeam.name : opponentName,
+            winnerName: mvWon ? mvDisplayName : opponentName,
           },
         ],
       },
@@ -240,7 +270,7 @@ function buildMatchesForTeam(
       team1: isHome
         ? {
             uuid: mvTeam.uuid,
-            name: mvTeam.name,
+            name: mvDisplayName,
             sportsclubUuid: SEED_MV_CLUB.uuid,
           }
         : {
@@ -256,7 +286,7 @@ function buildMatchesForTeam(
           }
         : {
             uuid: mvTeam.uuid,
-            name: mvTeam.name,
+            name: mvDisplayName,
             sportsclubUuid: SEED_MV_CLUB.uuid,
           },
       location: {
@@ -335,7 +365,7 @@ export function buildSamsProviderSeedFixtures(
       season: { ...SEED_SEASON, current: true },
       teams: activeTeams.map((team) => ({
         uuid: team.uuid,
-        name: team.name,
+        name: mvTeamDisplayName(team, options.variationSeed),
         slug: team.slug,
         leagueUuid: team.leagueUuid,
         leagueName: team.leagueName,

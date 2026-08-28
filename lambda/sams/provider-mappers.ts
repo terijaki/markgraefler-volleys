@@ -88,7 +88,7 @@ export function mapProviderMatchToProjection(
     date: match.date ?? undefined,
     time: match.time ?? undefined,
     leagueUuid: match.leagueUuid ?? undefined,
-    host: team1Sportsclub ? team1Sportsclub === match.team1.sportsclubUuid : undefined,
+    host: match.team1.uuid,
     results: mapProviderResult(match.result, match.hasResult),
     location: match.location
       ? {

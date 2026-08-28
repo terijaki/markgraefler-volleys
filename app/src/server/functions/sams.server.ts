@@ -34,9 +34,15 @@ import { parseServerData } from "../schema-parse";
 import {
   dedupeSamsMatchesByUuid,
   pickSyncedSeasonUuid,
+  resolveConfiguredSamsSportsclubUuids,
   SAMS_TARGET_CLUB_SLUGS,
   shouldResolveDefaultSamsSportsclubs,
 } from "@/utils/sams";
+import {
+  buildLeagueOrderingContext,
+  calculateLastResultCap,
+  sortLeagueUuidsByLevels,
+} from "@webapp/utils/ranking";
 
 const MEDIA_CLOUDFRONT_URL = () => process.env.MEDIA_CLOUDFRONT_URL || "";
 
@@ -121,6 +127,9 @@ async function resolveSyncedSeasonUuid(): Promise<string | undefined> {
 /** Resolves effective SAMS match query params and cache key (without auto season lookup). */
 export async function resolveSamsMatchesQuery(
   data?: SamsMatchesInput,
+  options?: {
+    defaultSportsclubUuids?: readonly string[];
+  },
 ): Promise<ResolvedSamsMatchesQuery | null> {
   const { league, season, sportsclub, team } = data || {};
 
@@ -129,9 +138,9 @@ export async function resolveSamsMatchesQuery(
     sportsclub,
     team,
   });
-  const defaultSportsclubUuids = shouldUseDefaultSportsclubs
-    ? await resolveConfiguredSamsSportsclubUuidsFromStorage()
-    : [];
+  const defaultSportsclubUuids =
+    options?.defaultSportsclubUuids ??
+    (shouldUseDefaultSportsclubs ? await resolveConfiguredSamsSportsclubUuidsFromStorage() : []);
   if (shouldUseDefaultSportsclubs && defaultSportsclubUuids.length === 0) {
     return null;
   }
@@ -168,10 +177,11 @@ export async function resolveSamsMatchesQuery(
 async function resolveSeasonScopedSamsMatchesQuery(
   data: SamsMatchesInput | undefined,
   baseQuery: ResolvedSamsMatchesQuery,
+  seasonUuid?: string,
 ): Promise<ResolvedSamsMatchesQuery | null> {
   if (baseQuery.season) return baseQuery;
 
-  const syncedSeason = await resolveSyncedSeasonUuid();
+  const syncedSeason = seasonUuid ?? (await resolveSyncedSeasonUuid());
   if (!syncedSeason) return null;
 
   return {
@@ -190,6 +200,11 @@ async function resolveSeasonScopedSamsMatchesQuery(
     ),
   };
 }
+
+type SamsPeekContext = {
+  seasonUuid?: string;
+  sportsclubUuids?: readonly string[];
+};
 
 async function loadMatchesFromProjections({
   league,
@@ -220,6 +235,26 @@ async function loadMatchesFromProjections({
   return dedupeSamsMatchesByUuid(matches);
 }
 
+function normalizeProjectionMatchHost(
+  match: Omit<LeagueMatchDto, "_links">,
+): Omit<LeagueMatchDto, "_links"> {
+  if (typeof match.host === "string" || match.host == null) {
+    return match;
+  }
+  const team1Uuid = match._embedded?.team1?.uuid;
+  const team2Uuid = match._embedded?.team2?.uuid;
+  if (match.host === true && team1Uuid) {
+    return { ...match, host: team1Uuid };
+  }
+  if (match.host === false && team2Uuid) {
+    return { ...match, host: team2Uuid };
+  }
+  if (team1Uuid) {
+    return { ...match, host: team1Uuid };
+  }
+  return match;
+}
+
 function isPastProjectionMatch(
   match: { results?: { winner?: string | null } | null; date?: string | null },
   anchor = dayjs(),
@@ -239,7 +274,7 @@ async function buildMatchesResponse(
     season,
     team,
     sportsclubUuids: effectiveSportsclubUuids,
-  });
+  }).then((matches) => matches.map((match) => normalizeProjectionMatchHost(match)));
 
   let filteredMatches = allMatches;
   if (data?.range === "future") {
@@ -305,12 +340,6 @@ async function peekRankingProjectionForSeason(
   );
 }
 
-async function peekRankingProjection(leagueUuid: string): Promise<RankingResponse | null> {
-  const seasonUuid = await resolveSyncedSeasonUuid();
-  if (!seasonUuid) return null;
-  return peekRankingProjectionForSeason(leagueUuid, seasonUuid);
-}
-
 // ── SAMS projections — Matches ───────────────────────────────────────────────
 
 export async function handleGetSamsMatches(data?: SamsMatchesInput) {
@@ -354,8 +383,11 @@ export async function handleGetSamsRankingByLeagueUuid(leagueUuid: string) {
 }
 
 /** Projection peek for rankings — returns stored data regardless of age. */
-export async function handlePeekSamsRankingsCache(leagueUuids: string[]) {
-  const seasonUuid = await resolveSyncedSeasonUuid();
+export async function handlePeekSamsRankingsCache(
+  leagueUuids: string[],
+  context?: Pick<SamsPeekContext, "seasonUuid">,
+) {
+  const seasonUuid = context?.seasonUuid ?? (await resolveSyncedSeasonUuid());
   if (!seasonUuid) return [];
 
   const results = await Promise.all(
@@ -365,19 +397,115 @@ export async function handlePeekSamsRankingsCache(leagueUuids: string[]) {
 }
 
 /** Projection peek for matches — fast route loaders without assembling filters at read time. */
-export async function handlePeekSamsMatchesCache(data?: SamsMatchesInput) {
-  const resolvedQuery = await resolveSamsMatchesQuery(data);
+export async function handlePeekSamsMatchesCache(
+  data?: SamsMatchesInput,
+  context?: SamsPeekContext,
+) {
+  const resolvedQuery = await resolveSamsMatchesQuery(data, {
+    defaultSportsclubUuids: context?.sportsclubUuids,
+  });
   if (!resolvedQuery) return null;
 
   let activeQuery = resolvedQuery;
   if (!activeQuery.season) {
-    const seasonScopedQuery = await resolveSeasonScopedSamsMatchesQuery(data, resolvedQuery);
+    const seasonScopedQuery = await resolveSeasonScopedSamsMatchesQuery(
+      data,
+      resolvedQuery,
+      data?.season ?? context?.seasonUuid,
+    );
     if (!seasonScopedQuery) return null;
     activeQuery = seasonScopedQuery;
   }
 
   const response = await buildMatchesResponse(data, activeQuery);
   return response.matches.length > 0 ? response : null;
+}
+
+const TABELLE_GAMES_PER_TEAM = 2.3;
+
+export async function handleLoadTabelleRouteData() {
+  const { handleListTeams } = await import("./teams.server");
+
+  const [samsTeamsResult, samsClubsResult, teamsResult] = await Promise.all([
+    getAllSamsTeams(),
+    getAllSamsClubs(),
+    handleListTeams(),
+  ]);
+
+  const sportsclubUuids = resolveConfiguredSamsSportsclubUuids(samsClubsResult.items);
+  const syncedSeasonUuid = pickSyncedSeasonUuid(samsTeamsResult.items, sportsclubUuids);
+  const teamsForSeason = syncedSeasonUuid
+    ? samsTeamsResult.items.filter((team) => team.seasonUuid === syncedSeasonUuid)
+    : samsTeamsResult.items;
+  const orderingContext = buildLeagueOrderingContext(teamsForSeason);
+
+  if (samsTeamsResult.items.length === 0) {
+    return {
+      leagueUuids: [],
+      teams: teamsResult.items,
+      lastResultCap: 6,
+      rankingsByLeagueUuid: {} as Record<string, RankingResponse>,
+      matches: undefined,
+    };
+  }
+
+  const leagueLevels = Object.fromEntries(orderingContext.leagueLevelByUuid);
+  const sortedLeagueUuids = sortLeagueUuidsByLevels({
+    leagueUuids: orderingContext.leagueUuids,
+    leagueLevels,
+    leagueNameByUuid: orderingContext.leagueNameByUuid,
+    leagueOrderByUuid: orderingContext.leagueOrderByUuid,
+  });
+  const lastResultCap = calculateLastResultCap(
+    samsTeamsResult.items.length,
+    TABELLE_GAMES_PER_TEAM,
+  );
+
+  let rankingsByLeagueUuid: Record<string, RankingResponse> = {};
+  let matches: LeagueMatchesResponse | undefined;
+  const peekContext: SamsPeekContext = {
+    seasonUuid: syncedSeasonUuid,
+    sportsclubUuids,
+  };
+
+  if (sortedLeagueUuids.length > 0) {
+    const [rankingsResult, matchesResult] = await Promise.all([
+      handlePeekSamsRankingsCache(sortedLeagueUuids, peekContext),
+      handlePeekSamsMatchesCache(
+        { range: "past", limit: lastResultCap, season: syncedSeasonUuid },
+        peekContext,
+      ),
+    ]);
+    rankingsByLeagueUuid = Object.fromEntries(
+      rankingsResult.map((ranking) => [ranking.leagueUuid, ranking]),
+    );
+    matches = matchesResult ?? undefined;
+  }
+
+  return {
+    leagueUuids: sortedLeagueUuids,
+    teams: teamsResult.items,
+    lastResultCap,
+    rankingsByLeagueUuid,
+    matches,
+  };
+}
+
+export async function handleLoadMatchesIndexRouteData() {
+  const [samsTeamsResult, samsClubsResult] = await Promise.all([
+    getAllSamsTeams(),
+    getAllSamsClubs(),
+  ]);
+
+  const sportsclubUuids = resolveConfiguredSamsSportsclubUuids(samsClubsResult.items);
+  const seasonUuid = pickSyncedSeasonUuid(samsTeamsResult.items, sportsclubUuids);
+  const peekContext: SamsPeekContext = { seasonUuid, sportsclubUuids };
+
+  const matches = await handlePeekSamsMatchesCache(
+    { range: "future", season: seasonUuid },
+    peekContext,
+  );
+  return { matches: matches ?? undefined };
 }
 
 export async function handleListSamsClubs() {
