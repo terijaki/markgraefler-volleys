@@ -8,7 +8,6 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAdminMiddleware } from "../../middleware";
 import {
   handleGetClubLogoUrl,
   handleGetClubLogoUrlsBatch,
@@ -21,8 +20,6 @@ import {
   handleListSamsTeams,
   handlePeekSamsMatchesCache,
   handlePeekSamsRankingsCache,
-  handleTriggerSamsClubsSync,
-  handleTriggerSamsTeamsSync,
 } from "./sams.server";
 
 const samsMatchesInputSchema = z
@@ -78,11 +75,3 @@ export const getClubLogoUrlsBatchFn = createServerFn()
   .handler(async ({ data }) => handleGetClubLogoUrlsBatch(data.clubSlugs));
 
 export const getSamsTickerFn = createServerFn().handler(async () => handleGetSamsTicker());
-
-export const triggerSamsClubsSyncFn = createServerFn({ method: "POST" })
-  .middleware([requireAdminMiddleware])
-  .handler(async () => handleTriggerSamsClubsSync());
-
-export const triggerSamsTeamsSyncFn = createServerFn({ method: "POST" })
-  .middleware([requireAdminMiddleware])
-  .handler(async () => handleTriggerSamsTeamsSync());

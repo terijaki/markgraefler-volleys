@@ -45,3 +45,18 @@ export {
   SamsRostersRepository,
 } from "./repositories/sams-rosters-repository";
 export type { SamsRosterUpsertInput } from "./repositories/sams-rosters-repository";
+export {
+  createSamsScheduleProjectionRepository,
+  samsScheduleProjectionRepository,
+  SamsScheduleProjectionRepository,
+} from "./repositories/sams-schedule-projection-repository";
+export {
+  createSamsRankingProjectionRepository,
+  samsRankingProjectionRepository,
+  SamsRankingProjectionRepository,
+} from "./repositories/sams-ranking-projection-repository";
+export {
+  createSamsOpsMetadataRepository,
+  samsOpsMetadataRepository,
+  SamsOpsMetadataRepository,
+} from "./repositories/sams-ops-metadata-repository";

@@ -197,3 +197,105 @@ export const samsRosterSchema = z.object({
 export type SamsRosterInput = z.infer<typeof samsRosterSchema>;
 export type SamsRosterPlayerInput = z.infer<typeof samsRosterPlayerSchema>;
 export type SamsRosterOfficialInput = z.infer<typeof samsRosterOfficialSchema>;
+
+/** Stored league match row inside a club schedule projection (LeagueMatchesResponse item shape). */
+export const samsProjectionMatchSchema = z
+  .object({
+    uuid: z.string(),
+    date: z.string().nullish(),
+    time: z.string().nullish(),
+    matchNumber: z.string().nullish(),
+    host: z.boolean().nullish(),
+    leagueUuid: z.string().nullish(),
+    results: z.record(z.string(), z.unknown()).nullish(),
+    location: z
+      .object({
+        uuid: z.string(),
+        name: z.string().nullish(),
+        longitude: z.number().nullish(),
+        latitude: z.number().nullish(),
+        address: z.string().nullish(),
+      })
+      .nullish(),
+    _embedded: z
+      .object({
+        team1: z
+          .object({
+            uuid: z.string(),
+            name: z.string(),
+            sportsclubUuid: z.string(),
+          })
+          .optional(),
+        team2: z
+          .object({
+            uuid: z.string(),
+            name: z.string(),
+            sportsclubUuid: z.string(),
+          })
+          .optional(),
+      })
+      .nullish(),
+  })
+  .loose();
+
+export type SamsProjectionMatchInput = z.infer<typeof samsProjectionMatchSchema>;
+
+/** Club schedule projection — rolling match window for one club/season. */
+export const samsClubScheduleProjectionSchema = z.object({
+  sportsclubUuid: z.string().min(1),
+  seasonUuid: z.string().min(1),
+  seasonName: z.string().optional(),
+  type: z.literal("schedule").default("schedule"),
+  matches: z.array(samsProjectionMatchSchema).default([]),
+  snapshotVersion: z.string().min(1),
+  projectedAt: z.iso.datetime().optional(),
+  cachedAt: z.iso.datetime().optional(),
+  isStale: z.boolean().optional(),
+  updatedAt: z.iso.datetime(),
+  ttl: z.number().int().positive(),
+});
+
+export type SamsClubScheduleProjectionInput = z.infer<typeof samsClubScheduleProjectionSchema>;
+
+/** League ranking projection row (RankingResponse teams entry shape). */
+export const samsProjectionRankingEntrySchema = z.object({
+  uuid: z.string(),
+  teamName: z.string(),
+  rank: z.number().optional(),
+  matchesPlayed: z.number().nullish(),
+  points: z.number().nullish(),
+  wins: z.number().nullish(),
+  setWins: z.number().nullish(),
+  setLosses: z.number().nullish(),
+});
+
+export type SamsProjectionRankingEntryInput = z.infer<typeof samsProjectionRankingEntrySchema>;
+
+/** League ranking projection for one league/season. */
+export const samsLeagueRankingProjectionSchema = z.object({
+  leagueUuid: z.string().min(1),
+  seasonUuid: z.string().min(1),
+  seasonName: z.string().optional(),
+  leagueName: z.string().optional(),
+  type: z.literal("ranking").default("ranking"),
+  teams: z.array(samsProjectionRankingEntrySchema).default([]),
+  snapshotVersion: z.string().min(1),
+  cachedAt: z.iso.datetime().optional(),
+  isStale: z.boolean().optional(),
+  updatedAt: z.iso.datetime(),
+  ttl: z.number().int().positive(),
+});
+
+export type SamsLeagueRankingProjectionInput = z.infer<typeof samsLeagueRankingProjectionSchema>;
+
+/** Optional ops metadata from provider sync.completed events. */
+export const samsOpsMetadataSchema = z.object({
+  scope: z.string().min(1),
+  type: z.literal("ops").default("ops"),
+  occurredAt: z.iso.datetime(),
+  payload: z.record(z.string(), z.unknown()).optional(),
+  updatedAt: z.iso.datetime(),
+  ttl: z.number().int().positive().optional(),
+});
+
+export type SamsOpsMetadataInput = z.infer<typeof samsOpsMetadataSchema>;
