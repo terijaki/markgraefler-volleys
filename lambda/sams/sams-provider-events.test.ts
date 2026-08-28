@@ -3,8 +3,10 @@ import { parseSamsEventFromSqsBody, SamsEventType } from "sams-provider-events";
 import type { SamsRepositories } from "@/lib/db/repositories/create-sams-repositories";
 import {
   buildMockSamsProviderSqsBody,
+  SEED_MV_CLUB,
+  SEED_MV_TEAMS,
   samsProviderEventFixtures,
-} from "../../scripts/fixtures/sams-provider-events";
+} from "@/fixtures/sams-provider-events";
 import { processSamsProviderEvent, processSamsProviderSqsBody } from "./sams-provider-events";
 
 function createMockRepos(): SamsRepositories {
@@ -62,9 +64,9 @@ describe("processSamsProviderEvent", () => {
   it("upserts club-season teams and removes stale teams", async () => {
     repos.teams.listAll = vi.fn().mockResolvedValue([
       {
-        uuid: "stale-team",
-        sportsclubUuid: "club-1",
-        seasonUuid: "season-1",
+        uuid: "stale-team-mv",
+        sportsclubUuid: SEED_MV_CLUB.uuid,
+        seasonUuid: "season-mv-2026-27",
         updatedAt: "2020-01-01T00:00:00.000Z",
       },
     ]);
@@ -77,8 +79,10 @@ describe("processSamsProviderEvent", () => {
     const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
     await processSamsProviderEvent(event, repos);
 
-    expect(repos.teams.delete).toHaveBeenCalledWith("stale-team");
-    expect(repos.teams.upsert).toHaveBeenCalledOnce();
+    expect(repos.teams.delete).toHaveBeenCalledWith("stale-team-mv");
+    expect(repos.teams.upsert).toHaveBeenCalled();
+    const upsertedUuids = vi.mocked(repos.teams.upsert).mock.calls.map((call) => call[0].uuid);
+    expect(upsertedUuids).toContain(SEED_MV_TEAMS[0].uuid);
   });
 
   it("replaces league ranking projections", async () => {

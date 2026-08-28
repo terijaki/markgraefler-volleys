@@ -1,5 +1,4 @@
 // Dev-only seed: publish mock sams-provider events to the branch-scoped SQS queue.
-// Replaces the legacy sync-lambda trigger script.
 
 import "varlock/auto-load";
 import { execSync } from "node:child_process";
@@ -13,8 +12,12 @@ import { computeSamsDataTableName } from "@/lib/db/env";
 import { computeSamsProviderEventsQueueName } from "@/lib/sams-provider-env";
 import {
   buildMockSamsProviderSqsBody,
-  samsProviderEventFixtures,
-} from "./fixtures/sams-provider-events";
+  buildSamsProviderSeedFixtures,
+  resolveMvTeamCount,
+} from "@/fixtures/sams-provider-events";
+
+const SQS_BATCH_SIZE = 10;
+const MIN_PROJECTION_ITEMS = 12;
 
 function checkAwsSession() {
   try {
@@ -37,8 +40,13 @@ if (ENVIRONMENT === "prod") {
 
 const BRANCH = getSanitizedBranch();
 const REGION = process.env.CDK_REGION || "eu-central-1";
-const POLL_TIMEOUT_MS = 60_000;
+const POLL_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 3_000;
+
+function buildVariationSeed(branch: string): string {
+  const runNumber = process.env.GITHUB_RUN_NUMBER?.trim();
+  return runNumber ? `${branch}:${runNumber}` : branch || "local";
+}
 
 function readQueueUrlFromCdkOutputs(): string | null {
   const outputsPath = resolve(process.cwd(), "cdk-outputs.json");
@@ -77,23 +85,29 @@ async function resolveQueueUrlFromAws(queueName: string): Promise<string> {
   return `https://sqs.${REGION}.amazonaws.com/${account}/${queueName}`;
 }
 
-async function sendMockEvents(queueUrl: string) {
+async function sendMockEvents(
+  queueUrl: string,
+  fixtures: ReturnType<typeof buildSamsProviderSeedFixtures>,
+) {
   const sqs = new SQSClient({ region: REGION });
-  const entries = samsProviderEventFixtures.map((fixture, index) => ({
+  const entries = fixtures.map((fixture, index) => ({
     Id: String(index),
     MessageBody: buildMockSamsProviderSqsBody(fixture, `seed-event-${index}`),
   }));
 
-  const result = await sqs.send(
-    new SendMessageBatchCommand({
-      QueueUrl: queueUrl,
-      Entries: entries,
-    }),
-  );
+  for (let offset = 0; offset < entries.length; offset += SQS_BATCH_SIZE) {
+    const batch = entries.slice(offset, offset + SQS_BATCH_SIZE);
+    const result = await sqs.send(
+      new SendMessageBatchCommand({
+        QueueUrl: queueUrl,
+        Entries: batch,
+      }),
+    );
 
-  if (result.Failed?.length) {
-    console.error("❌ Failed to send some mock events", result.Failed);
-    process.exit(1);
+    if (result.Failed?.length) {
+      console.error("❌ Failed to send some mock events", result.Failed);
+      process.exit(1);
+    }
   }
 
   console.log(`✅ Sent ${entries.length} mock SAMS provider events to ${queueUrl}`);
@@ -107,15 +121,15 @@ async function waitForProjections(tableName: string) {
     const scan = await doc.send(
       new ScanCommand({
         TableName: tableName,
-        Limit: 25,
+        Limit: 50,
       }),
     );
     const count = scan.Count ?? 0;
-    if (count >= 3) {
+    if (count >= MIN_PROJECTION_ITEMS) {
       console.log(`✅ SAMS projections detected in ${tableName} (${count} items scanned)`);
       return;
     }
-    console.log(`Waiting for SAMS processor (${count} items so far)...`);
+    console.log(`Waiting for SAMS processor (${count}/${MIN_PROJECTION_ITEMS} items so far)...`);
     await new Promise((resolveSleep) => setTimeout(resolveSleep, POLL_INTERVAL_MS));
   }
 
@@ -124,6 +138,10 @@ async function waitForProjections(tableName: string) {
 }
 
 async function main() {
+  const variationSeed = buildVariationSeed(BRANCH);
+  const teamCount = resolveMvTeamCount(variationSeed);
+  const fixtures = buildSamsProviderSeedFixtures({ variationSeed });
+
   const queueName = computeSamsProviderEventsQueueName(ENVIRONMENT, BRANCH);
   const queueUrl = readQueueUrlFromCdkOutputs() ?? (await resolveQueueUrlFromAws(queueName));
 
@@ -131,10 +149,13 @@ async function main() {
   console.log("=== Seeding SAMS provider mock events ===");
   console.log(`Environment: ${ENVIRONMENT}`);
   console.log(`Branch: ${BRANCH || "(main)"}`);
+  console.log(`Variation seed: ${variationSeed}`);
+  console.log(`Active MV teams: ${teamCount}`);
+  console.log(`Fixture events: ${fixtures.length}`);
   console.log(`Queue: ${queueName}`);
   console.log(`Table: ${tableName}`);
 
-  await sendMockEvents(queueUrl);
+  await sendMockEvents(queueUrl, fixtures);
   await waitForProjections(tableName);
   console.log("=== SAMS provider seed completed ===");
 }

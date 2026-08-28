@@ -53,7 +53,11 @@ jobs:
         run: vp lint
 
       - name: Run tests
-        run: vp test
+        run: vp test --reporter=github-actions --reporter=json --outputFile=vitest-results.json
+
+      - name: Unit test summary
+        if: always()
+        run: bun ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
 
       - name: CDK Diff
         run: vp exec cdk diff --all
@@ -87,40 +91,12 @@ jobs:
           echo "Using computed URL: $WEBAPP_URL"
 
       - name: Add deployment summary
-        run: |
-          echo "## ${{ github.ref == 'refs/heads/main' && '🚀' || '🔧' }} CDK Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Environment** | ${{ github.ref == 'refs/heads/main' && 'Production' || 'Development' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-
-          # Extract and display CDK outputs if available
-          if [ -f "cdk-outputs.json" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 🔗 Endpoints" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Display outputs from both stacks
-            cat cdk-outputs.json | grep -o '"[^"]*Url"[^"]*"[^"]*"' | while read -r line; do
-              KEY=$(echo "$line" | sed 's/"\([^"]*\)".*/\1/')
-              VALUE=$(echo "$line" | sed 's/.*: "\(.*\)"/\1/')
-              echo "- **${KEY}:** ${VALUE}" >> $GITHUB_STEP_SUMMARY
-            done || true
-          fi
-
-          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 💡 Cleanup" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "These stacks will be automatically destroyed when the branch is deleted or PR is closed." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "To manually destroy these stacks:" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-            echo "vp exec cdk destroy --all" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          fi
+        env:
+          DEPLOY_ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Development' }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+          DEPLOY_COMMIT: ${{ github.sha }}
+          WEBAPP_URL: ${{ steps.resolve-webapp-url.outputs.webapp_url }}
+        run: bun ./scripts/github-actions/write-cdk-deploy-summary.ts cdk-outputs.json
 
   synth:
     name: CDK Synth
@@ -155,7 +131,11 @@ jobs:
         run: vp lint
 
       - name: Run tests
-        run: vp test
+        run: vp test --reporter=github-actions --reporter=json --outputFile=vitest-results.json
+
+      - name: Unit test summary
+        if: always()
+        run: bun ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
 
       - name: CDK Synth
         run: vp exec cdk synth --all

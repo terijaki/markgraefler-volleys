@@ -51,7 +51,7 @@ CDK_ENVIRONMENT=dev CDK_BRANCH_OVERWRITE=<branch> vp run db:seed:sams
 The script:
 
 1. Resolves the branch-scoped queue URL from `cdk-outputs.json` or naming convention
-2. Sends mock EventBridge-wrapped events from `scripts/fixtures/sams-provider-events.ts`
+2. Sends mock EventBridge-wrapped events from `fixtures/sams-provider-events/` (built per deploy with stable ids)
 3. Polls DynamoDB until projections exist (~60s timeout)
 
 ## Prod registration
