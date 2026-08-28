@@ -33,10 +33,10 @@ import {
 import { parseServerData } from "../schema-parse";
 import {
   dedupeSamsMatchesByUuid,
+  pickSyncedSeasonUuid,
   SAMS_TARGET_CLUB_SLUGS,
   shouldResolveDefaultSamsSportsclubs,
 } from "@/utils/sams";
-import { buildLeagueOrderingContext } from "@webapp/utils/ranking";
 
 const MEDIA_CLOUDFRONT_URL = () => process.env.MEDIA_CLOUDFRONT_URL || "";
 
@@ -108,7 +108,8 @@ type ResolvedSamsMatchesQuery = {
 async function resolveSyncedSeasonUuid(): Promise<string | undefined> {
   try {
     const syncedTeams = await getAllSamsTeams();
-    return buildLeagueOrderingContext(syncedTeams.items).seasonUuid;
+    const preferredSportsclubUuids = await resolveConfiguredSamsSportsclubUuidsFromStorage();
+    return pickSyncedSeasonUuid(syncedTeams.items, preferredSportsclubUuids);
   } catch (error) {
     console.warn("Failed to resolve synced SAMS season UUID; continuing without season filter", {
       error: error instanceof Error ? error.message : String(error),

@@ -104,7 +104,6 @@ async function replaceClubSeasonTeams(
   for (const existingTeam of existingTeams) {
     if (
       existingTeam.sportsclubUuid === sportsclubUuid &&
-      existingTeam.seasonUuid === seasonUuid &&
       !teamUuidsInEvent.has(existingTeam.uuid)
     ) {
       await repos.teams.delete(existingTeam.uuid);

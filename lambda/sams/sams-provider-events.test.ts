@@ -85,6 +85,27 @@ describe("processSamsProviderEvent", () => {
     expect(upsertedUuids).toContain(SEED_MV_TEAMS[0].uuid);
   });
 
+  it("removes stale teams from prior seasons for the same club", async () => {
+    repos.teams.listAll = vi.fn().mockResolvedValue([
+      {
+        uuid: "legacy-team-season-old",
+        sportsclubUuid: SEED_MV_CLUB.uuid,
+        seasonUuid: "season-legacy",
+        updatedAt: "2020-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.clubSeasonTeamsUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.teams.delete).toHaveBeenCalledWith("legacy-team-season-old");
+  });
+
   it("replaces league ranking projections", async () => {
     const fixture = samsProviderEventFixtures.find(
       (entry) => entry.type === SamsEventType.leagueRankingUpdated,

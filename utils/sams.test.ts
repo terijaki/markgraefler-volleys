@@ -3,6 +3,7 @@ import {
   dedupeSamsMatchesByUuid,
   getOwnedSamsSportsclubUuids,
   getOwnedSamsTeamUuids,
+  pickSyncedSeasonUuid,
   resolveConfiguredSamsSportsclubUuids,
   shouldResolveDefaultSamsSportsclubs,
 } from "./sams";
@@ -58,5 +59,21 @@ describe("dedupeSamsMatchesByUuid", () => {
       { uuid: undefined, label: "no-uuid-b" },
       { uuid: "match-2", label: "second" },
     ]);
+  });
+});
+
+describe("pickSyncedSeasonUuid", () => {
+  it("prefers the season with the most teams for configured clubs", () => {
+    const seasonUuid = pickSyncedSeasonUuid(
+      [
+        { sportsclubUuid: "club-mv", seasonUuid: "season-legacy" },
+        { sportsclubUuid: "club-mv", seasonUuid: "season-current" },
+        { sportsclubUuid: "club-mv", seasonUuid: "season-current" },
+        { sportsclubUuid: "club-mv", seasonUuid: "season-current" },
+      ],
+      ["club-mv"],
+    );
+
+    expect(seasonUuid).toBe("season-current");
   });
 });

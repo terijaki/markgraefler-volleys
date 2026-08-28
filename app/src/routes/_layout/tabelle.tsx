@@ -7,6 +7,7 @@ import Matches from "@webapp/components/Matches";
 import RankingTable from "@webapp/components/RankingTable";
 import { useSamsMatches } from "@webapp/hooks/dataQueries";
 import {
+  listSamsClubsFn,
   listSamsTeamsFn,
   peekSamsMatchesCacheFn,
   peekSamsRankingsCacheFn,
@@ -18,6 +19,7 @@ import {
   sortLeagueUuidsByLevels,
 } from "@webapp/utils/ranking";
 import { numToWord } from "num-words-de";
+import { pickSyncedSeasonUuid, resolveConfiguredSamsSportsclubUuids } from "@/utils/sams";
 import type { LeagueMatchesResponse, RankingResponse } from "@/lambda/sams/types";
 
 const GAMES_PER_TEAM: number = 2.3; // maximum number of games per team to shown below the rankings
@@ -54,8 +56,17 @@ export const Route = createFileRoute("/_layout/tabelle")({
    */
   loader: async () => {
     // Main data comes from DynamoDB; only a batched SAMS metadata lookup is used for league ordering.
-    const [samsTeams, teams] = await Promise.all([listSamsTeamsFn(), listTeamsFn()]);
-    const orderingContext = buildLeagueOrderingContext(samsTeams.teams);
+    const [samsTeams, teams, samsClubs] = await Promise.all([
+      listSamsTeamsFn(),
+      listTeamsFn(),
+      listSamsClubsFn(),
+    ]);
+    const preferredSportsclubUuids = resolveConfiguredSamsSportsclubUuids(samsClubs.clubs);
+    const syncedSeasonUuid = pickSyncedSeasonUuid(samsTeams.teams, preferredSportsclubUuids);
+    const teamsForSeason = syncedSeasonUuid
+      ? samsTeams.teams.filter((team) => team.seasonUuid === syncedSeasonUuid)
+      : samsTeams.teams;
+    const orderingContext = buildLeagueOrderingContext(teamsForSeason);
 
     if (samsTeams.teams.length === 0) {
       return {

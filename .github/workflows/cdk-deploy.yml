@@ -57,7 +57,7 @@ jobs:
 
       - name: Unit test summary
         if: always()
-        run: vp exec tsx ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
+        run: vp run ci:vitest-summary
 
       - name: CDK Diff
         run: vp exec cdk diff --all
@@ -78,14 +78,7 @@ jobs:
         env:
           CDK_BRANCH_OVERWRITE: ${{ github.ref_name }}
         run: |
-          WEBAPP_URL=$(vp exec tsx -e '
-            import { getSanitizedBranch } from "./utils/deploy-branch.ts";
-            import { buildWebappUrl } from "./utils/webapp-url.ts";
-
-            const environment = process.env.CDK_ENVIRONMENT || "dev";
-            const branch = getSanitizedBranch();
-            process.stdout.write(buildWebappUrl(environment, branch));
-          ')
+          WEBAPP_URL=$(vp run ci:resolve-webapp-url)
 
           echo "webapp_url=$WEBAPP_URL" >> "$GITHUB_OUTPUT"
           echo "Using computed URL: $WEBAPP_URL"
@@ -96,7 +89,7 @@ jobs:
           DEPLOY_BRANCH: ${{ github.ref_name }}
           DEPLOY_COMMIT: ${{ github.sha }}
           WEBAPP_URL: ${{ steps.resolve-webapp-url.outputs.webapp_url }}
-        run: vp exec tsx ./scripts/github-actions/write-cdk-deploy-summary.ts cdk-outputs.json
+        run: vp run ci:cdk-deploy-summary
 
   synth:
     name: CDK Synth
@@ -135,7 +128,7 @@ jobs:
 
       - name: Unit test summary
         if: always()
-        run: vp exec tsx ./scripts/github-actions/write-vitest-summary.ts vitest-results.json
+        run: vp run ci:vitest-summary
 
       - name: CDK Synth
         run: vp exec cdk synth --all
