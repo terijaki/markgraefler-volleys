@@ -44,7 +44,8 @@ if (ENVIRONMENT === "prod") {
 
 const BRANCH = getSanitizedBranch();
 const REGION = process.env.CDK_REGION || "eu-central-1";
-const POLL_TIMEOUT_MS = 180_000;
+const POLL_TIMEOUT_MS = 120_000;
+const SCHEDULE_POLL_TIMEOUT_MS = 45_000;
 const POLL_INTERVAL_MS = 3_000;
 
 function buildVariationSeed(branch: string): string {
@@ -117,9 +118,12 @@ async function sendMockEvents(
   console.log(`✅ Sent ${entries.length} mock SAMS provider events to ${queueUrl}`);
 }
 
-async function waitForScheduleProjection(tableName: string): Promise<boolean> {
+async function waitForScheduleProjection(
+  tableName: string,
+  timeoutMs = SCHEDULE_POLL_TIMEOUT_MS,
+): Promise<boolean> {
   const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  const deadline = Date.now() + timeoutMs;
   const pk = `schedule#${SEED_MV_CLUB.uuid}`;
   const sk = `season#${SEED_SEASON.uuid}`;
 
