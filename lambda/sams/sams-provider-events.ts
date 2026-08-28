@@ -221,19 +221,41 @@ async function replaceClubSchedule(
   },
 ): Promise<void> {
   if (await shouldSkipProjection(repos, sportsclubUuid, seasonUuid, meta.snapshotVersion)) {
+    logger.info("Skipping unchanged club schedule projection", {
+      sportsclubUuid,
+      seasonUuid,
+      snapshotVersion: meta.snapshotVersion,
+    });
     return;
   }
 
-  await repos.schedules.replace({
-    sportsclubUuid,
-    seasonUuid,
-    seasonName,
-    matches: matches.map(mapProviderMatchToProjection),
-    snapshotVersion: meta.snapshotVersion,
-    projectedAt: meta.projectedAt,
-    cachedAt: meta.cachedAt,
-    isStale: meta.isStale,
-  });
+  try {
+    await repos.schedules.replace({
+      sportsclubUuid,
+      seasonUuid,
+      seasonName,
+      matches: matches.map(mapProviderMatchToProjection),
+      snapshotVersion: meta.snapshotVersion,
+      projectedAt: meta.projectedAt,
+      cachedAt: meta.cachedAt,
+      isStale: meta.isStale,
+    });
+    logger.info("Replaced club schedule projection", {
+      sportsclubUuid,
+      seasonUuid,
+      matchCount: matches.length,
+      snapshotVersion: meta.snapshotVersion,
+    });
+  } catch (error) {
+    logger.error("Failed to replace club schedule projection", {
+      sportsclubUuid,
+      seasonUuid,
+      matchCount: matches.length,
+      snapshotVersion: meta.snapshotVersion,
+      error,
+    });
+    throw error;
+  }
 }
 
 async function mergeMatchBlock(

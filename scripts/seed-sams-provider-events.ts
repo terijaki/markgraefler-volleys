@@ -10,6 +10,7 @@ import { SendMessageBatchCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { getSanitizedBranch } from "@/utils/deploy-branch";
 import { computeSamsDataTableName } from "@/lib/db/env";
 import { computeSamsProviderEventsQueueName } from "@/lib/sams-provider-env";
+import { SamsEventType } from "sams-provider-events";
 import {
   buildMockSamsProviderSqsBody,
   buildSamsProviderSeedFixtures,
@@ -114,7 +115,7 @@ async function sendMockEvents(
   console.log(`✅ Sent ${entries.length} mock SAMS provider events to ${queueUrl}`);
 }
 
-async function waitForScheduleProjection(tableName: string) {
+async function waitForScheduleProjection(tableName: string): Promise<boolean> {
   const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   const pk = `schedule#${SEED_MV_CLUB.uuid}`;
@@ -132,14 +133,51 @@ async function waitForScheduleProjection(tableName: string) {
       console.log(
         `✅ Schedule projection ready for ${SEED_MV_CLUB.uuid} (${matches.length} matches)`,
       );
-      return;
+      return true;
     }
+
+    const scan = await doc.send(
+      new ScanCommand({
+        TableName: tableName,
+        FilterExpression: "begins_with(pk, :schedulePrefix)",
+        ExpressionAttributeValues: { ":schedulePrefix": "schedule#" },
+        Limit: 20,
+      }),
+    );
+    for (const item of scan.Items ?? []) {
+      const scheduleMatches = (item.matches as unknown[] | undefined) ?? [];
+      if (scheduleMatches.length > 0) {
+        console.log(
+          `✅ Schedule projection ready at ${item.pk} (${scheduleMatches.length} matches)`,
+        );
+        return true;
+      }
+    }
+
     console.log("Waiting for club schedule projection after seed...");
     await new Promise((resolveSleep) => setTimeout(resolveSleep, POLL_INTERVAL_MS));
   }
 
   console.error("❌ Timed out waiting for club schedule projection after seed");
-  process.exit(1);
+  return false;
+}
+
+async function sendScheduleRetry(
+  queueUrl: string,
+  variationSeed: string,
+  fixtures: ReturnType<typeof buildSamsProviderSeedFixtures>,
+) {
+  const scheduleFixture = fixtures.find(
+    (fixture) => fixture.type === SamsEventType.clubMatchScheduleUpdated,
+  );
+  if (!scheduleFixture) return;
+
+  const retryFixture = {
+    ...scheduleFixture,
+    snapshotVersion: `retry-${variationSeed}`,
+  };
+  console.log("Re-sending club schedule event with fresh snapshot to force projection write...");
+  await sendMockEvents(queueUrl, [retryFixture]);
 }
 
 async function waitForProjections(tableName: string) {
@@ -186,7 +224,17 @@ async function main() {
 
   await sendMockEvents(queueUrl, fixtures);
   await waitForProjections(tableName);
-  await waitForScheduleProjection(tableName);
+
+  let scheduleReady = await waitForScheduleProjection(tableName);
+  if (!scheduleReady) {
+    await sendScheduleRetry(queueUrl, variationSeed, fixtures);
+    scheduleReady = await waitForScheduleProjection(tableName);
+  }
+
+  if (!scheduleReady) {
+    process.exit(1);
+  }
+
   console.log("=== SAMS provider seed completed ===");
 }
 
