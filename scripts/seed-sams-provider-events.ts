@@ -48,6 +48,18 @@ const POLL_TIMEOUT_MS = 120_000;
 const SCHEDULE_POLL_TIMEOUT_MS = 45_000;
 const POLL_INTERVAL_MS = 3_000;
 
+function createSeedDocClient(): DynamoDBDocumentClient {
+  return DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }), {
+    marshallOptions: {
+      removeUndefinedValues: true,
+      convertClassInstanceToMap: true,
+    },
+    unmarshallOptions: {
+      wrapNumbers: false,
+    },
+  });
+}
+
 function buildVariationSeed(branch: string): string {
   const runNumber = process.env.GITHUB_RUN_NUMBER?.trim();
   return runNumber ? `${branch}:${runNumber}` : branch || "local";
@@ -122,7 +134,7 @@ async function waitForScheduleProjection(
   tableName: string,
   timeoutMs = SCHEDULE_POLL_TIMEOUT_MS,
 ): Promise<boolean> {
-  const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+  const doc = createSeedDocClient();
   const deadline = Date.now() + timeoutMs;
   const pk = `schedule#${SEED_MV_CLUB.uuid}`;
   const sk = `season#${SEED_SEASON.uuid}`;
@@ -190,7 +202,7 @@ async function writeScheduleProjectionDirectly(
     isStale?: boolean;
   };
 
-  const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+  const doc = createSeedDocClient();
   const schedules = createSamsScheduleProjectionRepository(doc, tableName);
   const mappedMatches = payload.matches.map((match) =>
     mapProviderMatchToProjection(match as Parameters<typeof mapProviderMatchToProjection>[0]),
@@ -232,7 +244,7 @@ async function sendScheduleRetry(
 }
 
 async function waitForProjections(tableName: string) {
-  const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+  const doc = createSeedDocClient();
   const deadline = Date.now() + POLL_TIMEOUT_MS;
 
   while (Date.now() < deadline) {
