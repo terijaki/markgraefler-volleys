@@ -14,10 +14,9 @@ import type { LeagueMatchesResponse } from "@/lambda/sams/types";
 export const Route = createFileRoute("/_layout/matches/")({
   /**
    * LOADING STRATEGY — mirrors `/tabelle` (see that route for the full rationale).
-   * The loader must stay FAST: it uses `loadMatchesIndexRouteDataFn` (projection peek only),
-   * never the live SAMS-fetching `getSamsMatchesFn`, which would block navigation on cache miss.
-   * Freshness is handled client-side
-   * by `useSamsMatches`, which falls back to the SAMS API on its own 5-min cache miss.
+   * The loader must stay FAST: it uses `loadMatchesIndexRouteDataFn` (projection peek only).
+   * Freshness is handled client-side by `useSamsMatches`, which re-reads DynamoDB projections.
+   * There is no SAMS REST API fallback.
    */
   loader: async () => {
     const [pageData, webcalLink] = await Promise.all([

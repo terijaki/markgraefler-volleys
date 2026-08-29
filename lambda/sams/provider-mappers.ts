@@ -1,61 +1,8 @@
+import type { LeagueRankingEntry, Match } from "sams-provider-events";
 import type { SamsProjectionMatchInput, SamsProjectionRankingEntryInput } from "@/lib/db/schemas";
 
-type ProviderMatchTeam = {
-  uuid: string;
-  name: string;
-  sportsclubUuid?: string;
-  logoUrl?: string | null;
-};
-
-type ProviderMatchLocation = {
-  uuid: string;
-  name?: string;
-};
-
-type ProviderMatchSet = {
-  number: number;
-  ballPoints?: string;
-  winner?: string;
-  winnerName?: string;
-  duration?: number;
-};
-
-type ProviderMatchResult = {
-  winner?: string | null;
-  winnerName?: string | null;
-  setPoints?: string | null;
-  ballPoints?: string | null;
-  sets?: ProviderMatchSet[];
-};
-
-export type ProviderMatchProjection = {
-  uuid: string;
-  date?: string | null;
-  time?: string | null;
-  leagueUuid?: string;
-  seasonUuid?: string;
-  team1: ProviderMatchTeam;
-  team2: ProviderMatchTeam;
-  location?: ProviderMatchLocation;
-  result?: ProviderMatchResult;
-  hasResult?: boolean;
-};
-
-type ProviderRankingEntry = {
-  rank: number;
-  teamUuid: string;
-  teamName: string;
-  sportsclubUuid?: string;
-  logoUrl?: string | null;
-  matchesPlayed?: number | null;
-  points?: number | null;
-  wins?: number | null;
-  setWins?: number | null;
-  setLosses?: number | null;
-};
-
 function mapProviderResult(
-  result: ProviderMatchResult | undefined,
+  result: Match["result"] | undefined,
   hasResult: boolean | undefined,
 ) {
   if (!result && !hasResult) return undefined;
@@ -77,9 +24,7 @@ function mapProviderResult(
   };
 }
 
-export function mapProviderMatchToProjection(
-  match: ProviderMatchProjection,
-): SamsProjectionMatchInput {
+export function mapProviderMatchToProjection(match: Match): SamsProjectionMatchInput {
   const team1Sportsclub = match.team1.sportsclubUuid ?? "";
   const team2Sportsclub = match.team2.sportsclubUuid ?? "";
 
@@ -111,9 +56,7 @@ export function mapProviderMatchToProjection(
   };
 }
 
-export function mapProviderRankingEntry(
-  entry: ProviderRankingEntry,
-): SamsProjectionRankingEntryInput {
+export function mapProviderRankingEntry(entry: LeagueRankingEntry): SamsProjectionRankingEntryInput {
   return {
     uuid: entry.teamUuid,
     teamName: entry.teamName,
@@ -128,9 +71,7 @@ export function mapProviderRankingEntry(
   };
 }
 
-export function collectSportsclubUuidsFromMatches(
-  matches: readonly ProviderMatchProjection[],
-): string[] {
+export function collectSportsclubUuidsFromMatches(matches: readonly Match[]): string[] {
   const uuids = new Set<string>();
   for (const match of matches) {
     if (match.team1.sportsclubUuid) uuids.add(match.team1.sportsclubUuid);

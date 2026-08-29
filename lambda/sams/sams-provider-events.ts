@@ -2,9 +2,20 @@ import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
 import middy from "@middy/core";
 import type { SQSEvent, SQSHandler } from "aws-lambda";
-import { parseSamsEventFromSqsBody, SamsEventType, type SamsEvent } from "sams-provider-events";
+import {
+  parseSamsEventFromSqsBody,
+  SamsEventType,
+  type Match,
+  type SamsEvent,
+} from "sams-provider-events";
 import type { SamsRepositories } from "@/lib/db/repositories/create-sams-repositories";
+import type { SamsScheduleProjectionMeta } from "@/lib/db/repositories/sams-schedule-projection-repository";
 import { createSamsRepositories } from "@/lib/db/repositories";
+import {
+  SAMS_CLUB_TTL_DAYS,
+  SAMS_PROJECTION_TTL_DAYS,
+  unixTtlSecondsFromNow,
+} from "@/lib/db/repository-utils";
 import { slugify } from "@/utils/slugify";
 import { parseLambdaEnv } from "../utils/env";
 import { createDynamoDocClient, createLambdaResources } from "../utils/resources";
@@ -14,7 +25,6 @@ import {
   collectSportsclubUuidsFromMatches,
   mapProviderMatchToProjection,
   mapProviderRankingEntry,
-  type ProviderMatchProjection,
 } from "./provider-mappers";
 import type { RosterOfficial, RosterPlayer } from "./types";
 import { SamsProviderProcessorLambdaEnvironmentSchema } from "./types";
@@ -92,9 +102,20 @@ async function replaceClubSeasonTeams(
   const seasonUuid = season.uuid;
   const seasonName = season.name;
   const now = projectedAt ?? event.occurredAt;
-  const ttl = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;
+  const ttl = unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS);
 
   const existingTeams = await repos.teams.listAll();
+  const existingClubSeasonTeam = existingTeams.find(
+    (team) => team.sportsclubUuid === sportsclubUuid && team.seasonUuid === seasonUuid,
+  );
+  if (existingClubSeasonTeam?.snapshotVersion === event.snapshotVersion) {
+    logger.info("Skipping unchanged club-season teams projection", {
+      sportsclubUuid,
+      seasonUuid,
+      snapshotVersion: event.snapshotVersion,
+    });
+    return;
+  }
   const teamUuidsInEvent = new Set(teams.map((team) => team.uuid));
   const existingClubTeam = existingTeams.find((team) => team.sportsclubUuid === sportsclubUuid);
   const associationUuid = club.associationUuid ?? existingClubTeam?.associationUuid;
@@ -128,6 +149,7 @@ async function replaceClubSeasonTeams(
         : {}),
       seasonUuid,
       seasonName,
+      snapshotVersion: event.snapshotVersion,
       updatedAt: now,
       ttl,
     });
@@ -140,13 +162,25 @@ async function replaceClubSeasonRosters(
 ): Promise<void> {
   const { rosters, projectedAt } = event.payload;
   const now = projectedAt ?? event.occurredAt;
-  const ttl = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;
+  const ttl = unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS);
+
+  const firstRoster = rosters[0];
+  if (firstRoster) {
+    const existing = await repos.rosters.getByTeamUuid(firstRoster.team.uuid);
+    if (existing?.snapshotVersion === event.snapshotVersion) {
+      logger.info("Skipping unchanged club-season rosters projection", {
+        snapshotVersion: event.snapshotVersion,
+      });
+      return;
+    }
+  }
 
   for (const roster of rosters) {
     await repos.rosters.upsert({
       teamUuid: roster.team.uuid,
       players: mapRosterPlayers(roster.players),
       officials: mapRosterOfficials(roster.officials),
+      snapshotVersion: event.snapshotVersion,
       updatedAt: now,
       ttl,
     });
@@ -159,12 +193,22 @@ async function upsertTeamRoster(
 ): Promise<void> {
   const { team, players, officials, projectedAt } = event.payload;
   const now = projectedAt ?? event.occurredAt;
-  const ttl = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;
+  const ttl = unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS);
+
+  const existingRoster = await repos.rosters.getByTeamUuid(team.uuid);
+  if (existingRoster?.snapshotVersion === event.snapshotVersion) {
+    logger.info("Skipping unchanged team roster projection", {
+      teamUuid: team.uuid,
+      snapshotVersion: event.snapshotVersion,
+    });
+    return;
+  }
 
   await repos.rosters.upsert({
     teamUuid: team.uuid,
     players: mapRosterPlayers(players),
     officials: mapRosterOfficials(officials),
+    snapshotVersion: event.snapshotVersion,
     updatedAt: now,
     ttl,
   });
@@ -175,6 +219,15 @@ async function upsertClub(
   event: SamsEvent & { type: typeof SamsEventType.clubUpdated },
 ): Promise<void> {
   const club = event.payload;
+  const existing = await repos.clubs.getById(club.uuid);
+  if (existing?.snapshotVersion === event.snapshotVersion) {
+    logger.info("Skipping unchanged club projection", {
+      sportsclubUuid: club.uuid,
+      snapshotVersion: event.snapshotVersion,
+    });
+    return;
+  }
+
   const nameSlug = club.slug || slugify(club.name);
   const slugMatches = await repos.clubs.queryByNameSlugPrefix(nameSlug);
   for (const staleClub of slugMatches) {
@@ -183,9 +236,8 @@ async function upsertClub(
     }
   }
 
-  const existing = await repos.clubs.getById(club.uuid);
   const now = event.occurredAt;
-  const ttl = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+  const ttl = unixTtlSecondsFromNow(SAMS_CLUB_TTL_DAYS);
 
   let logoS3Key = existing?.logoS3Key;
   const mediaBucketName = MEDIA_BUCKET_NAME ?? "";
@@ -202,6 +254,7 @@ async function upsertClub(
     ...(club.associationName ? { associationName: club.associationName } : {}),
     ...(club.logoUrl ? { logoImageLink: club.logoUrl } : {}),
     ...(logoS3Key ? { logoS3Key } : {}),
+    snapshotVersion: event.snapshotVersion,
     updatedAt: now,
     ttl,
   });
@@ -212,13 +265,8 @@ async function replaceClubSchedule(
   sportsclubUuid: string,
   seasonUuid: string,
   seasonName: string,
-  matches: ProviderMatchProjection[],
-  meta: {
-    snapshotVersion: string;
-    projectedAt?: string;
-    cachedAt?: string;
-    isStale?: boolean;
-  },
+  matches: Match[],
+  meta: SamsScheduleProjectionMeta,
 ): Promise<void> {
   if (await shouldSkipProjection(repos, sportsclubUuid, seasonUuid, meta.snapshotVersion)) {
     logger.info("Skipping unchanged club schedule projection", {
@@ -239,6 +287,7 @@ async function replaceClubSchedule(
       projectedAt: meta.projectedAt,
       cachedAt: meta.cachedAt,
       isStale: meta.isStale,
+      ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
     });
     logger.info("Replaced club schedule projection", {
       sportsclubUuid,
@@ -263,13 +312,17 @@ async function mergeMatchBlock(
   sportsclubUuid: string,
   seasonUuid: string,
   seasonName: string | undefined,
-  matches: ProviderMatchProjection[],
-  meta: {
-    snapshotVersion: string;
-    cachedAt?: string;
-    isStale?: boolean;
-  },
+  matches: Match[],
+  meta: SamsScheduleProjectionMeta,
 ): Promise<void> {
+  if (await shouldSkipProjection(repos, sportsclubUuid, seasonUuid, meta.snapshotVersion)) {
+    logger.info("Skipping unchanged match-block merge", {
+      sportsclubUuid,
+      seasonUuid,
+      snapshotVersion: meta.snapshotVersion,
+    });
+    return;
+  }
   await repos.schedules.mergeMatchesForClub(
     sportsclubUuid,
     seasonUuid,
@@ -351,6 +404,7 @@ export async function processSamsProviderEvent(
         snapshotVersion: event.snapshotVersion,
         cachedAt,
         isStale,
+        ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
       });
       return;
     }

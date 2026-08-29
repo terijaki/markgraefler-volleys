@@ -22,16 +22,23 @@ function createMockRepos(): SamsRepositories {
       upsert: vi.fn().mockResolvedValue(undefined),
       queryByNameSlugPrefix: vi.fn().mockResolvedValue([]),
       delete: vi.fn().mockResolvedValue(undefined),
+      listAll: vi.fn().mockResolvedValue([]),
+      getByNameSlug: vi.fn().mockResolvedValue(null),
+      upsertMany: vi.fn().mockResolvedValue(undefined),
     },
     teams: {
       listAll: vi.fn().mockResolvedValue([]),
       getById: vi.fn().mockResolvedValue(null),
       upsert: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
+      getByNameSlug: vi.fn().mockResolvedValue(null),
+      queryByNameSlugPrefix: vi.fn().mockResolvedValue([]),
+      upsertMany: vi.fn().mockResolvedValue(undefined),
     },
     rosters: {
       upsert: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
+      getByTeamUuid: vi.fn().mockResolvedValue(null),
     },
     schedules: {
       get: vi.fn().mockResolvedValue(null),
@@ -47,7 +54,7 @@ function createMockRepos(): SamsRepositories {
     ops: {
       upsert: vi.fn().mockResolvedValue(undefined),
     },
-  } as unknown as SamsRepositories;
+  } satisfies SamsRepositories;
 }
 
 describe("processSamsProviderSqsBody", () => {
@@ -215,6 +222,75 @@ describe("processSamsProviderEvent", () => {
     );
 
     expect(repos.clubs.upsert).not.toHaveBeenCalled();
+    expect(repos.rankings.replace).not.toHaveBeenCalled();
+  });
+
+  it("skips club upsert when snapshotVersion is unchanged", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.clubUpdated,
+    );
+    expect(fixture).toBeDefined();
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    repos.clubs.getById = vi.fn().mockResolvedValue({ snapshotVersion: event.snapshotVersion });
+
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.clubs.upsert).not.toHaveBeenCalled();
+  });
+
+  it("skips club-season teams replace when snapshotVersion is unchanged", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.clubSeasonTeamsUpdated,
+    );
+    expect(fixture).toBeDefined();
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    expect(event.type).toBe(SamsEventType.clubSeasonTeamsUpdated);
+    if (event.type !== SamsEventType.clubSeasonTeamsUpdated) return;
+
+    repos.teams.listAll = vi.fn().mockResolvedValue([
+      {
+        uuid: "existing-team",
+        sportsclubUuid: event.payload.club.uuid,
+        seasonUuid: event.payload.season.uuid,
+        snapshotVersion: event.snapshotVersion,
+        updatedAt: "2020-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.teams.upsert).not.toHaveBeenCalled();
+    expect(repos.teams.delete).not.toHaveBeenCalled();
+  });
+
+  it("skips club schedule replace when snapshotVersion is unchanged", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.clubMatchScheduleUpdated,
+    );
+    expect(fixture).toBeDefined();
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    repos.schedules.getSnapshotVersion = vi.fn().mockResolvedValue(event.snapshotVersion);
+
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.schedules.replace).not.toHaveBeenCalled();
+  });
+
+  it("skips ranking replace when snapshotVersion is unchanged", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.leagueRankingUpdated,
+    );
+    expect(fixture).toBeDefined();
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    expect(event.type).toBe(SamsEventType.leagueRankingUpdated);
+    if (event.type !== SamsEventType.leagueRankingUpdated) return;
+
+    repos.rankings.get = vi.fn().mockResolvedValue({
+      snapshotVersion: event.snapshotVersion,
+    });
+
+    await processSamsProviderEvent(event, repos);
+
     expect(repos.rankings.replace).not.toHaveBeenCalled();
   });
 });

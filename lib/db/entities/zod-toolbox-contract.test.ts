@@ -231,6 +231,7 @@ describe("Zod ↔ Toolbox contract suite", () => {
       associationName: "SBVV",
       logoImageLink: "https://logo.example.com/x.png",
       logoS3Key: "sams-logos/x.png",
+      snapshotVersion: "snap-1",
     };
     assertZodToolboxContract({
       entityName: "SamsClub",
@@ -265,7 +266,7 @@ describe("Zod ↔ Toolbox contract suite", () => {
       updatedAt: iso,
       ttl: 1_700_000_000,
     };
-    const maximal = { ...minimal, leagueHierarchyLevel: 2 };
+    const maximal = { ...minimal, leagueHierarchyLevel: 2, snapshotVersion: "snap-1" };
     assertZodToolboxContract({
       entityName: "SamsTeam",
       zodSchema: samsTeamSchema,
@@ -305,6 +306,7 @@ describe("Zod ↔ Toolbox contract suite", () => {
         },
       ],
       officials: [{ uuid: "o1", name: "Coach Smith", role: "Trainer" }],
+      snapshotVersion: "snap-1",
     };
     assertZodToolboxContract({
       entityName: "SamsRoster",

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  samsProjectionMatchSchema,
+  samsProjectionRankingEntrySchema,
+} from "@/lib/db/schemas";
 import { optionalEnvString, requiredEnvString } from "../utils/env";
 
 // ============================================================================
@@ -140,9 +144,8 @@ export type TeamsResponse = z.infer<typeof TeamsResponseSchema>;
 // ============================================================================
 
 /**
- * A player entry within a synced SAMS team roster
- * uuid and name are always present: sams-teams-sync.ts derives a deterministic pseudo uuid when the
- * external API omits one, and filters out players without a name.
+ * A player entry within a synced SAMS team roster.
+ * uuid and name are always present from provider roster events.
  */
 const RosterPlayerSchema = z.object({
   uuid: z.string(),
@@ -155,9 +158,8 @@ const RosterPlayerSchema = z.object({
 export type RosterPlayer = z.infer<typeof RosterPlayerSchema>;
 
 /**
- * An official/coach entry within a synced SAMS team roster
- * uuid and name are always present: sams-teams-sync.ts derives a deterministic pseudo uuid when the
- * external API omits one, and filters out officials without a name.
+ * An official/coach entry within a synced SAMS team roster.
+ * uuid and name are always present from provider roster events.
  */
 const RosterOfficialSchema = z.object({
   uuid: z.string(),
@@ -204,17 +206,9 @@ export type RosterResponse = z.infer<typeof RosterResponseSchema>;
 // Rankings Schemas & Types
 // ============================================================================
 
-const RankingEntryResponseSchema = z.object({
+const RankingEntryResponseSchema = samsProjectionRankingEntrySchema.extend({
   uuid: z.string().optional(),
   teamName: z.string().nullish(),
-  rank: z.number().optional(),
-  matchesPlayed: z.number().nullish(),
-  points: z.number().nullish(),
-  wins: z.number().nullish(),
-  setWins: z.number().nullish(),
-  setLosses: z.number().nullish(),
-  sportsclubUuid: z.string().min(1).optional(),
-  logoUrl: z.string().optional(),
 });
 
 export const RankingResponseSchema = z.object({
@@ -231,64 +225,8 @@ export type RankingResponse = z.infer<typeof RankingResponseSchema>;
 // League Matches Schemas & Types
 // ============================================================================
 
-const LeagueMatchLocationAddressSchema = z.object({
-  street: z.string().optional(),
-  postcode: z.string().optional(),
-  city: z.string().optional(),
-});
-
-const LeagueMatchLocationSchema = z
-  .object({
-    uuid: z.string(),
-    name: z.string().nullish(),
-    longitude: z.number().nullish(),
-    latitude: z.number().nullish(),
-    address: z.union([z.string(), LeagueMatchLocationAddressSchema]).nullish(),
-  })
-  .nullish();
-
-const LeagueMatchSetSchema = z.object({
-  number: z.number(),
-  ballPoints: z.string().optional(),
-  winner: z.string().optional(),
-  winnerName: z.string().optional(),
-  duration: z.number().optional(),
-});
-
-const LeagueMatchResultsSchema = z
-  .object({
-    winner: z.string().nullish(),
-    winnerName: z.string().nullish(),
-    setPoints: z.string().nullish(),
-    ballPoints: z.string().nullish(),
-    sets: z.array(LeagueMatchSetSchema).optional(),
-  })
-  .nullish();
-
-const LeagueMatchTeamSchema = z.object({
-  uuid: z.string(),
-  name: z.string(),
-  sportsclubUuid: z.string(),
-});
-
 /** Schedule projection match row exposed to the webapp. */
-export const LeagueMatchSchema = z.object({
-  uuid: z.string(),
-  date: z.string().nullish(),
-  time: z.string().nullish(),
-  matchNumber: z.string().nullish(),
-  host: z.union([z.string(), z.boolean()]).nullish(),
-  leagueUuid: z.string().nullish(),
-  results: LeagueMatchResultsSchema,
-  location: LeagueMatchLocationSchema,
-  _embedded: z
-    .object({
-      team1: LeagueMatchTeamSchema.optional(),
-      team2: LeagueMatchTeamSchema.optional(),
-    })
-    .nullish(),
-});
-
+export const LeagueMatchSchema = samsProjectionMatchSchema;
 export type LeagueMatch = z.infer<typeof LeagueMatchSchema>;
 
 export const LeagueMatchesResponseSchema = z.object({

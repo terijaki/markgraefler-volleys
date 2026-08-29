@@ -4,7 +4,12 @@ import { docClient } from "../client";
 import { getSamsTableName } from "../env";
 import { samsOpsMetadataSchema, type SamsOpsMetadataInput } from "../schemas";
 import { samsOpsPk, SK_METADATA } from "../key-constants";
-import { isoTimestampNow, parseWithSchema } from "../repository-utils";
+import {
+  isoTimestampNow,
+  parseWithSchema,
+  SAMS_OPS_TTL_DAYS,
+  unixTtlSecondsFromNow,
+} from "../repository-utils";
 
 function parseOps(value: unknown, message: string): SamsOpsMetadataInput {
   return parseWithSchema(samsOpsMetadataSchema, value, message);
@@ -30,7 +35,7 @@ export class SamsOpsMetadataRepository {
         ...input,
         type: "ops",
         updatedAt: input.updatedAt ?? isoTimestampNow(),
-        ttl: input.ttl ?? Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60,
+        ttl: input.ttl ?? unixTtlSecondsFromNow(SAMS_OPS_TTL_DAYS),
       },
       "Failed to parse SAMS ops metadata upsert input",
     );

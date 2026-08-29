@@ -7,8 +7,11 @@ import { resolve } from "node:path";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { SendMessageBatchCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { z } from "zod";
 import { getSanitizedBranch } from "@/utils/deploy-branch";
+import { dynamoDocumentClientOptions } from "@/lib/db/client";
 import { computeSamsDataTableName } from "@/lib/db/env";
+import { samsProjectionMatchSchema } from "@/lib/db/schemas";
 import { computeSamsProviderEventsQueueName } from "@/lib/sams-provider-env";
 import { SamsEventType } from "sams-provider-events";
 import {
@@ -42,20 +45,21 @@ if (ENVIRONMENT === "prod") {
 
 const BRANCH = getSanitizedBranch();
 const REGION = process.env.CDK_REGION || "eu-central-1";
-const POLL_TIMEOUT_MS = 120_000;
-const SCHEDULE_POLL_TIMEOUT_MS = 90_000;
+const POLL_TIMEOUT_MS = 60_000;
 const POLL_INTERVAL_MS = 3_000;
+/** First poll window before re-sending the schedule event with a fresh snapshot. */
+const INITIAL_POLL_MS = 24_000;
+const scheduleMatchesFieldSchema = z.object({
+  matches: z.array(samsProjectionMatchSchema).default([]),
+});
 
 function createSeedDocClient(): DynamoDBDocumentClient {
-  return DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }), {
-    marshallOptions: {
-      removeUndefinedValues: true,
-      convertClassInstanceToMap: true,
-    },
-    unmarshallOptions: {
-      wrapNumbers: false,
-    },
-  });
+  return DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }), dynamoDocumentClientOptions);
+}
+
+function scheduleMatchCount(item: unknown): number {
+  const parsed = scheduleMatchesFieldSchema.safeParse(item);
+  return parsed.success ? parsed.data.matches.length : 0;
 }
 
 function buildVariationSeed(branch: string): string {
@@ -128,53 +132,40 @@ async function sendMockEvents(
   console.log(`✅ Sent ${entries.length} mock SAMS provider events to ${queueUrl}`);
 }
 
-async function waitForScheduleProjection(
-  tableName: string,
-  timeoutMs = SCHEDULE_POLL_TIMEOUT_MS,
-): Promise<boolean> {
+async function waitUntilSeedReady(tableName: string, deadline: number): Promise<boolean> {
   const doc = createSeedDocClient();
-  const deadline = Date.now() + timeoutMs;
   const pk = `schedule#${SEED_MV_CLUB.uuid}`;
   const sk = `season#${SEED_SEASON.uuid}`;
 
   while (Date.now() < deadline) {
+    const scan = await doc.send(
+      new ScanCommand({
+        TableName: tableName,
+        Limit: 50,
+      }),
+    );
+    const count = scan.Count ?? 0;
     const result = await doc.send(
       new GetCommand({
         TableName: tableName,
         Key: { pk, sk },
       }),
     );
-    const matches = (result.Item?.matches as unknown[] | undefined) ?? [];
-    if (matches.length > 0) {
+    const matchesCount = scheduleMatchCount(result.Item);
+    if (count >= MIN_PROJECTION_ITEMS && matchesCount > 0) {
       console.log(
-        `✅ Schedule projection ready for ${SEED_MV_CLUB.uuid} (${matches.length} matches)`,
+        `✅ SAMS projections ready in ${tableName} (${count} items, ${matchesCount} schedule matches)`,
       );
       return true;
     }
 
-    const scan = await doc.send(
-      new ScanCommand({
-        TableName: tableName,
-        FilterExpression: "begins_with(pk, :schedulePrefix)",
-        ExpressionAttributeValues: { ":schedulePrefix": "schedule#" },
-        Limit: 20,
-      }),
+    console.log(
+      `Waiting for SAMS processor (${count}/${MIN_PROJECTION_ITEMS} items, ${matchesCount} schedule matches)...`,
     );
-    for (const item of scan.Items ?? []) {
-      const scheduleMatches = (item.matches as unknown[] | undefined) ?? [];
-      if (scheduleMatches.length > 0) {
-        console.log(
-          `✅ Schedule projection ready at ${item.pk} (${scheduleMatches.length} matches)`,
-        );
-        return true;
-      }
-    }
-
-    console.log("Waiting for club schedule projection after seed...");
     await new Promise((resolveSleep) => setTimeout(resolveSleep, POLL_INTERVAL_MS));
   }
 
-  console.error("❌ Timed out waiting for club schedule projection after seed");
+  console.error("❌ Timed out waiting for SAMS projections after seed");
   return false;
 }
 
@@ -196,30 +187,6 @@ async function sendScheduleRetry(
   await sendMockEvents(queueUrl, [retryFixture]);
 }
 
-async function waitForProjections(tableName: string) {
-  const doc = createSeedDocClient();
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-
-  while (Date.now() < deadline) {
-    const scan = await doc.send(
-      new ScanCommand({
-        TableName: tableName,
-        Limit: 50,
-      }),
-    );
-    const count = scan.Count ?? 0;
-    if (count >= MIN_PROJECTION_ITEMS) {
-      console.log(`✅ SAMS projections detected in ${tableName} (${count} items scanned)`);
-      return;
-    }
-    console.log(`Waiting for SAMS processor (${count}/${MIN_PROJECTION_ITEMS} items so far)...`);
-    await new Promise((resolveSleep) => setTimeout(resolveSleep, POLL_INTERVAL_MS));
-  }
-
-  console.error("❌ Timed out waiting for SAMS projections after seed");
-  process.exit(1);
-}
-
 async function main() {
   const variationSeed = buildVariationSeed(BRANCH);
   const teamCount = resolveMvTeamCount(variationSeed);
@@ -239,15 +206,17 @@ async function main() {
   console.log(`Table: ${tableName}`);
 
   await sendMockEvents(queueUrl, fixtures);
-  await waitForProjections(tableName);
-
-  let scheduleReady = await waitForScheduleProjection(tableName);
-  if (!scheduleReady) {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  let ready = await waitUntilSeedReady(
+    tableName,
+    Math.min(Date.now() + INITIAL_POLL_MS, deadline),
+  );
+  if (!ready && Date.now() < deadline) {
     await sendScheduleRetry(queueUrl, variationSeed, fixtures);
-    scheduleReady = await waitForScheduleProjection(tableName);
+    ready = await waitUntilSeedReady(tableName, deadline);
   }
 
-  if (!scheduleReady) {
+  if (!ready) {
     process.exit(1);
   }
 

@@ -8,11 +8,23 @@ import {
   type SamsProjectionMatchInput,
 } from "../schemas";
 import { samsSchedulePk, samsSeasonSk } from "../key-constants";
-import { isoTimestampNow, parseWithSchema } from "../repository-utils";
+import {
+  isoTimestampNow,
+  parseWithSchema,
+  SAMS_PROJECTION_TTL_DAYS,
+  unixTtlSecondsFromNow,
+} from "../repository-utils";
 
 function parseSchedule(value: unknown, message: string): SamsClubScheduleProjectionInput {
   return parseWithSchema(samsClubScheduleProjectionSchema, value, message);
 }
+
+export type SamsScheduleProjectionMeta = {
+  snapshotVersion: string;
+  projectedAt?: string;
+  cachedAt?: string;
+  isStale?: boolean;
+};
 
 export type SamsClubScheduleUpsertInput = Omit<
   SamsClubScheduleProjectionInput,
@@ -41,7 +53,7 @@ export class SamsScheduleProjectionRepository {
         ...input,
         type: "schedule",
         updatedAt: input.updatedAt ?? isoTimestampNow(),
-        ttl: input.ttl ?? Math.floor(Date.now() / 1000) + 400 * 24 * 60 * 60,
+        ttl: input.ttl ?? unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
       },
       "Failed to parse SAMS schedule projection upsert input",
     );
@@ -107,12 +119,7 @@ export class SamsScheduleProjectionRepository {
     seasonUuid: string,
     seasonName: string | undefined,
     matches: SamsProjectionMatchInput[],
-    meta: {
-      snapshotVersion: string;
-      projectedAt?: string;
-      cachedAt?: string;
-      isStale?: boolean;
-    },
+    meta: SamsScheduleProjectionMeta,
   ): Promise<SamsClubScheduleProjectionInput> {
     const existing = await this.get(sportsclubUuid, seasonUuid);
     const mergedByUuid = new Map<string, SamsProjectionMatchInput>();

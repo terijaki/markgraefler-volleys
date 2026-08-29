@@ -219,7 +219,7 @@ async function loadMatchesFromProjections({
     season,
   );
 
-  let matches = projectionMatches as LeagueMatch[];
+  let matches = projectionMatches;
 
   if (league) {
     matches = matches.filter((match) => match.leagueUuid === league);
@@ -231,24 +231,6 @@ async function loadMatchesFromProjections({
   }
 
   return dedupeSamsMatchesByUuid(matches);
-}
-
-function normalizeProjectionMatchHost(match: LeagueMatch): LeagueMatch {
-  if (typeof match.host === "string" || match.host == null) {
-    return match;
-  }
-  const team1Uuid = match._embedded?.team1?.uuid;
-  const team2Uuid = match._embedded?.team2?.uuid;
-  if (match.host === true && team1Uuid) {
-    return { ...match, host: team1Uuid };
-  }
-  if (match.host === false && team2Uuid) {
-    return { ...match, host: team2Uuid };
-  }
-  if (team1Uuid) {
-    return { ...match, host: team1Uuid };
-  }
-  return match;
 }
 
 /** Schedule projection matches for one or more SAMS team UUIDs (ICS calendar, etc.). */
@@ -274,7 +256,7 @@ export async function loadScheduleMatchesForSamsTeamUuids(
     return teamUuidSet.has(team1Uuid ?? "") || teamUuidSet.has(team2Uuid ?? "");
   });
 
-  return dedupeSamsMatchesByUuid(filtered.map((match) => normalizeProjectionMatchHost(match)));
+  return dedupeSamsMatchesByUuid(filtered);
 }
 
 function isPastProjectionMatch(
@@ -296,7 +278,7 @@ async function buildMatchesResponse(
     season,
     team,
     sportsclubUuids: effectiveSportsclubUuids,
-  }).then((matches) => matches.map((match) => normalizeProjectionMatchHost(match)));
+  });
 
   let filteredMatches = allMatches;
   if (data?.range === "future") {

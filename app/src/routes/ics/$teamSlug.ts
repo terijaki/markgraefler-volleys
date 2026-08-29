@@ -1,6 +1,9 @@
 /**
  * ICS calendar API route — /ics/$teamSlug
  *
+ * TanStack Start server route (`createFileRoute` + `server.handlers`). API routes
+ * do not use a `.server.ts` suffix; load data via createServerFn wrappers instead.
+ *
  * Returns an iCalendar (.ics) file from synced SAMS schedule projections.
  * teamSlug can be "all" or a specific team slug (e.g. "herren1").
  * The .ics file extension is stripped automatically.
@@ -14,8 +17,8 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from "ts-ics";
 import type { LeagueMatch } from "@/lambda/sams/types";
-import { teamsRepository } from "@/lib/db/repositories";
-import { loadScheduleMatchesForSamsTeamUuids } from "@webapp/server/functions/sams.server";
+import { loadScheduleMatchesForSamsTeamUuidsFn } from "@webapp/server/functions/sams";
+import { getTeamBySlugFn, listTeamsFn } from "@webapp/server/functions/teams";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(utc);
@@ -75,10 +78,10 @@ export const Route = createFileRoute("/ics/$teamSlug")({
 
           if (!teamSlug || teamSlug === "all") {
             calendarTitle = `${calendarTitle} - Vereinskalender`;
-            const { items: allTeams } = await teamsRepository.listAll();
+            const { items: allTeams } = await listTeamsFn();
             teamSamsUuids = allTeams.map((t) => t.sbvvTeamId).filter((id): id is string => !!id);
           } else {
-            const foundTeam = await teamsRepository.getBySlug(teamSlug);
+            const foundTeam = await getTeamBySlugFn({ data: { slug: teamSlug } });
             if (!foundTeam) {
               return new Response("Team nicht gefunden", {
                 status: 404,
@@ -91,7 +94,9 @@ export const Route = createFileRoute("/ics/$teamSlug")({
           }
 
           const timestamp = new Date();
-          const matches = await loadScheduleMatchesForSamsTeamUuids(teamSamsUuids);
+          const matches = await loadScheduleMatchesForSamsTeamUuidsFn({
+            data: { teamUuids: teamSamsUuids },
+          });
           const matchEvents = matches
             .map((match) => convertMatchToIcs(match, teamLeagueName, timestamp))
             .filter((e): e is IcsEvent => e !== null);

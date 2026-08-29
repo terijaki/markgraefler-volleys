@@ -17,27 +17,19 @@ export const Route = createFileRoute("/_layout/tabelle")({
    * is being refreshed in the background.
    *
    * How it works:
-   *  1. Loader runs server-side before navigation completes. It must be FAST — any
-   *     async call that hits an external API blocks the browser from showing the page.
-   *     → Use `loadTabelleRouteDataFn` (single server call that peeks projections in-process).
-   *     → These read DynamoDB only, never call the SAMS API, and use Infinity TTL so they
-   *       always return whatever is cached regardless of age.
+   *  1. Loader runs server-side before navigation completes. It must be FAST.
+   *     → Use `loadTabelleRouteDataFn` (single server call that peeks DynamoDB projections).
    *
-   *  2. The loader passes the cached data as `initialData` + `initialDataUpdatedAt` to
+   *  2. The loader passes the projection data as `initialData` + `initialDataUpdatedAt` to
    *     React Query hooks. React Query compares `initialDataUpdatedAt` against its
    *     `staleTime` (10 min). If the data is stale, it starts a background refetch
    *     immediately after render → `isFetching: true` → small spinner in RankingTable.
    *
-   *  3. The React Query `queryFn` (getSamsRankingsByLeagueUuidsFn) has its own 5-min
-   *     DDB cache check and falls back to the SAMS API on miss — this is the only place
-   *     the SAMS API is called.
+   *  3. The React Query `queryFn` (`getSamsRankingByLeagueUuidFn`) re-reads ranking
+   *     projections from DynamoDB. There is no SAMS REST API fallback.
    *
-   * Result: users always see cached data instantly. The spinner appears when React Query
-   * decides fresh data is needed. A loading skeleton only appears when the DDB cache is
-   * completely empty (first-ever visit or after a full cache eviction).
-   *
-   * PITFALL: Do NOT replace peek functions with getSamsRankingsByLeagueUuidsFn in the
-   * loader. That function calls the SAMS API on cache miss, blocking navigation for 2-3s.
+   * Result: users always see projection data instantly. The spinner appears when React Query
+   * decides a refresh is needed. A loading skeleton only appears when no projection exists yet.
    */
   loader: async () => loadTabelleRouteDataFn(),
   component: RouteComponent,

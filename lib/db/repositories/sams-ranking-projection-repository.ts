@@ -7,7 +7,12 @@ import {
   type SamsLeagueRankingProjectionInput,
 } from "../schemas";
 import { samsRankingPk, samsSeasonSk } from "../key-constants";
-import { isoTimestampNow, parseWithSchema } from "../repository-utils";
+import {
+  isoTimestampNow,
+  parseWithSchema,
+  SAMS_PROJECTION_TTL_DAYS,
+  unixTtlSecondsFromNow,
+} from "../repository-utils";
 
 function parseRanking(value: unknown, message: string): SamsLeagueRankingProjectionInput {
   return parseWithSchema(samsLeagueRankingProjectionSchema, value, message);
@@ -40,7 +45,7 @@ export class SamsRankingProjectionRepository {
         ...input,
         type: "ranking",
         updatedAt: input.updatedAt ?? isoTimestampNow(),
-        ttl: input.ttl ?? Math.floor(Date.now() / 1000) + 400 * 24 * 60 * 60,
+        ttl: input.ttl ?? unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
       },
       "Failed to parse SAMS ranking projection upsert input",
     );
