@@ -1,10 +1,7 @@
 import type { LeagueRankingEntry, Match } from "sams-provider-events";
 import type { SamsProjectionMatchInput, SamsProjectionRankingEntryInput } from "@/lib/db/schemas";
 
-function mapProviderResult(
-  result: Match["result"] | undefined,
-  hasResult: boolean | undefined,
-) {
+function mapProviderResult(result: Match["result"] | undefined, hasResult: boolean | undefined) {
   if (!result && !hasResult) return undefined;
 
   const sets = result?.sets?.map((set) => ({
@@ -56,7 +53,9 @@ export function mapProviderMatchToProjection(match: Match): SamsProjectionMatchI
   };
 }
 
-export function mapProviderRankingEntry(entry: LeagueRankingEntry): SamsProjectionRankingEntryInput {
+export function mapProviderRankingEntry(
+  entry: LeagueRankingEntry,
+): SamsProjectionRankingEntryInput {
   return {
     uuid: entry.teamUuid,
     teamName: entry.teamName,

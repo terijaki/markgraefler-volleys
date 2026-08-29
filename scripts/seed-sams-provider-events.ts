@@ -54,7 +54,10 @@ const scheduleMatchesFieldSchema = z.object({
 });
 
 function createSeedDocClient(): DynamoDBDocumentClient {
-  return DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }), dynamoDocumentClientOptions);
+  return DynamoDBDocumentClient.from(
+    new DynamoDBClient({ region: REGION }),
+    dynamoDocumentClientOptions,
+  );
 }
 
 function scheduleMatchCount(item: unknown): number {
@@ -207,10 +210,7 @@ async function main() {
 
   await sendMockEvents(queueUrl, fixtures);
   const deadline = Date.now() + POLL_TIMEOUT_MS;
-  let ready = await waitUntilSeedReady(
-    tableName,
-    Math.min(Date.now() + INITIAL_POLL_MS, deadline),
-  );
+  let ready = await waitUntilSeedReady(tableName, Math.min(Date.now() + INITIAL_POLL_MS, deadline));
   if (!ready && Date.now() < deadline) {
     await sendScheduleRetry(queueUrl, variationSeed, fixtures);
     ready = await waitUntilSeedReady(tableName, deadline);

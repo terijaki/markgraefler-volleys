@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vite-plus/test";
 import { LeagueMatchesResponseSchema } from "./types";
-import { buildMockSamsProviderSqsBody, buildTestSamsProviderFixtures } from "@/fixtures/sams-provider-events";
+import {
+  buildMockSamsProviderSqsBody,
+  buildTestSamsProviderFixtures,
+} from "@/fixtures/sams-provider-events";
 import { parseSamsEventFromSqsBody, SamsEventType } from "sams-provider-events";
 import { mapProviderMatchToProjection, mapProviderRankingEntry } from "./provider-mappers";
-import { samsClubScheduleProjectionSchema, samsProjectionMatchSchema, samsProjectionRankingEntrySchema } from "@/lib/db/schemas";
+import {
+  samsClubScheduleProjectionSchema,
+  samsProjectionMatchSchema,
+  samsProjectionRankingEntrySchema,
+} from "@/lib/db/schemas";
 
 describe("mapProviderMatchToProjection", () => {
   it("stores host as home team uuid for API-shaped responses", () => {
