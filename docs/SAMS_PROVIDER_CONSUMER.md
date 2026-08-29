@@ -17,7 +17,7 @@ Markgräfler Volleys consumes SAMS projection events from [`sams-provider`](http
 
 ## Event contract
 
-Types, Zod schemas, and `parseSamsEventFromSqsBody()` come from npm package [`sams-provider-events`](https://www.npmjs.com/package/sams-provider-events) (`^0.2.0`). Do not duplicate schemas locally.
+Types, Zod schemas, and `parseSamsEventFromSqsBody()` come from npm package [`sams-provider-events`](https://www.npmjs.com/package/sams-provider-events) (`^0.3.0`). Do not duplicate schemas locally.
 
 Processor entry point: `lambda/sams/sams-provider-events.ts`.
 

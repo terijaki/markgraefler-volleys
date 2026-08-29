@@ -143,18 +143,7 @@ describe("processSamsProviderEvent", () => {
     expect(repos.rankings.replace).toHaveBeenCalledOnce();
   });
 
-  it("stores league and season labels even when rank 1 is an unregistered opponent", async () => {
-    repos.teams.getById = vi.fn().mockResolvedValue(null);
-    repos.teams.listAll = vi.fn().mockResolvedValue([
-      {
-        uuid: SEED_MV_TEAMS[0].uuid,
-        leagueUuid: SEED_MV_TEAMS[0].leagueUuid,
-        leagueName: SEED_MV_TEAMS[0].leagueName,
-        seasonUuid: SEED_SEASON.uuid,
-        seasonName: SEED_SEASON.name,
-      },
-    ]);
-
+  it("stores league and season labels from the provider ranking event", async () => {
     const fixture = samsProviderEventFixtures.find(
       (entry) => entry.type === SamsEventType.leagueRankingUpdated,
     );

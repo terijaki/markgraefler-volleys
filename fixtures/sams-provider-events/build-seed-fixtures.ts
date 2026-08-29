@@ -411,7 +411,9 @@ export function buildSamsProviderSeedFixtures(
       type: SamsEventType.leagueRankingUpdated,
       payload: {
         leagueUuid: mvTeam.leagueUuid,
+        leagueName: mvTeam.leagueName,
         seasonUuid: SEED_SEASON.uuid,
+        seasonName: SEED_SEASON.name,
         cachedAt: projectedAt,
         refreshState: "active",
         nextRefreshAfter: null,

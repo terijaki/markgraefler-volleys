@@ -83,41 +83,6 @@ async function shouldSkipRanking(
   return existing?.snapshotVersion === snapshotVersion;
 }
 
-async function resolveRankingProjectionLabels(
-  repos: SamsRepositories,
-  leagueUuid: string,
-  seasonUuid: string,
-  entries: ReadonlyArray<{ teamUuid: string }>,
-): Promise<{ leagueName?: string; seasonName?: string }> {
-  let leagueName: string | undefined;
-  let seasonName: string | undefined;
-
-  for (const entry of entries) {
-    const team = await repos.teams.getById(entry.teamUuid);
-    if (!team) continue;
-    leagueName = leagueName ?? team.leagueName;
-    seasonName = seasonName ?? team.seasonName;
-    if (leagueName && seasonName) break;
-  }
-
-  if (leagueName && seasonName) {
-    return { leagueName, seasonName };
-  }
-
-  const teams = await repos.teams.listAll();
-  const leagueTeam = teams.find(
-    (team) => team.leagueUuid === leagueUuid && team.seasonUuid === seasonUuid,
-  );
-  if (!leagueTeam) {
-    return { leagueName, seasonName };
-  }
-
-  return {
-    leagueName: leagueName ?? leagueTeam.leagueName,
-    seasonName: seasonName ?? leagueTeam.seasonName,
-  };
-}
-
 async function replaceClubSeasonTeams(
   repos: SamsRepositories,
   event: SamsEvent & { type: typeof SamsEventType.clubSeasonTeamsUpdated },
@@ -372,16 +337,11 @@ export async function processSamsProviderEvent(
     }
 
     case SamsEventType.leagueRankingUpdated: {
-      const { leagueUuid, seasonUuid, entries, cachedAt, isStale } = event.payload;
+      const { leagueUuid, seasonUuid, leagueName, seasonName, entries, cachedAt, isStale } =
+        event.payload;
       if (await shouldSkipRanking(repos, leagueUuid, seasonUuid, event.snapshotVersion)) {
         return;
       }
-      const { leagueName, seasonName } = await resolveRankingProjectionLabels(
-        repos,
-        leagueUuid,
-        seasonUuid,
-        entries,
-      );
       await repos.rankings.replace({
         leagueUuid,
         seasonUuid,
