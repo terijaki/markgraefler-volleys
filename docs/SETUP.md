@@ -25,8 +25,6 @@ CDK_MONITORING_ALERT_EMAIL="you@example.com"
 # Auth
 BETTER_AUTH_SECRET=""
 
-# SAMS (optional — only for manual SAMS REST API exploration via the sams-api agent skill)
-
 # Sentry
 SENTRY_AUTH_TOKEN=""
 SENTRY_ENVIRONMENT="development"

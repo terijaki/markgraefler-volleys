@@ -40,7 +40,9 @@ Reserved types are ignored gracefully.
 
 The webapp reads clubs, teams, rosters, matches, and rankings from the branch-scoped SAMS DynamoDB table (`SAMS_TABLE_NAME`).
 
-**Live ticker** remains unchanged: public feed from `backend.sams-ticker.de` via `fetch()` in `app/src/server/functions/sams.server.ts` (no API key).
+**Live ticker** uses the separate SBVV ticker service at `backend.sams-ticker.de` via `fetch()` in `app/src/server/functions/sams.server.ts` (not the SAMS REST API and no API key).
+
+**ICS calendars** (`/ics/*`) read schedule projections from DynamoDB, not the SAMS REST API.
 
 ## Dev seeding
 

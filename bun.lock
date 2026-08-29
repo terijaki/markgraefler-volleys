@@ -45,7 +45,6 @@
         "react-dom": "^19.2.7",
         "react-world-flags": "^1.6.0",
         "sams-provider-events": "0.3.0",
-        "sams-rest-v2": "^0.1.9",
         "superjson": "^2.2.6",
         "ts-ics": "^2.4.6",
         "varlock": "^1.10.0",
@@ -1169,8 +1168,6 @@
     "rou3": ["rou3@0.7.12", "", {}, "sha512-iFE4hLDuloSWcD7mjdCDhx2bKcIsYbtOTpfH5MHHLSKMOUyjqQXTeZVa289uuwEGEKFoE/BAPbhaU4B774nceg=="],
 
     "sams-provider-events": ["sams-provider-events@0.3.0", "", { "dependencies": { "zod": "^4.4.3" }, "peerDependencies": { "typescript": ">=5.5 || >=6.0.0" }, "optionalPeers": ["typescript"] }, "sha512-QzLeLBg1OQUwdVlhcUDqrrYAIGc8Ry+y3F+Fd6trHhOVyB+0ETBX4lXa7WbG+xEq+cJitUXD9W5QB7+YSUMafA=="],
-
-    "sams-rest-v2": ["sams-rest-v2@0.1.9", "", { "dependencies": { "zod": "^4.4.3" }, "peerDependencies": { "typescript": ">=5.5 || >=6.0.0" }, "optionalPeers": ["typescript"] }, "sha512-tI0tijAFR4F9Nob5spjox9fS09Eg//hnTMpj9sEqWSQDe1KP4YZr0mGb6tUfJl96/Q57cOaavu0u1yZ0qishew=="],
 
     "sax": ["sax@1.6.0", "", {}, "sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA=="],
 

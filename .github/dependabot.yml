@@ -54,7 +54,7 @@ updates:
           - "num-words-de"
           - "ts-ics"
           - "@behold/*"
-          - "sams-rest-v2"
+          - "sams-provider-events"
       toolchain:
         patterns:
           - "@playwright/*"

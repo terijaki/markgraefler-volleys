@@ -5,11 +5,11 @@
  * Server function wrappers live in `sams.ts`; tests import helpers from here.
  */
 
-import type { LeagueMatchDto } from "sams-rest-v2";
 import { createCacheKey, createExpiringCache, getOrSetExpiringCacheValue } from "@utils/cache";
 import dayjs from "dayjs";
 import { z } from "zod";
 import {
+  type LeagueMatch,
   type LeagueMatchesResponse,
   LeagueMatchesResponseSchema,
   type LiveMatch,
@@ -44,7 +44,7 @@ import {
 
 const MEDIA_CLOUDFRONT_URL = () => process.env.MEDIA_CLOUDFRONT_URL || "";
 
-const SAMS_API_TIMEOUT_MS = 10_000;
+const TICKER_FETCH_TIMEOUT_MS = 10_000;
 
 export type SamsMatchesInput = {
   league?: string;
@@ -211,7 +211,7 @@ async function loadMatchesFromProjections({
   sportsclubUuids,
 }: Pick<SamsMatchesInput, "league" | "season" | "team"> & {
   sportsclubUuids: readonly string[];
-}): Promise<Omit<LeagueMatchDto, "_links">[]> {
+}): Promise<LeagueMatch[]> {
   if (!season || sportsclubUuids.length === 0) return [];
 
   const projectionMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
@@ -219,7 +219,7 @@ async function loadMatchesFromProjections({
     season,
   );
 
-  let matches = projectionMatches as Omit<LeagueMatchDto, "_links">[];
+  let matches = projectionMatches as LeagueMatch[];
 
   if (league) {
     matches = matches.filter((match) => match.leagueUuid === league);
@@ -233,9 +233,7 @@ async function loadMatchesFromProjections({
   return dedupeSamsMatchesByUuid(matches);
 }
 
-function normalizeProjectionMatchHost(
-  match: Omit<LeagueMatchDto, "_links">,
-): Omit<LeagueMatchDto, "_links"> {
+function normalizeProjectionMatchHost(match: LeagueMatch): LeagueMatch {
   if (typeof match.host === "string" || match.host == null) {
     return match;
   }
@@ -251,6 +249,32 @@ function normalizeProjectionMatchHost(
     return { ...match, host: team1Uuid };
   }
   return match;
+}
+
+/** Schedule projection matches for one or more SAMS team UUIDs (ICS calendar, etc.). */
+export async function loadScheduleMatchesForSamsTeamUuids(
+  teamUuids: string[],
+): Promise<LeagueMatch[]> {
+  if (teamUuids.length === 0) return [];
+
+  const sportsclubUuids = await resolveConfiguredSamsSportsclubUuidsFromStorage();
+  const { items: samsTeams } = await getAllSamsTeams();
+  const seasonUuid = pickSyncedSeasonUuid(samsTeams, sportsclubUuids);
+  if (!seasonUuid || sportsclubUuids.length === 0) return [];
+
+  const teamUuidSet = new Set(teamUuids);
+  const projectionMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
+    sportsclubUuids,
+    seasonUuid,
+  );
+
+  const filtered = projectionMatches.filter((match) => {
+    const team1Uuid = match._embedded?.team1?.uuid;
+    const team2Uuid = match._embedded?.team2?.uuid;
+    return teamUuidSet.has(team1Uuid ?? "") || teamUuidSet.has(team2Uuid ?? "");
+  });
+
+  return dedupeSamsMatchesByUuid(filtered.map((match) => normalizeProjectionMatchHost(match)));
 }
 
 function isPastProjectionMatch(
@@ -677,7 +701,7 @@ export async function handleGetSamsTicker() {
     ttlMs: TICKER_CACHE_TTL_MS,
     load: async () => {
       const response = await fetch(TICKER_URL, {
-        signal: AbortSignal.timeout(SAMS_API_TIMEOUT_MS),
+        signal: AbortSignal.timeout(TICKER_FETCH_TIMEOUT_MS),
         headers: { Accept: "application/json" },
       });
 

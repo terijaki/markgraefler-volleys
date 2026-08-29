@@ -1,10 +1,3 @@
-import {
-  zLeagueMatchDto,
-  zLeagueRankingsEntryDto,
-  zLocation,
-  zSeasonDto,
-  zVolleyballMatchResultsDto,
-} from "sams-rest-v2";
 import { z } from "zod";
 import { optionalEnvString, requiredEnvString } from "../utils/env";
 
@@ -21,17 +14,6 @@ export const SamsProviderProcessorLambdaEnvironmentSchema = z.object({
 export type SamsProviderProcessorLambdaEnvironment = z.infer<
   typeof SamsProviderProcessorLambdaEnvironmentSchema
 >;
-
-export const SamsClubsLambdaEnvironmentSchema = z.object({
-  SAMS_TABLE_NAME: requiredEnvString,
-  CDK_ENVIRONMENT: optionalEnvString,
-});
-
-export const SamsLogoProxyLambdaEnvironmentSchema = z.object({
-  SAMS_TABLE_NAME: requiredEnvString,
-});
-
-export type SamsLogoProxyLambdaEnvironment = z.infer<typeof SamsLogoProxyLambdaEnvironmentSchema>;
 
 // ============================================================================
 // Club Schemas & Types
@@ -219,42 +201,21 @@ export const RosterResponseSchema = BaseRosterItemSchema.omit({
 export type RosterResponse = z.infer<typeof RosterResponseSchema>;
 
 // ============================================================================
-// Seasons Schemas & Types
-// ============================================================================
-
-/**
- * Response containing current, next, and previous seasons
- */
-export const SeasonsResponseSchema = z.object({
-  current: zSeasonDto,
-  next: zSeasonDto.nullish(),
-  previous: zSeasonDto.nullish(),
-});
-
-export type SeasonsResponse = z.infer<typeof SeasonsResponseSchema>;
-
-// ============================================================================
 // Rankings Schemas & Types
 // ============================================================================
 
-/**
- * League rankings response
- */
-const RankingEntryResponseSchema = zLeagueRankingsEntryDto
-  .pick({
-    uuid: true,
-    teamName: true,
-    rank: true,
-    matchesPlayed: true,
-    points: true,
-    wins: true,
-    setWins: true,
-    setLosses: true,
-  })
-  .extend({
-    sportsclubUuid: z.string().min(1).optional(),
-    logoUrl: z.string().optional(),
-  });
+const RankingEntryResponseSchema = z.object({
+  uuid: z.string().optional(),
+  teamName: z.string().nullish(),
+  rank: z.number().optional(),
+  matchesPlayed: z.number().nullish(),
+  points: z.number().nullish(),
+  wins: z.number().nullish(),
+  setWins: z.number().nullish(),
+  setLosses: z.number().nullish(),
+  sportsclubUuid: z.string().min(1).optional(),
+  logoUrl: z.string().optional(),
+});
 
 export const RankingResponseSchema = z.object({
   teams: z.optional(z.array(RankingEntryResponseSchema)),
@@ -270,53 +231,68 @@ export type RankingResponse = z.infer<typeof RankingResponseSchema>;
 // League Matches Schemas & Types
 // ============================================================================
 
-/**
- * League matches response (without HAL links)
- * Using generated schema - results field is properly typed as nullable
- */
+const LeagueMatchLocationAddressSchema = z.object({
+  street: z.string().optional(),
+  postcode: z.string().optional(),
+  city: z.string().optional(),
+});
+
+const LeagueMatchLocationSchema = z
+  .object({
+    uuid: z.string(),
+    name: z.string().nullish(),
+    longitude: z.number().nullish(),
+    latitude: z.number().nullish(),
+    address: z.union([z.string(), LeagueMatchLocationAddressSchema]).nullish(),
+  })
+  .nullish();
+
+const LeagueMatchSetSchema = z.object({
+  number: z.number(),
+  ballPoints: z.string().optional(),
+  winner: z.string().optional(),
+  winnerName: z.string().optional(),
+  duration: z.number().optional(),
+});
+
+const LeagueMatchResultsSchema = z
+  .object({
+    winner: z.string().nullish(),
+    winnerName: z.string().nullish(),
+    setPoints: z.string().nullish(),
+    ballPoints: z.string().nullish(),
+    sets: z.array(LeagueMatchSetSchema).optional(),
+  })
+  .nullish();
+
 const LeagueMatchTeamSchema = z.object({
   uuid: z.string(),
   name: z.string(),
   sportsclubUuid: z.string(),
 });
 
-const LeagueMatchEmbeddedSchema = z
-  .object({
-    team1: LeagueMatchTeamSchema.optional(),
-    team2: LeagueMatchTeamSchema.optional(),
-  })
-  .nullish();
+/** Schedule projection match row exposed to the webapp. */
+export const LeagueMatchSchema = z.object({
+  uuid: z.string(),
+  date: z.string().nullish(),
+  time: z.string().nullish(),
+  matchNumber: z.string().nullish(),
+  host: z.union([z.string(), z.boolean()]).nullish(),
+  leagueUuid: z.string().nullish(),
+  results: LeagueMatchResultsSchema,
+  location: LeagueMatchLocationSchema,
+  _embedded: z
+    .object({
+      team1: LeagueMatchTeamSchema.optional(),
+      team2: LeagueMatchTeamSchema.optional(),
+    })
+    .nullish(),
+});
 
-const LeagueMatchLocationSchema = zLocation
-  .pick({
-    uuid: true,
-    name: true,
-    longitude: true,
-    latitude: true,
-    address: true,
-  })
-  .nullish();
-
-const LeagueMatchResponseItemSchema = zLeagueMatchDto
-  .pick({
-    uuid: true,
-    date: true,
-    time: true,
-    matchNumber: true,
-    host: true,
-    leagueUuid: true,
-    results: true,
-    location: true,
-    _embedded: true,
-  })
-  .extend({
-    results: zVolleyballMatchResultsDto.nullish(),
-    location: LeagueMatchLocationSchema,
-    _embedded: LeagueMatchEmbeddedSchema,
-  });
+export type LeagueMatch = z.infer<typeof LeagueMatchSchema>;
 
 export const LeagueMatchesResponseSchema = z.object({
-  matches: z.array(LeagueMatchResponseItemSchema),
+  matches: z.array(LeagueMatchSchema),
   timestamp: z.iso.datetime(),
 });
 

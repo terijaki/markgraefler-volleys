@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/de";
 import { useMemo } from "react";
 import type { LeagueMatchesResponse } from "@/lambda/sams/types";
+import { matchLocationAddressParts } from "@/utils/matchLocation";
 import { getOwnedSamsTeamUuids } from "@/utils/sams";
 import { useLiveTicker, useSamsMatches, useSamsTeams } from "../../hooks/dataQueries";
 import MapsLink from "../MapsLink";
@@ -50,7 +51,7 @@ export default function HomeHeimspiele() {
     // Filter to only matches we are hosting
     const matchesHomeGames = matchesAll.filter((match) => {
       const hostUuid = match.host;
-      return !!hostUuid && ourTeamUuids.has(hostUuid);
+      return typeof hostUuid === "string" && ourTeamUuids.has(hostUuid);
     });
 
     // Sort by date
@@ -183,9 +184,7 @@ function HomeMatchesList({ homeMatches }: { homeMatches: LeagueMatchesResponse["
                   </Group>
                   <MapsLink
                     name={location?.name}
-                    street={location?.address?.street}
-                    postal={location?.address?.postcode}
-                    city={location?.address?.city}
+                    {...matchLocationAddressParts(location?.address)}
                   />
                 </Flex>
                 {Object.entries(leagueGroups).map(([leagueUuid, matches]) => {

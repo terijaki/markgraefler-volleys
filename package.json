@@ -89,7 +89,6 @@
     "react-dom": "^19.2.7",
     "react-world-flags": "^1.6.0",
     "sams-provider-events": "0.3.0",
-    "sams-rest-v2": "^0.1.9",
     "superjson": "^2.2.6",
     "ts-ics": "^2.4.6",
     "varlock": "^1.10.0",

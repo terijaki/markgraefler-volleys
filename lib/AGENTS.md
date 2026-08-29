@@ -7,7 +7,7 @@ This file provides instructions specific to the `lib/` directory, which contains
 - `lib/*-stack.ts` — AWS CDK stack definitions (one file per stack):
   - `lib/webapp-stack.ts` — Unified TanStack Start webapp (Nitro Lambda, CloudFront, S3)
   - `lib/content-db-stack.ts` — DynamoDB tables for content (news, events, teams, members, sponsors, bus, locations, users, auth)
-  - `lib/sams-api-stack.ts` — SAMS API proxy (Lambda + API Gateway + Lambda@Edge)
+  - `lib/sams-stack.ts` — SAMS provider consumer (SQS processor, DynamoDB table)
   - `lib/social-media-stack.ts` — Instagram sync Lambda + DynamoDB
   - `lib/media-stack.ts` — S3 bucket + CloudFront distribution for media assets; Bun image processor Lambda
   - `lib/buntime-stack.ts` — Account-scoped Bun 1.4 Lambda runtime layer (deploy once per environment)
@@ -23,7 +23,7 @@ This file provides instructions specific to the `lib/` directory, which contains
 
 - CDK entry: `bin/cdk.ts`
 - Account-baseline stacks: `BudgetStack` and `MonitoringStack` deploy for **prod** and **shared dev** (`main` / empty sanitized branch) only — not on feature-branch deploys. See `shouldDeployAccountOpsStacks` in `utils/cdk-deploy.ts`.
-- Active stacks: `lib/webapp-stack.ts`, `lib/content-db-stack.ts`, `lib/sams-api-stack.ts`, `lib/social-media-stack.ts`, `lib/media-stack.ts`, `lib/buntime-stack.ts`, `lib/mail-infra-stack.ts`, `lib/mail-stack.ts`, `lib/dns-stack.ts`, `lib/monitoring-stack.ts`, `lib/budget-stack.ts`
+- Active stacks: `lib/webapp-stack.ts`, `lib/content-db-stack.ts`, `lib/sams-stack.ts`, `lib/social-media-stack.ts`, `lib/media-stack.ts`, `lib/buntime-stack.ts`, `lib/mail-infra-stack.ts`, `lib/mail-stack.ts`, `lib/dns-stack.ts`, `lib/monitoring-stack.ts`, `lib/budget-stack.ts`
 - DB client: `lib/db/client.ts` (DynamoDB DocumentClient with X-Ray tracing)
 - DB schemas: `lib/db/schemas.ts` (Zod schemas for all entities)
 - DB repositories: `lib/db/repositories.ts` (repository pattern for CRUD + queries)
@@ -41,7 +41,7 @@ This file provides instructions specific to the `lib/` directory, which contains
 ## Integration points / external services
 
 - **AWS:** CDK stacks create Lambdas, DynamoDB tables, S3 buckets, and Cognito resources. Use the `mv-dev` profile for dev and `mv-prod` for prod.
-- **SAMS API:** Use the [`sams-rest-v2`](https://www.npmjs.com/package/sams-rest-v2) npm package via `import { sams } from "@/utils/sams-client"`. Bump the dependency when the upstream SAMS spec or bug workarounds change.
+- **SAMS data:** Provider consumer (`lib/sams-stack.ts`) — projections in DynamoDB; types from `sams-provider-events`. Live ticker uses `backend.sams-ticker.de` (separate service).
 - **Background/schedulers:** EventBridge rules are defined in CDK constructs.
 
 ## DB conventions
@@ -61,6 +61,6 @@ The webapp uses **TanStack React Start server functions** instead of tRPC. All d
 
 ## Testing
 
-- Stack unit tests live alongside stack files (e.g., `lib/sams-api-stack.test.ts`).
+- Stack unit tests live alongside stack files (e.g., `lib/sams-stack.test.ts`).
 - Use `aws-sdk-client-mock` for AWS SDK calls in tests.
 - Run tests: `vp test`
