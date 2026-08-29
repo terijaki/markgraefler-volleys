@@ -5,6 +5,7 @@ import {
   buildMockSamsProviderSqsBody,
   SEED_MV_CLUB,
   SEED_MV_TEAMS,
+  SEED_SEASON,
   samsProviderEventFixtures,
 } from "@/fixtures/sams-provider-events";
 import { processSamsProviderEvent, processSamsProviderSqsBody } from "./sams-provider-events";
@@ -140,6 +141,34 @@ describe("processSamsProviderEvent", () => {
     await processSamsProviderEvent(event, repos);
 
     expect(repos.rankings.replace).toHaveBeenCalledOnce();
+  });
+
+  it("stores league and season labels even when rank 1 is an unregistered opponent", async () => {
+    repos.teams.getById = vi.fn().mockResolvedValue(null);
+    repos.teams.listAll = vi.fn().mockResolvedValue([
+      {
+        uuid: SEED_MV_TEAMS[0].uuid,
+        leagueUuid: SEED_MV_TEAMS[0].leagueUuid,
+        leagueName: SEED_MV_TEAMS[0].leagueName,
+        seasonUuid: SEED_SEASON.uuid,
+        seasonName: SEED_SEASON.name,
+      },
+    ]);
+
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.leagueRankingUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.rankings.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leagueName: SEED_MV_TEAMS[0].leagueName,
+        seasonName: SEED_SEASON.name,
+      }),
+    );
   });
 
   it("replaces club match schedule projections", async () => {

@@ -306,17 +306,35 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
     throw new Error("No rankings found for this league");
   }
 
+  const labels = await resolveRankingResponseLabels(leagueUuid, projection);
+
   return parseServerData(
     RankingResponseSchema,
     {
       teams: projection.teams,
       timestamp: projection.updatedAt,
       leagueUuid,
-      leagueName: projection.leagueName,
-      seasonName: projection.seasonName,
+      leagueName: labels.leagueName,
+      seasonName: labels.seasonName,
     },
     "Failed to parse SAMS rankings response",
   );
+}
+
+async function resolveRankingResponseLabels(
+  leagueUuid: string,
+  projection: { leagueName?: string; seasonName?: string },
+): Promise<{ leagueName?: string; seasonName?: string }> {
+  if (projection.leagueName && projection.seasonName) {
+    return { leagueName: projection.leagueName, seasonName: projection.seasonName };
+  }
+
+  const teams = await getAllSamsTeams();
+  const leagueTeam = teams.items.find((team) => team.leagueUuid === leagueUuid);
+  return {
+    leagueName: projection.leagueName ?? leagueTeam?.leagueName,
+    seasonName: projection.seasonName ?? leagueTeam?.seasonName,
+  };
 }
 
 async function peekRankingProjectionForSeason(
@@ -326,14 +344,16 @@ async function peekRankingProjectionForSeason(
   const projection = await samsRankingProjectionRepository.get(leagueUuid, seasonUuid);
   if (!projection) return null;
 
+  const labels = await resolveRankingResponseLabels(leagueUuid, projection);
+
   return parseServerData(
     RankingResponseSchema,
     {
       teams: projection.teams,
       timestamp: projection.updatedAt,
       leagueUuid,
-      leagueName: projection.leagueName,
-      seasonName: projection.seasonName,
+      leagueName: labels.leagueName,
+      seasonName: labels.seasonName,
     },
     "Failed to parse SAMS rankings projection",
   );
