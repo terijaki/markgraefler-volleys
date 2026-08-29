@@ -8,6 +8,11 @@ import {
   SEED_SEASON,
   samsProviderEventFixtures,
 } from "@/fixtures/sams-provider-events";
+
+vi.mock("./club-logo-upload", () => ({
+  uploadClubLogoToS3: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { processSamsProviderEvent, processSamsProviderSqsBody } from "./sams-provider-events";
 
 function createMockRepos(): SamsRepositories {
