@@ -161,6 +161,13 @@ describe("processSamsProviderEvent", () => {
       expect.objectContaining({
         leagueName: SEED_MV_TEAMS[0].leagueName,
         seasonName: SEED_SEASON.name,
+        teams: expect.arrayContaining([
+          expect.objectContaining({
+            uuid: SEED_MV_TEAMS[0].uuid,
+            sportsclubUuid: SEED_MV_CLUB.uuid,
+            logoUrl: expect.stringMatching(/^https:\/\//),
+          }),
+        ]),
       }),
     );
   });

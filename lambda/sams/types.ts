@@ -240,16 +240,21 @@ export type SeasonsResponse = z.infer<typeof SeasonsResponseSchema>;
 /**
  * League rankings response
  */
-const RankingEntryResponseSchema = zLeagueRankingsEntryDto.pick({
-  uuid: true,
-  teamName: true,
-  rank: true,
-  matchesPlayed: true,
-  points: true,
-  wins: true,
-  setWins: true,
-  setLosses: true,
-});
+const RankingEntryResponseSchema = zLeagueRankingsEntryDto
+  .pick({
+    uuid: true,
+    teamName: true,
+    rank: true,
+    matchesPlayed: true,
+    points: true,
+    wins: true,
+    setWins: true,
+    setLosses: true,
+  })
+  .extend({
+    sportsclubUuid: z.string().min(1).optional(),
+    logoUrl: z.string().optional(),
+  });
 
 export const RankingResponseSchema = z.object({
   teams: z.optional(z.array(RankingEntryResponseSchema)),

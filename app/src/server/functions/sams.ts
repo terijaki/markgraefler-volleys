@@ -10,7 +10,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   handleGetClubLogoUrl,
-  handleGetClubLogoUrlsBatch,
+  handleGetClubLogoUrlsBySportsclubUuids,
   handleGetSamsMatches,
   handleGetSamsRankingByLeagueUuid,
   handleGetSamsRankingsByLeagueUuids,
@@ -87,8 +87,8 @@ export const getClubLogoUrlFn = createServerFn()
   .validator(clubLogoInputSchema)
   .handler(async ({ data }) => handleGetClubLogoUrl(data));
 
-export const getClubLogoUrlsBatchFn = createServerFn()
-  .validator(z.object({ clubSlugs: z.array(z.string().min(1)) }))
-  .handler(async ({ data }) => handleGetClubLogoUrlsBatch(data.clubSlugs));
+export const getClubLogoUrlsBySportsclubUuidsFn = createServerFn()
+  .validator(z.object({ sportsclubUuids: z.array(z.string().min(1)) }))
+  .handler(async ({ data }) => handleGetClubLogoUrlsBySportsclubUuids(data.sportsclubUuids));
 
 export const getSamsTickerFn = createServerFn().handler(async () => handleGetSamsTicker());

@@ -118,6 +118,8 @@ export function mapProviderRankingEntry(
     uuid: entry.teamUuid,
     teamName: entry.teamName,
     rank: entry.rank,
+    ...(entry.sportsclubUuid ? { sportsclubUuid: entry.sportsclubUuid } : {}),
+    ...(entry.logoUrl ? { logoUrl: entry.logoUrl } : {}),
     matchesPlayed: entry.matchesPlayed ?? undefined,
     points: entry.points ?? undefined,
     wins: entry.wins ?? undefined,

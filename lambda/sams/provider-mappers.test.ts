@@ -2,8 +2,11 @@ import { describe, expect, it } from "vite-plus/test";
 import { LeagueMatchesResponseSchema } from "./types";
 import { buildTestSamsProviderFixtures } from "@/fixtures/sams-provider-events";
 import { SamsEventType } from "sams-provider-events";
-import { mapProviderMatchToProjection } from "./provider-mappers";
-import { samsClubScheduleProjectionSchema } from "@/lib/db/schemas";
+import { mapProviderMatchToProjection, mapProviderRankingEntry } from "./provider-mappers";
+import {
+  samsClubScheduleProjectionSchema,
+  samsProjectionRankingEntrySchema,
+} from "@/lib/db/schemas";
 
 describe("mapProviderMatchToProjection", () => {
   it("stores host as home team uuid for API-shaped responses", () => {
@@ -49,5 +52,20 @@ describe("mapProviderMatchToProjection", () => {
       ttl: Math.floor(Date.now() / 1000) + 86400,
     });
     expect(parsed.matches.length).toBeGreaterThan(0);
+  });
+});
+
+describe("mapProviderRankingEntry", () => {
+  it("preserves sportsclubUuid and logoUrl from provider ranking entries", () => {
+    const fixtures = buildTestSamsProviderFixtures();
+    const ranking = fixtures.find((fixture) => fixture.type === SamsEventType.leagueRankingUpdated);
+    expect(ranking).toBeDefined();
+
+    const entry = (ranking!.payload.entries as Array<Record<string, unknown>>)[0];
+    const mapped = mapProviderRankingEntry(entry as Parameters<typeof mapProviderRankingEntry>[0]);
+
+    const parsed = samsProjectionRankingEntrySchema.parse(mapped);
+    expect(parsed.sportsclubUuid).toBe(entry.sportsclubUuid);
+    expect(parsed.logoUrl).toBe(entry.logoUrl);
   });
 });

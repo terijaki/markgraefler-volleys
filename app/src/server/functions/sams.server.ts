@@ -26,7 +26,6 @@ import {
   getAllSamsClubs,
   getAllSamsTeams,
   getSamsClubByNameSlug,
-  getSamsClubByNameSlugPrefix,
   getSamsClubBySportsclubUuid,
   getSamsRosterByTeamUuid,
 } from "../queries";
@@ -540,12 +539,13 @@ export async function handleGetClubLogoUrl(data: ClubLogoInput) {
   return resolveClubLogoUrl(club, MEDIA_CLOUDFRONT_URL());
 }
 
-export async function handleGetClubLogoUrlsBatch(clubSlugs: string[]) {
+export async function handleGetClubLogoUrlsBySportsclubUuids(sportsclubUuids: string[]) {
+  const uniqueUuids = [...new Set(sportsclubUuids.filter((uuid) => uuid.length > 0))];
   const cfUrl = MEDIA_CLOUDFRONT_URL();
   const entries = await Promise.all(
-    clubSlugs.map(async (slug) => {
-      const club = (await getSamsClubByNameSlug(slug)) ?? (await getSamsClubByNameSlugPrefix(slug));
-      return [slug, resolveClubLogoUrl(club, cfUrl)] as const;
+    uniqueUuids.map(async (sportsclubUuid) => {
+      const club = await getSamsClubBySportsclubUuid(sportsclubUuid);
+      return [sportsclubUuid, resolveClubLogoUrl(club, cfUrl)] as const;
     }),
   );
   return Object.fromEntries(entries) as Record<string, string | null>;

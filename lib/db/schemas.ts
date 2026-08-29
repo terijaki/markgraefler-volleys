@@ -265,6 +265,8 @@ export const samsProjectionRankingEntrySchema = z.object({
   uuid: z.string(),
   teamName: z.string(),
   rank: z.number().optional(),
+  sportsclubUuid: z.string().min(1).optional(),
+  logoUrl: z.string().optional(),
   matchesPlayed: z.number().nullish(),
   points: z.number().nullish(),
   wins: z.number().nullish(),
