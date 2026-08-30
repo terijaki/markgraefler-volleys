@@ -7,7 +7,6 @@ import * as cdk from "aws-cdk-lib";
 import { DNS } from "@/project.config";
 import { BunTimeStack } from "../lib/buntime-stack";
 import { BudgetStack } from "../lib/budget-stack";
-import { CacheStack } from "../lib/cache-stack";
 import { ContentDbStack } from "../lib/content-db-stack";
 import { DnsStack } from "../lib/dns-stack";
 import { MailInfraStack } from "../lib/mail-infra-stack";
@@ -64,7 +63,6 @@ if (deployMailInfra) {
   const { stackName, envLabel } = getCdkNaming(isProd, branch);
 
   const contentDbStackName = stackName("ContentDbStack");
-  const cacheStackName = stackName("CacheStack");
   const mediaStackName = stackName("MediaStack");
   const webappStackName = stackName("WebAppStack");
   const samsStackName = stackName("SamsStack");
@@ -96,11 +94,6 @@ if (deployMailInfra) {
     description: `Content Database Tables (${envLabel})`,
   });
 
-  new CacheStack(app, cacheStackName, {
-    ...commonStackProps,
-    description: `Cache Table (${envLabel})`,
-  });
-
   const mediaStack = new MediaStack(app, mediaStackName, {
     ...commonStackProps,
     description: `Media Storage (S3) (${envLabel})`,
@@ -117,7 +110,7 @@ if (deployMailInfra) {
   });
 
   // Social Media Stack with Behold sync
-  new SocialMediaStack(app, socialMediaStackName, {
+  const socialMediaStack = new SocialMediaStack(app, socialMediaStackName, {
     ...commonStackProps,
     description: `Social Media API Services (${envLabel})`,
   });
@@ -126,6 +119,7 @@ if (deployMailInfra) {
     ...commonStackProps,
     description: `MV WebApp + Admin (${envLabel})`,
     contentTableName: contentDbStack.contentTableName,
+    socialTableName: socialMediaStack.socialTableName,
     mediaBucketName: mediaStack.bucketName,
     mediaCloudFrontUrl: mediaStack.cloudFrontUrl,
     hostedZone: dnsStack.hostedZone,

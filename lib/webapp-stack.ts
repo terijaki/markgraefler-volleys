@@ -26,12 +26,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import type { Construct } from "constructs";
 import { Club } from "@project.config";
-import {
-  CACHE_TABLE_ENV_VAR,
-  CONTENT_TABLE_ENV_VAR,
-  computeCacheTableName,
-  computeSamsDataTableName,
-} from "./db/env";
+import { CONTENT_TABLE_ENV_VAR, SOCIAL_TABLE_ENV_VAR, computeSamsDataTableName } from "./db/env";
 import { buildWebappDomain, buildWebappUrl } from "@utils/webapp-url";
 import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
@@ -41,6 +36,7 @@ export interface WebAppStackProps extends cdk.StackProps {
     branch: string;
   };
   contentTableName: string;
+  socialTableName: string;
   mediaBucketName: string;
   /** CloudFront URL of the media stack — used for serving uploaded images */
   mediaCloudFrontUrl?: string;
@@ -95,16 +91,15 @@ export class WebAppStack extends cdk.Stack {
       resource: "table",
       resourceName: samsTableName,
     });
-    const cacheTableName = computeCacheTableName(environment, branch);
-    const cacheTableArn = stack.formatArn({
+    const socialTableArn = stack.formatArn({
       service: "dynamodb",
       resource: "table",
-      resourceName: cacheTableName,
+      resourceName: props.socialTableName,
     });
 
     const lambdaEnvironment: Record<string, string> = {
       [CONTENT_TABLE_ENV_VAR]: props.contentTableName,
-      [CACHE_TABLE_ENV_VAR]: cacheTableName,
+      [SOCIAL_TABLE_ENV_VAR]: props.socialTableName,
       CDK_ENVIRONMENT: environment,
       APP_BASE_URL: webappUrl,
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "",
@@ -150,11 +145,11 @@ export class WebAppStack extends cdk.Stack {
       tracing: lambda.Tracing.ACTIVE,
     });
 
-    // Grant Lambda access to content, cache, and SAMS tables via computed ARNs (no CF cross-stack exports)
+    // Grant Lambda access to content, social, and SAMS tables via computed ARNs (no CF cross-stack exports)
     dynamodb.Table.fromTableArn(this, "ContentTableRef", contentTableArn).grantReadWriteData(
       this.webappLambda,
     );
-    dynamodb.Table.fromTableArn(this, "CacheTableRef", cacheTableArn).grantReadWriteData(
+    dynamodb.Table.fromTableArn(this, "SocialTableRef", socialTableArn).grantReadData(
       this.webappLambda,
     );
     this.webappLambda.addToRolePolicy(
