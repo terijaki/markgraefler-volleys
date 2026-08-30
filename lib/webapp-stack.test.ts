@@ -4,7 +4,7 @@ import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import * as route53 from "aws-cdk-lib/aws-route53";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { CACHE_TABLE_ENV_VAR, CONTENT_TABLE_ENV_VAR } from "./db/env";
+import { SOCIAL_TABLE_ENV_VAR, CONTENT_TABLE_ENV_VAR } from "./db/env";
 import { createTestApp } from "./test-helpers";
 
 const { buildMock } = vi.hoisted(() => ({
@@ -67,6 +67,7 @@ function ensureNitroOutputFixtures() {
 function createDependencies() {
   return {
     contentTableName: "mv-content-dev",
+    socialTableName: "mv-social-dev",
     mediaBucketName: "markgraefler-volleys-media-dev",
   };
 }
@@ -142,7 +143,7 @@ describe("WebAppStack", () => {
       Environment: {
         Variables: {
           [CONTENT_TABLE_ENV_VAR]: Match.anyValue(),
-          [CACHE_TABLE_ENV_VAR]: Match.anyValue(),
+          [SOCIAL_TABLE_ENV_VAR]: Match.anyValue(),
           APP_BASE_URL: "https://dev.new.markgraefler-volleys.de",
           BETTER_AUTH_SECRET: "test-auth-secret",
           CDK_ENVIRONMENT: "dev",

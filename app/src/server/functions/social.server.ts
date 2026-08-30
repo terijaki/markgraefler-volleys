@@ -3,15 +3,13 @@
  */
 
 import type { BeholdPost } from "@/lambda/social/types";
-import { createCacheKey } from "@utils/cache";
-import { readCacheEntry } from "../ddb-cache";
-
-/** Cache key must match the one used by lambda/social/behold-sync.ts */
-const BEHOLD_CACHE_KEY = createCacheKey({ type: "behold_feed" });
+import { docClient } from "@/lib/db/client";
+import { getSocialTableName } from "@/lib/db/env";
+import { readBeholdFeed } from "@/lib/db/social-feed-store";
 
 export async function handleGetInstagramPosts(): Promise<BeholdPost[]> {
   try {
-    const cached = await readCacheEntry<BeholdPost[]>(BEHOLD_CACHE_KEY, Infinity);
+    const cached = await readBeholdFeed<BeholdPost>(docClient, getSocialTableName());
     return cached ?? [];
   } catch {
     return [];

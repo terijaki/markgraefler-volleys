@@ -6,7 +6,7 @@ This file provides instructions specific to the `lambda/` directory, which conta
 
 - `lambda/sams/` — SAMS provider consumer processor (`sams-provider-events.ts`) and shared SAMS types
 - `lambda/content/` — Lambdas for content management (ICS calendar, Bun image processing, S3 cleanup, sitemap)
-- `lambda/social/` — Lambdas for social media integrations (Instagram)
+- `lambda/social/` — Lambdas for social media integrations (Instagram feed sync to `mv-social-*` DynamoDB)
 - `lambda/utils/` — Shared Lambda utilities (e.g., Sentry error reporting)
 
 ## Key files to reference

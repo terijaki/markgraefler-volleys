@@ -6,7 +6,7 @@ import * as targets from "aws-cdk-lib/aws-events-targets";
 import type { Construct } from "constructs";
 import type { BeholdSyncLambdaEnvironment } from "@/lambda/social/types";
 import { computeResourceBranchSuffix } from "@utils/cdk-naming";
-import { computeCacheTableName } from "./db/env";
+import { computeSocialTableName } from "./db/env";
 import { MvNodejsFunction } from "./construct/mv-nodejs-function";
 
 interface SocialMediaStackProps extends cdk.StackProps {
@@ -17,6 +17,9 @@ interface SocialMediaStackProps extends cdk.StackProps {
 }
 
 export class SocialMediaStack extends cdk.Stack {
+  /** Stable plain-string table name — safe to pass cross-stack without creating CloudFormation exports. */
+  public readonly socialTableName: string;
+
   constructor(scope: Construct, id: string, props: SocialMediaStackProps) {
     super(scope, id, props);
 
@@ -27,16 +30,20 @@ export class SocialMediaStack extends cdk.Stack {
       CDK_ENVIRONMENT: environment,
     };
 
+    this.socialTableName = computeSocialTableName(environment, branch);
+
+    const socialTable = new dynamodb.Table(this, "SocialTable", {
+      tableName: this.socialTableName,
+      partitionKey: { name: "pk", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "sk", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      deletionProtection: false,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "ttl",
+    });
+
     // Create scheduled Lambda to proactively sync Behold Instagram posts to DynamoDB.
     // Runs hourly during German daytime — ~465 calls/month (~39% of Behold's 1200/month free-tier limit).
-    const cacheTableName = computeCacheTableName(environment, branch);
-    const cacheTableArn = cdk.Stack.of(this).formatArn({
-      service: "dynamodb",
-      resource: "table",
-      resourceName: cacheTableName,
-    });
-    const cacheTableRef = dynamodb.Table.fromTableArn(this, "CacheTableRef", cacheTableArn);
-
     const beholdSync = new MvNodejsFunction(this, "BeholdSync", {
       namespace: "social",
       name: "behold-sync",
@@ -44,12 +51,12 @@ export class SocialMediaStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         ...commonEnvironment,
-        CACHE_TABLE_NAME: cacheTableName,
+        SOCIAL_TABLE_NAME: this.socialTableName,
         BEHOLD_FEED_URL: process.env.BEHOLD_FEED_URL,
       } satisfies BeholdSyncLambdaEnvironment,
     }).lambdaFunction;
 
-    cacheTableRef.grantReadWriteData(beholdSync);
+    socialTable.grantReadWriteData(beholdSync);
 
     // Trigger hourly during German daytime (7:00–21:00 UTC = 8–22h CET / 9–23h CEST)
     // ~15 runs/day, ~465 calls/month (~39% of Behold's 1200/month free-tier limit)

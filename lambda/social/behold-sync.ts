@@ -8,18 +8,17 @@
  * The webapp route reads exclusively from DynamoDB — no live Behold API calls
  * happen on the main request path.
  *
- * DDB key scheme (cache table, same as ddb-cache.ts):
- *   PK: `cache#<cacheKey>`
- *   SK: `cache`
+ * DDB key scheme (social table, see lib/db/social-feed-store.ts):
+ *   PK: `social#behold`
+ *   SK: `feed`
  */
 
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer/middleware";
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import middy from "@middy/core";
 import type { EventBridgeEvent } from "aws-lambda";
 import dayjs from "dayjs";
-import { createCacheKey } from "@/utils/cache";
+import { writeBeholdFeed } from "@/lib/db/social-feed-store";
 import { parseLambdaEnv } from "../utils/env";
 import { createDynamoDocClient, createLambdaResources } from "../utils/resources";
 import { Sentry } from "../utils/sentry";
@@ -29,19 +28,10 @@ const { logger, tracer } = createLambdaResources("behold-sync");
 const docClient = createDynamoDocClient(tracer);
 
 const env = parseLambdaEnv(BeholdSyncLambdaEnvironmentSchema);
-const TABLE_NAME = env.CACHE_TABLE_NAME;
 
 const MAX_POSTS = 6;
 const MAX_AGE_DAYS = 30;
 const BEHOLD_TIMEOUT_MS = 10_000;
-
-/** 3 months — DDB hygiene TTL to eventually reclaim storage */
-const DDB_TTL_SECONDS = 90 * 24 * 60 * 60;
-
-/** Cache key must match the one used by app/src/server/functions/social.ts */
-export const BEHOLD_CACHE_KEY = createCacheKey({ type: "behold_feed" });
-
-const CACHE_SK = "cache";
 
 const lambdaHandler = async (event: EventBridgeEvent<string, unknown>) => {
   logger.info("Starting Behold Instagram feed sync", { event });
@@ -73,19 +63,7 @@ const lambdaHandler = async (event: EventBridgeEvent<string, unknown>) => {
     .filter((post) => dayjs(post.timestamp).isAfter(cutoff))
     .slice(0, MAX_POSTS);
 
-  const nowMs = Date.now();
-  await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        pk: `cache#${BEHOLD_CACHE_KEY}`,
-        sk: CACHE_SK,
-        data: JSON.stringify(posts),
-        cachedAt: new Date(nowMs).toISOString(),
-        ttl: Math.floor(nowMs / 1000) + DDB_TTL_SECONDS,
-      },
-    }),
-  );
+  await writeBeholdFeed(docClient, env.SOCIAL_TABLE_NAME, posts);
 
   logger.info("Behold feed synced successfully", { postCount: posts.length });
   Sentry.setMeasurement("behold_sync.posts_written", posts.length, "none");
