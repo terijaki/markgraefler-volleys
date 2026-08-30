@@ -18,6 +18,7 @@ import {
   computeSamsProviderEventsDlqName,
   computeSamsProviderEventsQueueName,
   getProviderEventDeliveryRoleArn,
+  SAMS_PROVIDER_ACCOUNT_ID,
 } from "./sams-provider-env";
 import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
@@ -96,9 +97,14 @@ export class SamsStack extends cdk.Stack {
         new iam.PolicyStatement({
           sid: "AllowSamsProviderEventBridgeSendMessage",
           effect: iam.Effect.ALLOW,
-          principals: [new iam.ArnPrincipal(getProviderEventDeliveryRoleArn())],
+          principals: [new iam.AccountPrincipal(SAMS_PROVIDER_ACCOUNT_ID)],
           actions: ["sqs:SendMessage"],
           resources: [providerEventsQueue.queueArn],
+          conditions: {
+            ArnEquals: {
+              "aws:PrincipalArn": getProviderEventDeliveryRoleArn(),
+            },
+          },
         }),
       );
     } else {
