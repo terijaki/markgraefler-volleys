@@ -17,8 +17,7 @@ import { MvNodejsFunction } from "./construct/mv-nodejs-function";
 import {
   computeSamsProviderEventsDlqName,
   computeSamsProviderEventsQueueName,
-  getProviderEventBusArn,
-  SAMS_PROVIDER_ACCOUNT_ID,
+  getProviderEventDeliveryRoleArn,
 } from "./sams-provider-env";
 import { computeResourceBranchSuffix } from "@utils/cdk-naming";
 
@@ -97,14 +96,9 @@ export class SamsStack extends cdk.Stack {
         new iam.PolicyStatement({
           sid: "AllowSamsProviderEventBridgeSendMessage",
           effect: iam.Effect.ALLOW,
-          principals: [new iam.AccountPrincipal(SAMS_PROVIDER_ACCOUNT_ID)],
+          principals: [new iam.ArnPrincipal(getProviderEventDeliveryRoleArn())],
           actions: ["sqs:SendMessage"],
           resources: [providerEventsQueue.queueArn],
-          conditions: {
-            ArnEquals: {
-              "aws:SourceArn": getProviderEventBusArn(),
-            },
-          },
         }),
       );
     } else {
