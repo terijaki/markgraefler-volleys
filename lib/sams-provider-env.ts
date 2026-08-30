@@ -23,3 +23,11 @@ export function computeSamsProviderEventsDlqName(environment: string, branch: st
 export function getProviderEventBusArn(): string {
   return `arn:aws:events:${SAMS_PROVIDER_REGION}:${SAMS_PROVIDER_ACCOUNT_ID}:event-bus/${SAMS_PROVIDER_EVENT_BUS_NAME}`;
 }
+
+/** IAM role in the provider account that EventBridge assumes to deliver events to consumer SQS. */
+export const SAMS_PROVIDER_EVENT_DELIVERY_ROLE_NAME = "sp-event-delivery-prod";
+
+/** ARN of the provider EventBridge cross-account delivery execution role. */
+export function getProviderEventDeliveryRoleArn(): string {
+  return `arn:aws:iam::${SAMS_PROVIDER_ACCOUNT_ID}:role/${SAMS_PROVIDER_EVENT_DELIVERY_ROLE_NAME}`;
+}

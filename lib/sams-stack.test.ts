@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, it } from "vite-plus/test";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { SamsStack } from "./sams-stack";
 import { SamsTableIndexes } from "./db/table-indexes";
+import { getProviderEventDeliveryRoleArn } from "./sams-provider-env";
 import { createTestApp } from "./test-helpers";
 
 beforeEach(() => {
@@ -176,9 +177,9 @@ describe("SamsStack", () => {
             Match.objectLike({
               Sid: "AllowSamsProviderEventBridgeSendMessage",
               Action: "sqs:SendMessage",
-              Principal: Match.objectLike({
-                AWS: Match.anyValue(),
-              }),
+              Principal: {
+                AWS: getProviderEventDeliveryRoleArn(),
+              },
             }),
           ]),
         }),
