@@ -44,14 +44,6 @@ export function localAwsResourceEnvPlugin(): PluginOption {
       setDefaultEnv(CACHE_TABLE_ENV_VAR, computeCacheTableName(environment, sanitizedBranch));
       setDefaultEnv("SAMS_TABLE_NAME", computeSamsDataTableName(environment, sanitizedBranch));
       setDefaultEnv(
-        "SAMS_CLUBS_SYNC_FUNCTION_NAME",
-        buildBranchLambdaName("sams-clubs-sync", environment, branchSuffix),
-      );
-      setDefaultEnv(
-        "SAMS_TEAMS_SYNC_FUNCTION_NAME",
-        buildBranchLambdaName("sams-teams-sync", environment, branchSuffix),
-      );
-      setDefaultEnv(
         "IMAGE_PROCESSOR_FUNCTION_NAME",
         buildBranchLambdaName("bun-image-processor", environment, branchSuffix),
       );

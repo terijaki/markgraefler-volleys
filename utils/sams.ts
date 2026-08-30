@@ -13,6 +13,40 @@ type TeamLike = {
   sportsclubUuid?: NullableString;
 };
 
+type SyncedSeasonTeamLike = {
+  seasonUuid?: NullableString;
+  sportsclubUuid?: NullableString;
+};
+
+export function pickSyncedSeasonUuid(
+  teams: readonly SyncedSeasonTeamLike[],
+  preferredSportsclubUuids: readonly string[] = [],
+): string | undefined {
+  const pool =
+    preferredSportsclubUuids.length > 0
+      ? teams.filter(
+          (team) => team.sportsclubUuid && preferredSportsclubUuids.includes(team.sportsclubUuid),
+        )
+      : teams;
+
+  const seasonCounts = new Map<string, number>();
+  for (const team of pool) {
+    if (!team.seasonUuid) continue;
+    seasonCounts.set(team.seasonUuid, (seasonCounts.get(team.seasonUuid) ?? 0) + 1);
+  }
+
+  let bestSeason: string | undefined;
+  let bestCount = 0;
+  for (const [seasonUuid, count] of seasonCounts) {
+    if (count > bestCount) {
+      bestCount = count;
+      bestSeason = seasonUuid;
+    }
+  }
+
+  return bestSeason;
+}
+
 type MatchLike = {
   uuid?: NullableString;
 };

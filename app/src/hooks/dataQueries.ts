@@ -11,7 +11,7 @@ import { listMembersFn } from "../server/functions/members";
 // Server functions
 import {
   getClubLogoUrlFn,
-  getClubLogoUrlsBatchFn,
+  getClubLogoUrlsBySportsclubUuidsFn,
   getSamsMatchesFn,
   getSamsRankingByLeagueUuidFn,
   getSamsRosterByTeamUuidFn,
@@ -149,11 +149,11 @@ export const useClubLogoUrl = ({
   });
 };
 
-export const useClubLogoUrlsBatch = (clubSlugs: string[]) => {
+export const useClubLogoUrlsBySportsclubUuids = (sportsclubUuids: string[]) => {
   return useQuery({
-    queryKey: ["clubLogoUrls", clubSlugs],
-    queryFn: () => getClubLogoUrlsBatchFn({ data: { clubSlugs } }),
-    enabled: clubSlugs.length > 0,
+    queryKey: ["clubLogoUrls", "sportsclubUuid", sportsclubUuids],
+    queryFn: () => getClubLogoUrlsBySportsclubUuidsFn({ data: { sportsclubUuids } }),
+    enabled: sportsclubUuids.length > 0,
   });
 };
 

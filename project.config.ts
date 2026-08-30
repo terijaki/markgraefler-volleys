@@ -20,7 +20,6 @@ export const SAMS = {
     // { name: "VC Müllheim" },
     // { name: "TV Staufen" },
   ] as const,
-  server: "https://www.volleyball-baden.de" as const,
   association: { name: "Südbadischer Volleyball-Verband" as const, shortName: "SBVV" as const },
 };
 /** The clubs Instagram settings. */

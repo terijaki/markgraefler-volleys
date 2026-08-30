@@ -22,6 +22,7 @@ export const SamsTeamEntity = new Entity({
     leagueHierarchyLevel: number().optional(),
     seasonUuid: string(),
     seasonName: string(),
+    snapshotVersion: string().optional(),
     updatedAt: string(),
     ttl: number(),
   }).and((prevSchema) => ({

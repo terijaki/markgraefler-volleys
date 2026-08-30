@@ -1,13 +1,14 @@
 /**
  * ICS calendar API route — /ics/$teamSlug
  *
- * Returns an iCalendar (.ics) file for SAMS match data.
+ * TanStack Start server route (`createFileRoute` + `server.handlers`). API routes
+ * do not use a `.server.ts` suffix; load data via createServerFn wrappers instead.
+ *
+ * Returns an iCalendar (.ics) file from synced SAMS schedule projections.
  * teamSlug can be "all" or a specific team slug (e.g. "herren1").
  * The .ics file extension is stripped automatically.
  */
 
-import type { LeagueMatchDto } from "sams-rest-v2";
-import { sams } from "@/utils/sams-client";
 import { Club } from "@project.config";
 import { createFileRoute } from "@tanstack/react-router";
 import dayjs from "dayjs";
@@ -15,54 +16,16 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from "ts-ics";
-import { teamsRepository } from "@/lib/db/repositories";
+import type { LeagueMatch } from "@/lambda/sams/types";
+import { loadScheduleMatchesForSamsTeamUuidsFn } from "@webapp/server/functions/sams";
+import { getTeamBySlugFn, listTeamsFn } from "@webapp/server/functions/teams";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-async function fetchMatchesForTeam(teamUuid: string): Promise<LeagueMatchDto[]> {
-  const allMatches: LeagueMatchDto[] = [];
-  let currentPage = 0;
-  let hasMorePages = true;
-
-  while (hasMorePages) {
-    const { data } = await sams.getAllLeagueMatches({
-      query: {
-        "for-team": teamUuid,
-        page: currentPage,
-        size: 100,
-      },
-    });
-
-    if (!data) break;
-    if (data.content) {
-      allMatches.push(...data.content);
-      currentPage++;
-    }
-    if (data.last === true) hasMorePages = false;
-  }
-
-  return allMatches;
-}
-
-async function fetchAllLeagueMatches(teamUuids: string[]): Promise<LeagueMatchDto[]> {
-  const perTeam = await Promise.all(teamUuids.map((uuid) => fetchMatchesForTeam(uuid)));
-  const seen = new Set<string>();
-  const deduped: LeagueMatchDto[] = [];
-  for (const matches of perTeam) {
-    for (const match of matches) {
-      if (match.uuid && !seen.has(match.uuid)) {
-        seen.add(match.uuid);
-        deduped.push(match);
-      }
-    }
-  }
-  return deduped;
-}
-
 function convertMatchToIcs(
-  match: LeagueMatchDto,
+  match: LeagueMatch,
   teamLeagueName: string | undefined,
   timestamp: Date,
 ): IcsEvent | null {
@@ -79,11 +42,6 @@ function convertMatchToIcs(
 
   const locationParts: string[] = [];
   if (match.location?.name) locationParts.push(match.location.name);
-  if (match.location?.address?.street) locationParts.push(match.location.address.street);
-  const postalCity = [match.location?.address?.postcode, match.location?.address?.city]
-    .filter(Boolean)
-    .join(" ");
-  if (postalCity) locationParts.push(postalCity);
 
   const baseDesc = [
     teamLeagueName,
@@ -92,7 +50,8 @@ function convertMatchToIcs(
   ]
     .filter(Boolean)
     .join(", ");
-  const score = match.results?.setPoints;
+  const results = match.results;
+  const score = results?.setPoints;
   const description = score ? `Ergebnis: ${score}, ${baseDesc}` : baseDesc;
 
   return {
@@ -119,10 +78,10 @@ export const Route = createFileRoute("/ics/$teamSlug")({
 
           if (!teamSlug || teamSlug === "all") {
             calendarTitle = `${calendarTitle} - Vereinskalender`;
-            const { items: allTeams } = await teamsRepository.listAll();
+            const { items: allTeams } = await listTeamsFn();
             teamSamsUuids = allTeams.map((t) => t.sbvvTeamId).filter((id): id is string => !!id);
           } else {
-            const foundTeam = await teamsRepository.getBySlug(teamSlug);
+            const foundTeam = await getTeamBySlugFn({ data: { slug: teamSlug } });
             if (!foundTeam) {
               return new Response("Team nicht gefunden", {
                 status: 404,
@@ -135,7 +94,9 @@ export const Route = createFileRoute("/ics/$teamSlug")({
           }
 
           const timestamp = new Date();
-          const matches = await fetchAllLeagueMatches(teamSamsUuids);
+          const matches = await loadScheduleMatchesForSamsTeamUuidsFn({
+            data: { teamUuids: teamSamsUuids },
+          });
           const matchEvents = matches
             .map((match) => convertMatchToIcs(match, teamLeagueName, timestamp))
             .filter((e): e is IcsEvent => e !== null);

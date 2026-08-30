@@ -19,6 +19,7 @@ export const SamsClubEntity = new Entity({
     associationName: string().optional(),
     logoImageLink: string().optional(),
     logoS3Key: string().optional(),
+    snapshotVersion: string().optional(),
     updatedAt: string(),
     ttl: number(),
   }).and((prevSchema) => ({

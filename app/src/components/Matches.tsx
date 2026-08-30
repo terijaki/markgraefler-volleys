@@ -2,6 +2,7 @@ import { Box, Flex, Grid, GridCol, Group, Stack, Text } from "@mantine/core";
 import dayjs from "dayjs";
 import "dayjs/locale/de";
 import type { LeagueMatchesResponse } from "@/lambda/sams/types";
+import { matchLocationAddressParts } from "@/utils/matchLocation";
 import { getOwnedSamsTeamUuids } from "@/utils/sams";
 import { useSamsTeams } from "../hooks/dataQueries";
 import MapsLink from "./MapsLink";
@@ -93,9 +94,7 @@ export default function Matches({
                     {match.location && (
                       <MapsLink
                         name={match.location.name}
-                        street={match.location.address?.street}
-                        postal={match.location.address?.postcode}
-                        city={match.location.address?.city}
+                        {...matchLocationAddressParts(match.location.address)}
                         size="sm"
                         maw={{ base: "100%", sm: 160 }}
                       />
@@ -251,9 +250,7 @@ export default function Matches({
                 <GridCol span={{ base: 12, sm: 3 }}>
                   <MapsLink
                     name={match.location.name}
-                    street={match.location.address?.street}
-                    postal={match.location.address?.postcode}
-                    city={match.location.address?.city}
+                    {...matchLocationAddressParts(match.location.address)}
                     size="sm"
                     maw={{ base: "100%", sm: 160 }}
                   />

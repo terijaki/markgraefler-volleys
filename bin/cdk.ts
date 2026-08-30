@@ -108,11 +108,12 @@ if (deployMailInfra) {
     cloudFrontCertificate: dnsStack.cloudFrontCertificate,
   });
 
-  const samsStack = new SamsStack(app, samsStackName, {
+  new SamsStack(app, samsStackName, {
     ...commonStackProps,
-    description: `SAMS API Services (${envLabel})`,
+    description: `SAMS provider consumer (${envLabel})`,
     mediaBucketName: mediaStack.bucketName,
     mediaCloudFrontUrl: mediaStack.cloudFrontUrl,
+    alertEmail: ENV.CDK_MONITORING_ALERT_EMAIL || ENV.CDK_BUDGET_ALERT_EMAIL,
   });
 
   // Social Media Stack with Behold sync
@@ -129,8 +130,6 @@ if (deployMailInfra) {
     mediaCloudFrontUrl: mediaStack.cloudFrontUrl,
     hostedZone: dnsStack.hostedZone,
     cloudFrontCertificate: dnsStack.cloudFrontCertificate,
-    samsClubsSyncFunctionName: samsStack.samsClubsSyncFunctionName,
-    samsTeamsSyncFunctionName: samsStack.samsTeamsSyncFunctionName,
     imageProcessorFunctionName: mediaStack.imageProcessorFunctionName,
   });
 

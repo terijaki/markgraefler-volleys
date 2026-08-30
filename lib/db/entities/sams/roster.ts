@@ -19,6 +19,7 @@ export const SamsRosterEntity = new Entity({
     type: string().const("roster"),
     players: samsRosterPlayersToolboxSchema,
     officials: samsRosterOfficialsToolboxSchema,
+    snapshotVersion: string().optional(),
     updatedAt: string(),
     ttl: number(),
   }).and((prevSchema) => ({

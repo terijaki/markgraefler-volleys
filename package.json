@@ -20,7 +20,10 @@
     "verify": "vp check --fix && vp test --reporter=minimal",
     "db:seed": "bun ./scripts/db-seed.ts",
     "db:seed:user": "varlock run -- sh -c 'bun ./scripts/db-seed.ts --user \"$CDK_BUDGET_ALERT_EMAIL\"'",
-    "db:seed:sams": "bun ./scripts/data-trigger-syncs.ts",
+    "db:seed:sams": "bun ./scripts/seed-sams-provider-events.ts",
+    "ci:vitest-summary": "bun ./scripts/github-actions/write-vitest-summary.ts vitest-results.json",
+    "ci:cdk-deploy-summary": "bun ./scripts/github-actions/write-cdk-deploy-summary.ts cdk-outputs.json",
+    "ci:resolve-webapp-url": "bun ./scripts/github-actions/resolve-webapp-url.ts",
     "cdk:deploy": "cdk deploy --require-approval=never",
     "cdk:deploy:all": "cdk deploy --all --require-approval=never",
     "cdk:deploy:prod": "CDK_ENVIRONMENT=prod cdk deploy --all",
@@ -85,7 +88,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-world-flags": "^1.6.0",
-    "sams-rest-v2": "^0.1.9",
+    "sams-provider-events": "0.3.0",
     "superjson": "^2.2.6",
     "ts-ics": "^2.4.6",
     "varlock": "^1.10.0",
@@ -93,6 +96,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-lambda": "3.1085.0",
+    "@aws-sdk/client-sqs": "3.1085.0",
     "@behold/types": "^0.3.4",
     "@playwright/test": "^1.61.1",
     "@sentry/vite-plugin": "^5.3.0",
@@ -122,5 +126,8 @@
   "engines": {
     "node": ">=25"
   },
-  "packageManager": "bun@1.4.0"
+  "packageManager": "bun@1.4.0",
+  "trustedDependencies": [
+    "@sentry/cli"
+  ]
 }

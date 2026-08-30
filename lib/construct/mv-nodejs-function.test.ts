@@ -10,7 +10,7 @@ function createTemplate(props?: Partial<ConstructorParameters<typeof MvNodejsFun
   new MvNodejsFunction(stack, "TestFn", {
     namespace: "sams",
     name: "my-func",
-    entry: "lambda/sams/sams-clubs.ts",
+    entry: "lambda/sams/sams-provider-events.ts",
     ...props,
   });
   return Template.fromStack(stack);
@@ -127,7 +127,7 @@ describe("MvNodejsFunction", () => {
         new MvNodejsFunction(stack, "TestFn", {
           namespace: "sams",
           name: "my-func",
-          entry: "lambda/sams/sams-clubs.ts",
+          entry: "lambda/sams/sams-provider-events.ts",
           bundling: {
             externalModules: ["@aws-sdk/*", "some-extra-module"],
           },

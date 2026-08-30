@@ -1,73 +1,20 @@
-import {
-  zLeagueMatchDto,
-  zLeagueRankingsEntryDto,
-  zLocation,
-  zSeasonDto,
-  zVolleyballMatchResultsDto,
-} from "sams-rest-v2";
 import { z } from "zod";
+import { samsProjectionMatchSchema, samsProjectionRankingEntrySchema } from "@/lib/db/schemas";
 import { optionalEnvString, requiredEnvString } from "../utils/env";
 
 // ============================================================================
 // Lambda Environment Contracts
 // ============================================================================
 
-export const SamsCommonLambdaEnvironmentSchema = z.object({
-  SAMS_API_KEY: requiredEnvString,
+export const SamsProviderProcessorLambdaEnvironmentSchema = z.object({
+  SAMS_TABLE_NAME: requiredEnvString,
+  MEDIA_BUCKET_NAME: optionalEnvString,
   CDK_ENVIRONMENT: optionalEnvString,
 });
 
-export type SamsCommonLambdaEnvironment = z.infer<typeof SamsCommonLambdaEnvironmentSchema>;
-
-export const SamsAssociationsLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema;
-export const SamsSeasonsLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema;
-export const SamsRankingsLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema;
-
-export type SamsAssociationsLambdaEnvironment = z.infer<
-  typeof SamsAssociationsLambdaEnvironmentSchema
+export type SamsProviderProcessorLambdaEnvironment = z.infer<
+  typeof SamsProviderProcessorLambdaEnvironmentSchema
 >;
-export type SamsSeasonsLambdaEnvironment = z.infer<typeof SamsSeasonsLambdaEnvironmentSchema>;
-export type SamsRankingsLambdaEnvironment = z.infer<typeof SamsRankingsLambdaEnvironmentSchema>;
-
-export const SamsLeagueMatchesLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema.extend({
-  SAMS_TABLE_NAME: requiredEnvString,
-});
-
-export type SamsLeagueMatchesLambdaEnvironment = z.infer<
-  typeof SamsLeagueMatchesLambdaEnvironmentSchema
->;
-
-export const SamsClubsSyncLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema.extend({
-  SAMS_TABLE_NAME: requiredEnvString,
-  MEDIA_BUCKET_NAME: requiredEnvString,
-  MEDIA_CLOUDFRONT_URL: requiredEnvString,
-});
-
-export type SamsClubsSyncLambdaEnvironment = z.infer<typeof SamsClubsSyncLambdaEnvironmentSchema>;
-
-export const SamsTeamsSyncLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema.extend({
-  SAMS_TABLE_NAME: requiredEnvString,
-});
-
-export type SamsTeamsSyncLambdaEnvironment = z.infer<typeof SamsTeamsSyncLambdaEnvironmentSchema>;
-
-export const SamsClubsLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema.extend({
-  SAMS_TABLE_NAME: requiredEnvString,
-});
-
-export type SamsClubsLambdaEnvironment = z.infer<typeof SamsClubsLambdaEnvironmentSchema>;
-
-export const SamsTeamsLambdaEnvironmentSchema = SamsCommonLambdaEnvironmentSchema.extend({
-  SAMS_TABLE_NAME: requiredEnvString,
-});
-
-export type SamsTeamsLambdaEnvironment = z.infer<typeof SamsTeamsLambdaEnvironmentSchema>;
-
-export const SamsLogoProxyLambdaEnvironmentSchema = z.object({
-  SAMS_TABLE_NAME: requiredEnvString,
-});
-
-export type SamsLogoProxyLambdaEnvironment = z.infer<typeof SamsLogoProxyLambdaEnvironmentSchema>;
 
 // ============================================================================
 // Club Schemas & Types
@@ -194,9 +141,8 @@ export type TeamsResponse = z.infer<typeof TeamsResponseSchema>;
 // ============================================================================
 
 /**
- * A player entry within a synced SAMS team roster
- * uuid and name are always present: sams-teams-sync.ts derives a deterministic pseudo uuid when the
- * external API omits one, and filters out players without a name.
+ * A player entry within a synced SAMS team roster.
+ * uuid and name are always present from provider roster events.
  */
 const RosterPlayerSchema = z.object({
   uuid: z.string(),
@@ -209,9 +155,8 @@ const RosterPlayerSchema = z.object({
 export type RosterPlayer = z.infer<typeof RosterPlayerSchema>;
 
 /**
- * An official/coach entry within a synced SAMS team roster
- * uuid and name are always present: sams-teams-sync.ts derives a deterministic pseudo uuid when the
- * external API omits one, and filters out officials without a name.
+ * An official/coach entry within a synced SAMS team roster.
+ * uuid and name are always present from provider roster events.
  */
 const RosterOfficialSchema = z.object({
   uuid: z.string(),
@@ -255,36 +200,12 @@ export const RosterResponseSchema = BaseRosterItemSchema.omit({
 export type RosterResponse = z.infer<typeof RosterResponseSchema>;
 
 // ============================================================================
-// Seasons Schemas & Types
-// ============================================================================
-
-/**
- * Response containing current, next, and previous seasons
- */
-export const SeasonsResponseSchema = z.object({
-  current: zSeasonDto,
-  next: zSeasonDto.nullish(),
-  previous: zSeasonDto.nullish(),
-});
-
-export type SeasonsResponse = z.infer<typeof SeasonsResponseSchema>;
-
-// ============================================================================
 // Rankings Schemas & Types
 // ============================================================================
 
-/**
- * League rankings response
- */
-const RankingEntryResponseSchema = zLeagueRankingsEntryDto.pick({
-  uuid: true,
-  teamName: true,
-  rank: true,
-  matchesPlayed: true,
-  points: true,
-  wins: true,
-  setWins: true,
-  setLosses: true,
+const RankingEntryResponseSchema = samsProjectionRankingEntrySchema.extend({
+  uuid: z.string().optional(),
+  teamName: z.string().nullish(),
 });
 
 export const RankingResponseSchema = z.object({
@@ -301,53 +222,12 @@ export type RankingResponse = z.infer<typeof RankingResponseSchema>;
 // League Matches Schemas & Types
 // ============================================================================
 
-/**
- * League matches response (without HAL links)
- * Using generated schema - results field is properly typed as nullable
- */
-const LeagueMatchTeamSchema = z.object({
-  uuid: z.string(),
-  name: z.string(),
-  sportsclubUuid: z.string(),
-});
-
-const LeagueMatchEmbeddedSchema = z
-  .object({
-    team1: LeagueMatchTeamSchema.optional(),
-    team2: LeagueMatchTeamSchema.optional(),
-  })
-  .nullish();
-
-const LeagueMatchLocationSchema = zLocation
-  .pick({
-    uuid: true,
-    name: true,
-    longitude: true,
-    latitude: true,
-    address: true,
-  })
-  .nullish();
-
-const LeagueMatchResponseItemSchema = zLeagueMatchDto
-  .pick({
-    uuid: true,
-    date: true,
-    time: true,
-    matchNumber: true,
-    host: true,
-    leagueUuid: true,
-    results: true,
-    location: true,
-    _embedded: true,
-  })
-  .extend({
-    results: zVolleyballMatchResultsDto.nullish(),
-    location: LeagueMatchLocationSchema,
-    _embedded: LeagueMatchEmbeddedSchema,
-  });
+/** Schedule projection match row exposed to the webapp. */
+export const LeagueMatchSchema = samsProjectionMatchSchema;
+export type LeagueMatch = z.infer<typeof LeagueMatchSchema>;
 
 export const LeagueMatchesResponseSchema = z.object({
-  matches: z.array(LeagueMatchResponseItemSchema),
+  matches: z.array(LeagueMatchSchema),
   timestamp: z.iso.datetime(),
 });
 

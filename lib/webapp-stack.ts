@@ -47,10 +47,7 @@ export interface WebAppStackProps extends cdk.StackProps {
   hostedZone?: route53.IHostedZone;
   /** CloudFront certificate (must be in us-east-1) */
   cloudFrontCertificate?: acm.ICertificate;
-  /** Optional sync Lambda function names from SamsStack — grants invoke permissions to the webapp Lambda.
-   * Use function names (strings) instead of CDK cross-stack object references so SamsStack can be updated independently without CF blocking export deletion. */
-  samsClubsSyncFunctionName?: string;
-  samsTeamsSyncFunctionName?: string;
+  /** Optional image processor function name from MediaStack */
   imageProcessorFunctionName?: string;
 }
 
@@ -114,14 +111,7 @@ export class WebAppStack extends cdk.Stack {
       MEDIA_BUCKET_NAME: props.mediaBucketName,
       SAMS_TABLE_NAME: samsTableName,
       ...(branch ? { BRANCH_NAME: branch } : {}),
-      ...(process.env.SAMS_API_KEY ? { SAMS_API_KEY: process.env.SAMS_API_KEY } : {}),
       ...(props.mediaCloudFrontUrl ? { MEDIA_CLOUDFRONT_URL: props.mediaCloudFrontUrl } : {}),
-      ...(props.samsClubsSyncFunctionName
-        ? { SAMS_CLUBS_SYNC_FUNCTION_NAME: props.samsClubsSyncFunctionName }
-        : {}),
-      ...(props.samsTeamsSyncFunctionName
-        ? { SAMS_TEAMS_SYNC_FUNCTION_NAME: props.samsTeamsSyncFunctionName }
-        : {}),
       ...(props.imageProcessorFunctionName
         ? { IMAGE_PROCESSOR_FUNCTION_NAME: props.imageProcessorFunctionName }
         : {}),
@@ -191,20 +181,6 @@ export class WebAppStack extends cdk.Stack {
     );
 
     // Grant invoke permissions for SAMS sync Lambdas if provided
-    if (props.samsClubsSyncFunctionName) {
-      lambda.Function.fromFunctionName(
-        this,
-        "SamsClubsSyncRef",
-        props.samsClubsSyncFunctionName,
-      ).grantInvoke(this.webappLambda);
-    }
-    if (props.samsTeamsSyncFunctionName) {
-      lambda.Function.fromFunctionName(
-        this,
-        "SamsTeamsSyncRef",
-        props.samsTeamsSyncFunctionName,
-      ).grantInvoke(this.webappLambda);
-    }
     if (props.imageProcessorFunctionName) {
       lambda.Function.fromFunctionName(
         this,

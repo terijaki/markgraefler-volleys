@@ -4,7 +4,7 @@ import CardTitle from "@webapp/components/CardTitle";
 import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
 import { useSamsMatches } from "@webapp/hooks/dataQueries";
-import { peekSamsMatchesCacheFn } from "@webapp/server/functions/sams";
+import { loadMatchesIndexRouteDataFn } from "@webapp/server/functions/sams";
 import { getWebcalLinkFn } from "@webapp/server/functions/webcal";
 import dayjs from "dayjs";
 import { CalendarDays, Megaphone as IconSubscribe } from "lucide-react";
@@ -14,18 +14,17 @@ import type { LeagueMatchesResponse } from "@/lambda/sams/types";
 export const Route = createFileRoute("/_layout/matches/")({
   /**
    * LOADING STRATEGY — mirrors `/tabelle` (see that route for the full rationale).
-   * The loader must stay FAST: it only reads the DDB cache-peek function
-   * (`peekSamsMatchesCacheFn`), never the live SAMS-fetching `getSamsMatchesFn`, which
-   * would block navigation for 2-3s on every cache miss. Freshness is handled client-side
-   * by `useSamsMatches`, which falls back to the SAMS API on its own 5-min cache miss.
+   * The loader must stay FAST: it uses `loadMatchesIndexRouteDataFn` (projection peek only).
+   * Freshness is handled client-side by `useSamsMatches`, which re-reads DynamoDB projections.
+   * There is no SAMS REST API fallback.
    */
   loader: async () => {
-    const [matches, webcalLink] = await Promise.all([
-      peekSamsMatchesCacheFn({ data: { range: "future" } }),
+    const [pageData, webcalLink] = await Promise.all([
+      loadMatchesIndexRouteDataFn(),
       getWebcalLinkFn({ data: { path: "/ics/all.ics" } }),
     ]);
     return {
-      matches: matches ?? undefined,
+      matches: pageData.matches,
       webcalLink,
     };
   },

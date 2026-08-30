@@ -25,9 +25,6 @@ CDK_MONITORING_ALERT_EMAIL="you@example.com"
 # Auth
 BETTER_AUTH_SECRET=""
 
-# SAMS
-SAMS_API_KEY=""
-
 # Sentry
 SENTRY_AUTH_TOKEN=""
 SENTRY_ENVIRONMENT="development"
@@ -138,6 +135,9 @@ Required IAM setup in each account:
 
 Current working policy set on `GitHubActionsCDKRole`:
 
+- CDK deploy permissions (CloudFormation, Lambda, DynamoDB, S3, etc.)
+- `sqs:SendMessage` / `sqs:GetQueueUrl` on branch-scoped `sams-provider-events-*` queues (for `db:seed:sams` in CI)
+
 - `AWSCloudFormationFullAccess`
 - `IAMFullAccess`
 - `AWSLambda_FullAccess`
@@ -159,4 +159,4 @@ The workflow files reference the IAM role ARNs directly. The role ARN is configu
 
 The role name is intentionally stable across accounts: `GitHubActionsCDKRole`. Only the account ID changes between prod and dev.
 
-Application and deployment environment values such as `SAMS_API_KEY`, `BETTER_AUTH_SECRET`, and `CDK_BUDGET_ALERT_EMAIL` are **not** stored as GitHub repository secrets. GitHub Actions assumes the appropriate AWS role via OIDC, then Varlock loads those values from AWS SSM Parameter Store / AWS Secrets Manager as defined by the environment schema.
+Application and deployment environment values such as `BETTER_AUTH_SECRET` and `CDK_BUDGET_ALERT_EMAIL` are **not** stored as GitHub repository secrets. GitHub Actions assumes the appropriate AWS role via OIDC, then Varlock loads those values from AWS SSM Parameter Store / AWS Secrets Manager as defined by the environment schema.

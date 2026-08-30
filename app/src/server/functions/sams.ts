@@ -8,10 +8,9 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAdminMiddleware } from "../../middleware";
 import {
   handleGetClubLogoUrl,
-  handleGetClubLogoUrlsBatch,
+  handleGetClubLogoUrlsBySportsclubUuids,
   handleGetSamsMatches,
   handleGetSamsRankingByLeagueUuid,
   handleGetSamsRankingsByLeagueUuids,
@@ -19,10 +18,11 @@ import {
   handleGetSamsTicker,
   handleListSamsClubs,
   handleListSamsTeams,
+  handleLoadMatchesIndexRouteData,
+  handleLoadTabelleRouteData,
+  loadScheduleMatchesForSamsTeamUuids,
   handlePeekSamsMatchesCache,
   handlePeekSamsRankingsCache,
-  handleTriggerSamsClubsSync,
-  handleTriggerSamsTeamsSync,
 } from "./sams.server";
 
 const samsMatchesInputSchema = z
@@ -54,12 +54,31 @@ export const getSamsRankingByLeagueUuidFn = createServerFn()
   .handler(async ({ data }) => handleGetSamsRankingByLeagueUuid(data));
 
 export const peekSamsRankingsCacheFn = createServerFn()
-  .validator(z.object({ leagueUuids: z.array(z.string()) }))
-  .handler(async ({ data }) => handlePeekSamsRankingsCache(data.leagueUuids));
+  .validator(
+    z.object({
+      leagueUuids: z.array(z.string()),
+      seasonUuid: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) =>
+    handlePeekSamsRankingsCache(data.leagueUuids, { seasonUuid: data.seasonUuid }),
+  );
 
 export const peekSamsMatchesCacheFn = createServerFn()
   .validator(samsMatchesInputSchema)
   .handler(async ({ data }) => handlePeekSamsMatchesCache(data));
+
+export const loadTabelleRouteDataFn = createServerFn().handler(async () =>
+  handleLoadTabelleRouteData(),
+);
+
+export const loadMatchesIndexRouteDataFn = createServerFn().handler(async () =>
+  handleLoadMatchesIndexRouteData(),
+);
+
+export const loadScheduleMatchesForSamsTeamUuidsFn = createServerFn()
+  .validator(z.object({ teamUuids: z.array(z.string().min(1)) }))
+  .handler(async ({ data }) => loadScheduleMatchesForSamsTeamUuids(data.teamUuids));
 
 export const listSamsClubsFn = createServerFn().handler(async () => handleListSamsClubs());
 
@@ -73,16 +92,8 @@ export const getClubLogoUrlFn = createServerFn()
   .validator(clubLogoInputSchema)
   .handler(async ({ data }) => handleGetClubLogoUrl(data));
 
-export const getClubLogoUrlsBatchFn = createServerFn()
-  .validator(z.object({ clubSlugs: z.array(z.string().min(1)) }))
-  .handler(async ({ data }) => handleGetClubLogoUrlsBatch(data.clubSlugs));
+export const getClubLogoUrlsBySportsclubUuidsFn = createServerFn()
+  .validator(z.object({ sportsclubUuids: z.array(z.string().min(1)) }))
+  .handler(async ({ data }) => handleGetClubLogoUrlsBySportsclubUuids(data.sportsclubUuids));
 
 export const getSamsTickerFn = createServerFn().handler(async () => handleGetSamsTicker());
-
-export const triggerSamsClubsSyncFn = createServerFn({ method: "POST" })
-  .middleware([requireAdminMiddleware])
-  .handler(async () => handleTriggerSamsClubsSync());
-
-export const triggerSamsTeamsSyncFn = createServerFn({ method: "POST" })
-  .middleware([requireAdminMiddleware])
-  .handler(async () => handleTriggerSamsTeamsSync());
