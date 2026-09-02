@@ -69,7 +69,9 @@ export const Route = createFileRoute("/_layout/teams/$slug")({
       samsTeam.leagueUuid
         ? peekSamsRankingsCacheFn({ data: { leagueUuids: [samsTeam.leagueUuid] } })
         : Promise.resolve(undefined),
-      peekSamsMatchesCacheFn({ data: { team: samsTeam.uuid } }).then((m) => m ?? undefined),
+      peekSamsMatchesCacheFn({
+        data: { team: samsTeam.uuid, season: samsTeam.seasonUuid },
+      }).then((m) => m ?? undefined),
     ]);
 
     return { team, samsTeam, rankings, matches, webcalLink };
@@ -178,6 +180,7 @@ function TeamMatches({
 
   const { data: matches, isLoading: isLoadingMatches } = useSamsMatches({
     team: loaderSamsTeam?.uuid,
+    season: loaderSamsTeam?.seasonUuid,
     initialData: loaderMatches,
     initialDataUpdatedAt: matchesInitialDataUpdatedAt,
   });
