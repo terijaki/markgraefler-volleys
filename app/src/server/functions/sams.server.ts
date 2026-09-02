@@ -42,6 +42,7 @@ import {
   calculateLastResultCap,
   sortLeagueUuidsByLevels,
 } from "@webapp/utils/ranking";
+import { resolveClubLogoUrl } from "@/utils/sams-club-logo";
 
 const MEDIA_CLOUDFRONT_URL = () => process.env.MEDIA_CLOUDFRONT_URL || "";
 
@@ -577,17 +578,6 @@ export async function handleGetClubLogoUrlsBySportsclubUuids(sportsclubUuids: st
     }),
   );
   return Object.fromEntries(entries) as Record<string, string | null>;
-}
-
-/** Pure helper — resolves a club's effective logo URL from a club record.
- * Exported for unit testing. */
-export function resolveClubLogoUrl(
-  club: { logoS3Key?: string | null; logoImageLink?: string | null } | null,
-  cloudfrontUrl: string,
-): string | null {
-  if (!club) return null;
-  if (club.logoS3Key && cloudfrontUrl) return `${cloudfrontUrl}/${club.logoS3Key}`;
-  return club.logoImageLink ?? null;
 }
 
 // ── SAMS Live Ticker proxy ────────────────────────────────────────────────────

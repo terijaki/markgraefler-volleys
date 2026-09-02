@@ -11,7 +11,7 @@ import {
   Text,
 } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { samsRankingQuery, useClubLogoUrlsBySportsclubUuids } from "@webapp/hooks/dataQueries";
+import { samsRankingQuery } from "@webapp/hooks/dataQueries";
 import dayjs from "dayjs";
 import type { RankingResponse } from "@/lambda/sams/types";
 import type { Team } from "@/lib/db/types";
@@ -47,16 +47,6 @@ export default function RankingTable(props: RankingTable) {
   });
 
   const ranking = props.loaderOnly ? props.initialData : fetchedRanking;
-
-  // Batch-fetch club logos by sportsclub UUID (fallback to provider logoUrl on each row)
-  const sportsclubUuids = [
-    ...new Set(
-      (ranking?.teams ?? [])
-        .map((team) => team.sportsclubUuid)
-        .filter((uuid): uuid is string => !!uuid),
-    ),
-  ];
-  const { data: logoUrlMap } = useClubLogoUrlsBySportsclubUuids(sportsclubUuids);
 
   if (isError && !ranking) {
     return (
@@ -145,8 +135,7 @@ export default function RankingTable(props: RankingTable) {
               // Enable links only when linkToTeamPage is true (tabelle page) and team has a slug
               const teamLink =
                 props.linkToTeamPage && isClubsTeam?.slug ? `/teams/${isClubsTeam.slug}` : null;
-              const logoUrl =
-                (team.sportsclubUuid ? logoUrlMap?.[team.sportsclubUuid] : null) ?? team.logoUrl;
+              const logoUrl = team.logoUrl;
               return (
                 <RankingTableItem
                   key={team.uuid}

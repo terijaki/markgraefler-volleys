@@ -23,16 +23,16 @@ Processor entry point: `lambda/sams/sams-provider-events.ts`.
 
 Handled published events:
 
-| Event type                                                | Local action                                                    |
-| --------------------------------------------------------- | --------------------------------------------------------------- |
-| `sams.club.updated`                                       | Upsert club metadata (+ logo upload to media bucket)            |
-| `sams.club-season-teams.updated`                          | Replace club/season team list                                   |
-| `sams.club-season-rosters.updated`                        | Replace club/season roster snapshot                             |
-| `sams.team-roster.updated`                                | Upsert single team roster                                       |
-| `sams.club-match-schedule.updated`                        | Replace club schedule projection + team schedule projections    |
-| `sams.match-block.updated`                                | Merge matches into club schedule projections + team projections |
-| `sams.league-ranking.updated`                             | Replace league ranking projection                               |
-| `sams.clubs.sync.completed` / `sams.teams.sync.completed` | Ops metadata (optional)                                         |
+| Event type                                                | Local action                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `sams.club.updated`                                       | Upsert club metadata (+ logo upload to media bucket)                          |
+| `sams.club-season-teams.updated`                          | Replace club/season team list                                                 |
+| `sams.club-season-rosters.updated`                        | Replace club/season roster snapshot                                           |
+| `sams.team-roster.updated`                                | Upsert single team roster                                                     |
+| `sams.club-match-schedule.updated`                        | Replace club schedule projection + team schedule projections                  |
+| `sams.match-block.updated`                                | Merge matches into club schedule projections + team projections               |
+| `sams.league-ranking.updated`                             | Replace league ranking projection (logos enriched to media CDN at write time) |
+| `sams.clubs.sync.completed` / `sams.teams.sync.completed` | Ops metadata (optional)                                                       |
 
 Reserved types are ignored gracefully.
 

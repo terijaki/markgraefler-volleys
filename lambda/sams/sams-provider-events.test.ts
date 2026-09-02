@@ -13,6 +13,7 @@ vi.mock("./club-logo-upload", () => ({
   uploadClubLogoToS3: vi.fn().mockResolvedValue(undefined),
 }));
 
+import { uploadClubLogoToS3 } from "./club-logo-upload";
 import { processSamsProviderEvent, processSamsProviderSqsBody } from "./sams-provider-events";
 
 function createMockRepos(): SamsRepositories {
@@ -166,6 +167,10 @@ describe("processSamsProviderEvent", () => {
     );
     expect(fixture).toBeDefined();
 
+    vi.mocked(uploadClubLogoToS3).mockImplementation(async (_bucket, sportsclubUuid) => {
+      return `sams-logos/${sportsclubUuid}.png`;
+    });
+
     const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
     await processSamsProviderEvent(event, repos);
 
@@ -182,6 +187,24 @@ describe("processSamsProviderEvent", () => {
         ]),
       }),
     );
+  });
+
+  it("uploads opponent logos when no club row exists", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.leagueRankingUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    vi.mocked(uploadClubLogoToS3).mockResolvedValue("sams-logos/opponent.png");
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    await processSamsProviderEvent(event, repos);
+
+    expect(uploadClubLogoToS3).toHaveBeenCalled();
+    const replaceInput = vi.mocked(repos.rankings.replace).mock.calls.at(-1)?.[0];
+    expect(
+      replaceInput?.teams.some((team) => team.logoUrl?.includes("provider") || team.logoUrl),
+    ).toBe(true);
   });
 
   it("replaces club match schedule projections", async () => {

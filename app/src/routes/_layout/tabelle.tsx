@@ -18,8 +18,12 @@ export const Route = createFileRoute("/_layout/tabelle")({
 });
 
 function RouteComponent() {
-  const { leagueUuids, teams, rankingsByLeagueUuid, matches: loaderMatches } =
-    Route.useLoaderData();
+  const {
+    leagueUuids,
+    teams,
+    rankingsByLeagueUuid,
+    matches: loaderMatches,
+  } = Route.useLoaderData();
 
   const recentMatches = loaderMatches?.matches ?? [];
   const lastResultWord =

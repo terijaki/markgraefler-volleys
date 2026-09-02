@@ -21,10 +21,10 @@ import { parseLambdaEnv } from "../utils/env";
 import { createDynamoDocClient, createLambdaResources } from "../utils/resources";
 import { Sentry } from "../utils/sentry";
 import { uploadClubLogoToS3 } from "./club-logo-upload";
+import { enrichRankingEntriesLogoUrls } from "./ranking-logo-enrichment";
 import {
   collectSportsclubUuidsFromMatches,
   mapProviderMatchToProjection,
-  mapProviderRankingEntry,
 } from "./provider-mappers";
 import type { RosterOfficial, RosterPlayer } from "./types";
 import { SamsProviderProcessorLambdaEnvironmentSchema } from "./types";
@@ -35,6 +35,7 @@ const docClient = createDynamoDocClient(tracer);
 const env = parseLambdaEnv(SamsProviderProcessorLambdaEnvironmentSchema);
 const TABLE_NAME = env.SAMS_TABLE_NAME;
 const MEDIA_BUCKET_NAME = env.MEDIA_BUCKET_NAME;
+const MEDIA_CLOUDFRONT_URL = env.MEDIA_CLOUDFRONT_URL ?? "";
 
 const RESERVED_EVENT_TYPES = new Set<string>([
   SamsEventType.matchesUpdated,
@@ -398,12 +399,36 @@ export async function processSamsProviderEvent(
       if (await shouldSkipRanking(repos, leagueUuid, seasonUuid, event.snapshotVersion)) {
         return;
       }
+
+      const sportsclubUuids = [
+        ...new Set(
+          entries.map((entry) => entry.sportsclubUuid).filter((uuid): uuid is string => !!uuid),
+        ),
+      ];
+      const clubsBySportsclubUuid = new Map<
+        string,
+        NonNullable<Awaited<ReturnType<typeof repos.clubs.getById>>>
+      >();
+      for (const sportsclubUuid of sportsclubUuids) {
+        const club = await repos.clubs.getById(sportsclubUuid);
+        if (club) {
+          clubsBySportsclubUuid.set(sportsclubUuid, club);
+        }
+      }
+
+      const teams = await enrichRankingEntriesLogoUrls(
+        entries,
+        clubsBySportsclubUuid,
+        MEDIA_BUCKET_NAME ?? "",
+        MEDIA_CLOUDFRONT_URL,
+      );
+
       await repos.rankings.replace({
         leagueUuid,
         seasonUuid,
         seasonName,
         leagueName,
-        teams: entries.map(mapProviderRankingEntry),
+        teams,
         snapshotVersion: event.snapshotVersion,
         cachedAt,
         isStale,

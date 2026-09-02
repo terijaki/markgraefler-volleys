@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
+import { resolveClubLogoUrl } from "@/utils/sams-club-logo";
 import {
   buildLiveMatchesFromRaw,
   createSamsMatchesCacheKey,
-  resolveClubLogoUrl,
   resolveEffectiveSamsSportsclubUuids,
 } from "./sams.server";
 
