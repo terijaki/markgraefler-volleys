@@ -4,10 +4,12 @@ import { docClient } from "../client";
 import { getSamsTableName } from "../env";
 import {
   samsClubScheduleProjectionSchema,
+  samsTeamScheduleProjectionSchema,
   type SamsClubScheduleProjectionInput,
   type SamsProjectionMatchInput,
+  type SamsTeamScheduleProjectionInput,
 } from "../schemas";
-import { samsSchedulePk, samsSeasonSk } from "../key-constants";
+import { samsSchedulePk, samsSeasonSk, samsTeamSchedulePk } from "../key-constants";
 import {
   isoTimestampNow,
   parseWithSchema,
@@ -15,8 +17,14 @@ import {
   unixTtlSecondsFromNow,
 } from "../repository-utils";
 
+import { groupProjectionMatchesByTeamUuid } from "@/utils/sams-schedule-projections";
+
 function parseSchedule(value: unknown, message: string): SamsClubScheduleProjectionInput {
   return parseWithSchema(samsClubScheduleProjectionSchema, value, message);
+}
+
+function parseTeamSchedule(value: unknown, message: string): SamsTeamScheduleProjectionInput {
+  return parseWithSchema(samsTeamScheduleProjectionSchema, value, message);
 }
 
 export type SamsScheduleProjectionMeta = {
@@ -28,6 +36,14 @@ export type SamsScheduleProjectionMeta = {
 
 export type SamsClubScheduleUpsertInput = Omit<
   SamsClubScheduleProjectionInput,
+  "type" | "updatedAt" | "ttl"
+> & {
+  updatedAt?: string;
+  ttl?: number;
+};
+
+export type SamsTeamScheduleUpsertInput = Omit<
+  SamsTeamScheduleProjectionInput,
   "type" | "updatedAt" | "ttl"
 > & {
   updatedAt?: string;
@@ -114,6 +130,15 @@ export class SamsScheduleProjectionRepository {
     return stored;
   }
 
+  async replaceClubSchedule(
+    input: SamsClubScheduleUpsertInput,
+    meta: SamsScheduleProjectionMeta,
+  ): Promise<SamsClubScheduleProjectionInput> {
+    const clubSchedule = await this.replace(input);
+    await this.syncTeamSchedulesFromClubSchedule(clubSchedule, meta);
+    return clubSchedule;
+  }
+
   async mergeMatchesForClub(
     sportsclubUuid: string,
     seasonUuid: string,
@@ -129,7 +154,7 @@ export class SamsScheduleProjectionRepository {
     for (const match of matches) {
       mergedByUuid.set(match.uuid, match);
     }
-    return this.replace({
+    const clubSchedule = await this.replace({
       sportsclubUuid,
       seasonUuid,
       seasonName: seasonName ?? existing?.seasonName,
@@ -139,6 +164,102 @@ export class SamsScheduleProjectionRepository {
       cachedAt: meta.cachedAt ?? existing?.cachedAt,
       isStale: meta.isStale ?? existing?.isStale,
     });
+    await this.syncTeamSchedulesFromClubSchedule(clubSchedule, meta);
+    return clubSchedule;
+  }
+
+  async getForTeam(
+    teamUuid: string,
+    seasonUuid: string,
+  ): Promise<SamsTeamScheduleProjectionInput | null> {
+    const result = await this.documentClient.send(
+      new GetCommand({
+        TableName: this.resolveTableName(),
+        Key: { pk: samsTeamSchedulePk(teamUuid), sk: samsSeasonSk(seasonUuid) },
+      }),
+    );
+    if (!result.Item) return null;
+
+    const parsed = samsTeamScheduleProjectionSchema.safeParse(result.Item);
+    if (!parsed.success) {
+      console.warn("Failed to parse SAMS team schedule projection; treating as missing", {
+        teamUuid,
+        seasonUuid,
+        issues: parsed.error.issues.map((issue) => issue.message),
+      });
+      return null;
+    }
+    return parsed.data;
+  }
+
+  private buildTeamScheduleItem(
+    input: SamsTeamScheduleUpsertInput,
+  ): SamsTeamScheduleProjectionInput & {
+    pk: string;
+    sk: string;
+  } {
+    const item = parseTeamSchedule(
+      {
+        ...input,
+        type: "teamSchedule",
+        updatedAt: input.updatedAt ?? isoTimestampNow(),
+        ttl: input.ttl ?? unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
+      },
+      "Failed to parse SAMS team schedule projection upsert input",
+    );
+    return {
+      ...item,
+      pk: samsTeamSchedulePk(item.teamUuid),
+      sk: samsSeasonSk(item.seasonUuid),
+    };
+  }
+
+  async replaceForTeam(
+    input: SamsTeamScheduleUpsertInput,
+  ): Promise<SamsTeamScheduleProjectionInput> {
+    const item = this.buildTeamScheduleItem(input);
+    await this.documentClient.send(
+      new PutCommand({
+        TableName: this.resolveTableName(),
+        Item: item,
+      }),
+    );
+    const { pk: _, sk: __, ...stored } = item;
+    return stored;
+  }
+
+  /** Materialize per-team schedule projections from a club schedule blob. */
+  async syncTeamSchedulesFromClubSchedule(
+    clubSchedule: SamsClubScheduleProjectionInput,
+    meta: SamsScheduleProjectionMeta,
+  ): Promise<void> {
+    const matchesByTeamUuid = groupProjectionMatchesByTeamUuid(clubSchedule.matches);
+    const ttl = unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS);
+
+    await Promise.all(
+      [...matchesByTeamUuid.entries()].map(([teamUuid, teamMatches]) =>
+        this.replaceForTeam({
+          teamUuid,
+          seasonUuid: clubSchedule.seasonUuid,
+          seasonName: clubSchedule.seasonName,
+          sportsclubUuid: clubSchedule.sportsclubUuid,
+          matches: teamMatches,
+          snapshotVersion: meta.snapshotVersion,
+          projectedAt: meta.projectedAt ?? clubSchedule.projectedAt,
+          cachedAt: meta.cachedAt ?? clubSchedule.cachedAt,
+          isStale: meta.isStale ?? clubSchedule.isStale,
+          ttl,
+        }),
+      ),
+    );
+  }
+
+  async listMatchesForTeam(
+    teamUuid: string,
+    seasonUuid: string,
+  ): Promise<SamsProjectionMatchInput[]> {
+    const schedule = await this.getForTeam(teamUuid, seasonUuid);
+    return schedule?.matches ?? [];
   }
 
   async listMatchesForSportsclubs(

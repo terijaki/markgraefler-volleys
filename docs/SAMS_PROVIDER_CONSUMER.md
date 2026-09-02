@@ -23,22 +23,29 @@ Processor entry point: `lambda/sams/sams-provider-events.ts`.
 
 Handled published events:
 
-| Event type                                                | Local action                                         |
-| --------------------------------------------------------- | ---------------------------------------------------- |
-| `sams.club.updated`                                       | Upsert club metadata (+ logo upload to media bucket) |
-| `sams.club-season-teams.updated`                          | Replace club/season team list                        |
-| `sams.club-season-rosters.updated`                        | Replace club/season roster snapshot                  |
-| `sams.team-roster.updated`                                | Upsert single team roster                            |
-| `sams.club-match-schedule.updated`                        | Replace club schedule projection                     |
-| `sams.match-block.updated`                                | Merge matches into club schedule projections         |
-| `sams.league-ranking.updated`                             | Replace league ranking projection                    |
-| `sams.clubs.sync.completed` / `sams.teams.sync.completed` | Ops metadata (optional)                              |
+| Event type                                                | Local action                                                    |
+| --------------------------------------------------------- | --------------------------------------------------------------- |
+| `sams.club.updated`                                       | Upsert club metadata (+ logo upload to media bucket)            |
+| `sams.club-season-teams.updated`                          | Replace club/season team list                                   |
+| `sams.club-season-rosters.updated`                        | Replace club/season roster snapshot                             |
+| `sams.team-roster.updated`                                | Upsert single team roster                                       |
+| `sams.club-match-schedule.updated`                        | Replace club schedule projection + team schedule projections    |
+| `sams.match-block.updated`                                | Merge matches into club schedule projections + team projections |
+| `sams.league-ranking.updated`                             | Replace league ranking projection                               |
+| `sams.clubs.sync.completed` / `sams.teams.sync.completed` | Ops metadata (optional)                                         |
 
 Reserved types are ignored gracefully.
 
 ## Read path
 
 The webapp reads clubs, teams, rosters, matches, and rankings from the branch-scoped SAMS DynamoDB table (`SAMS_TABLE_NAME`).
+
+Schedule data is stored as DynamoDB projections (not a separate cache table):
+
+- **Club schedule** — `schedule#{sportsclubUuid}` / `season#{seasonUuid}` (all matches for a club season)
+- **Team schedule** — `schedule#team#{teamUuid}` / `season#{seasonUuid}` (matches for one team; materialized when club schedules are written)
+
+Team pages and ICS calendars query team schedule projections directly by team UUID. The global Spielplan loads club schedule projections for all configured target clubs.
 
 **Live ticker** uses the separate SBVV ticker service at `backend.sams-ticker.de` via `fetch()` in `app/src/server/functions/sams.server.ts` (not the SAMS REST API and no API key).
 

@@ -36,8 +36,8 @@ import {
 } from "@/app/src/hooks/dataQueries";
 import {
   listSamsTeamsFn,
-  peekSamsMatchesCacheFn,
-  peekSamsRankingsCacheFn,
+  peekSamsMatchesProjectionFn,
+  peekSamsRankingsProjectionFn,
 } from "@/app/src/server/functions/sams";
 import { getTeamBySlugFn } from "@/app/src/server/functions/teams";
 import { getWebcalLinkFn } from "@/app/src/server/functions/webcal";
@@ -67,9 +67,9 @@ export const Route = createFileRoute("/_layout/teams/$slug")({
 
     const [rankings, matches] = await Promise.all([
       samsTeam.leagueUuid
-        ? peekSamsRankingsCacheFn({ data: { leagueUuids: [samsTeam.leagueUuid] } })
+        ? peekSamsRankingsProjectionFn({ data: { leagueUuids: [samsTeam.leagueUuid] } })
         : Promise.resolve(undefined),
-      peekSamsMatchesCacheFn({
+      peekSamsMatchesProjectionFn({
         data: { team: samsTeam.uuid, season: samsTeam.seasonUuid },
       }).then((m) => m ?? undefined),
     ]);

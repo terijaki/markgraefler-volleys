@@ -28,6 +28,7 @@ import {
   getSamsClubByNameSlug,
   getSamsClubBySportsclubUuid,
   getSamsRosterByTeamUuid,
+  getSamsTeamByUuid,
 } from "../queries";
 import { parseServerData } from "../schema-parse";
 import {
@@ -139,7 +140,7 @@ export async function resolveSamsMatchesQuery(
   const defaultSportsclubUuids =
     options?.defaultSportsclubUuids ??
     (shouldUseDefaultSportsclubs ? await resolveConfiguredSamsSportsclubUuidsFromStorage() : []);
-  if (shouldUseDefaultSportsclubs && defaultSportsclubUuids.length === 0) {
+  if (shouldUseDefaultSportsclubs && defaultSportsclubUuids.length === 0 && !team) {
     return null;
   }
 
@@ -212,22 +213,38 @@ async function loadMatchesFromProjections({
 }: Pick<SamsMatchesInput, "league" | "season" | "team"> & {
   sportsclubUuids: readonly string[];
 }): Promise<LeagueMatch[]> {
-  if (!season || sportsclubUuids.length === 0) return [];
+  if (!season) return [];
 
-  const projectionMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
-    sportsclubUuids,
-    season,
-  );
+  let matches: LeagueMatch[];
 
-  let matches = projectionMatches;
+  if (team) {
+    matches = await samsScheduleProjectionRepository.listMatchesForTeam(team, season);
+    if (matches.length === 0) {
+      const samsTeam = await getSamsTeamByUuid(team);
+      const fallbackSportsclubUuids = samsTeam?.sportsclubUuid
+        ? [samsTeam.sportsclubUuid]
+        : sportsclubUuids;
+      if (fallbackSportsclubUuids.length === 0) return [];
+
+      const clubMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
+        fallbackSportsclubUuids,
+        season,
+      );
+      matches = clubMatches.filter(
+        (match) => match._embedded?.team1?.uuid === team || match._embedded?.team2?.uuid === team,
+      );
+    }
+  } else if (sportsclubUuids.length === 0) {
+    return [];
+  } else {
+    matches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
+      sportsclubUuids,
+      season,
+    );
+  }
 
   if (league) {
     matches = matches.filter((match) => match.leagueUuid === league);
-  }
-  if (team) {
-    matches = matches.filter(
-      (match) => match._embedded?.team1?.uuid === team || match._embedded?.team2?.uuid === team,
-    );
   }
 
   return dedupeSamsMatchesByUuid(matches);
@@ -241,22 +258,27 @@ export async function loadScheduleMatchesForSamsTeamUuids(
 
   const sportsclubUuids = await resolveConfiguredSamsSportsclubUuidsFromStorage();
   const { items: samsTeams } = await getAllSamsTeams();
-  const seasonUuid = pickSyncedSeasonUuid(samsTeams, sportsclubUuids);
-  if (!seasonUuid || sportsclubUuids.length === 0) return [];
+  const defaultSeasonUuid = pickSyncedSeasonUuid(samsTeams, sportsclubUuids);
+  if (!defaultSeasonUuid) return [];
 
   const teamUuidSet = new Set(teamUuids);
-  const projectionMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
-    sportsclubUuids,
-    seasonUuid,
+  const seasonByTeamUuid = new Map(
+    samsTeams
+      .filter((team) => team.uuid && teamUuidSet.has(team.uuid))
+      .map((team) => [team.uuid, team.seasonUuid]),
   );
 
-  const filtered = projectionMatches.filter((match) => {
-    const team1Uuid = match._embedded?.team1?.uuid;
-    const team2Uuid = match._embedded?.team2?.uuid;
-    return teamUuidSet.has(team1Uuid ?? "") || teamUuidSet.has(team2Uuid ?? "");
-  });
+  const matchesByTeam = await Promise.all(
+    teamUuids.map((teamUuid) =>
+      loadMatchesFromProjections({
+        team: teamUuid,
+        season: seasonByTeamUuid.get(teamUuid) ?? defaultSeasonUuid,
+        sportsclubUuids,
+      }),
+    ),
+  );
 
-  return dedupeSamsMatchesByUuid(filtered);
+  return dedupeSamsMatchesByUuid(matchesByTeam.flat());
 }
 
 function isPastProjectionMatch(
@@ -386,8 +408,8 @@ export async function handleGetSamsRankingByLeagueUuid(leagueUuid: string) {
   return fetchSamsRankingsByLeagueUuid(leagueUuid);
 }
 
-/** Projection peek for rankings — returns stored data regardless of age. */
-export async function handlePeekSamsRankingsCache(
+/** Projection peek for rankings — returns stored projection rows regardless of age. */
+export async function handlePeekSamsRankingsProjection(
   leagueUuids: string[],
   context?: Pick<SamsPeekContext, "seasonUuid">,
 ) {
@@ -401,7 +423,7 @@ export async function handlePeekSamsRankingsCache(
 }
 
 /** Projection peek for matches — fast route loaders without assembling filters at read time. */
-export async function handlePeekSamsMatchesCache(
+export async function handlePeekSamsMatchesProjection(
   data?: SamsMatchesInput,
   context?: SamsPeekContext,
 ) {
@@ -473,8 +495,8 @@ export async function handleLoadTabelleRouteData() {
 
   if (sortedLeagueUuids.length > 0) {
     const [rankingsResult, matchesResult] = await Promise.all([
-      handlePeekSamsRankingsCache(sortedLeagueUuids, peekContext),
-      handlePeekSamsMatchesCache(
+      handlePeekSamsRankingsProjection(sortedLeagueUuids, peekContext),
+      handlePeekSamsMatchesProjection(
         { range: "past", limit: lastResultCap, season: syncedSeasonUuid },
         peekContext,
       ),
@@ -503,7 +525,7 @@ export async function handleLoadMatchesIndexRouteData() {
   const seasonUuid = pickSyncedSeasonUuid(samsTeamsResult.items, sportsclubUuids);
   const peekContext: SamsPeekContext = { seasonUuid, sportsclubUuids };
 
-  const matches = await handlePeekSamsMatchesCache(
+  const matches = await handlePeekSamsMatchesProjection(
     { range: "future", season: seasonUuid },
     peekContext,
   );

@@ -278,17 +278,20 @@ async function replaceClubSchedule(
   }
 
   try {
-    await repos.schedules.replace({
-      sportsclubUuid,
-      seasonUuid,
-      seasonName,
-      matches: matches.map(mapProviderMatchToProjection),
-      snapshotVersion: meta.snapshotVersion,
-      projectedAt: meta.projectedAt,
-      cachedAt: meta.cachedAt,
-      isStale: meta.isStale,
-      ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
-    });
+    await repos.schedules.replaceClubSchedule(
+      {
+        sportsclubUuid,
+        seasonUuid,
+        seasonName,
+        matches: matches.map(mapProviderMatchToProjection),
+        snapshotVersion: meta.snapshotVersion,
+        projectedAt: meta.projectedAt,
+        cachedAt: meta.cachedAt,
+        isStale: meta.isStale,
+        ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
+      },
+      meta,
+    );
     logger.info("Replaced club schedule projection", {
       sportsclubUuid,
       seasonUuid,

@@ -44,8 +44,13 @@ function createMockRepos(): SamsRepositories {
       get: vi.fn().mockResolvedValue(null),
       getSnapshotVersion: vi.fn().mockResolvedValue(undefined),
       replace: vi.fn().mockResolvedValue(undefined),
+      replaceClubSchedule: vi.fn().mockResolvedValue(undefined),
       mergeMatchesForClub: vi.fn().mockResolvedValue(undefined),
       listMatchesForSportsclubs: vi.fn().mockResolvedValue([]),
+      getForTeam: vi.fn().mockResolvedValue(null),
+      listMatchesForTeam: vi.fn().mockResolvedValue([]),
+      replaceForTeam: vi.fn().mockResolvedValue(undefined),
+      syncTeamSchedulesFromClubSchedule: vi.fn().mockResolvedValue(undefined),
     },
     rankings: {
       get: vi.fn().mockResolvedValue(null),
@@ -188,8 +193,8 @@ describe("processSamsProviderEvent", () => {
     const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
     await processSamsProviderEvent(event, repos);
 
-    expect(repos.schedules.replace).toHaveBeenCalledOnce();
-    const scheduleInput = vi.mocked(repos.schedules.replace).mock.calls[0]?.[0];
+    expect(repos.schedules.replaceClubSchedule).toHaveBeenCalledOnce();
+    const scheduleInput = vi.mocked(repos.schedules.replaceClubSchedule).mock.calls[0]?.[0];
     expect(scheduleInput?.matches.length).toBeGreaterThan(0);
   });
 
@@ -199,7 +204,7 @@ describe("processSamsProviderEvent", () => {
       await processSamsProviderEvent(event, repos);
     }
 
-    expect(repos.schedules.replace).toHaveBeenCalledOnce();
+    expect(repos.schedules.replaceClubSchedule).toHaveBeenCalledOnce();
   });
 
   it("ignores reserved event types gracefully", async () => {
@@ -273,7 +278,7 @@ describe("processSamsProviderEvent", () => {
 
     await processSamsProviderEvent(event, repos);
 
-    expect(repos.schedules.replace).not.toHaveBeenCalled();
+    expect(repos.schedules.replaceClubSchedule).not.toHaveBeenCalled();
   });
 
   it("skips ranking replace when snapshotVersion is unchanged", async () => {
