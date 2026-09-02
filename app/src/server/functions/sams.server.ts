@@ -200,7 +200,7 @@ async function resolveSeasonScopedSamsMatchesQuery(
   };
 }
 
-type SamsPeekContext = {
+type SamsProjectionLoadContext = {
   seasonUuid?: string;
   sportsclubUuids?: readonly string[];
 };
@@ -346,7 +346,7 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
   );
 }
 
-async function peekRankingProjectionForSeason(
+async function loadRankingProjectionForSeason(
   leagueUuid: string,
   seasonUuid: string,
 ): Promise<RankingResponse | null> {
@@ -408,24 +408,24 @@ export async function handleGetSamsRankingByLeagueUuid(leagueUuid: string) {
   return fetchSamsRankingsByLeagueUuid(leagueUuid);
 }
 
-/** Projection peek for rankings — returns stored projection rows regardless of age. */
-export async function handlePeekSamsRankingsProjection(
+/** Load ranking projections for route loaders (null when projection row is missing). */
+export async function loadSamsRankingsProjection(
   leagueUuids: string[],
-  context?: Pick<SamsPeekContext, "seasonUuid">,
+  context?: Pick<SamsProjectionLoadContext, "seasonUuid">,
 ) {
   const seasonUuid = context?.seasonUuid ?? (await resolveSyncedSeasonUuid());
   if (!seasonUuid) return [];
 
   const results = await Promise.all(
-    leagueUuids.map((leagueUuid) => peekRankingProjectionForSeason(leagueUuid, seasonUuid)),
+    leagueUuids.map((leagueUuid) => loadRankingProjectionForSeason(leagueUuid, seasonUuid)),
   );
   return results.filter((result): result is RankingResponse => result !== null);
 }
 
-/** Projection peek for matches — fast route loaders without assembling filters at read time. */
-export async function handlePeekSamsMatchesProjection(
+/** Load match projections for route loaders (null when no matches or unresolved query). */
+export async function loadSamsMatchesProjection(
   data?: SamsMatchesInput,
-  context?: SamsPeekContext,
+  context?: SamsProjectionLoadContext,
 ) {
   const resolvedQuery = await resolveSamsMatchesQuery(data, {
     defaultSportsclubUuids: context?.sportsclubUuids,
@@ -488,17 +488,17 @@ export async function handleLoadTabelleRouteData() {
 
   let rankingsByLeagueUuid: Record<string, RankingResponse> = {};
   let matches: LeagueMatchesResponse | undefined;
-  const peekContext: SamsPeekContext = {
+  const projectionContext: SamsProjectionLoadContext = {
     seasonUuid: syncedSeasonUuid,
     sportsclubUuids,
   };
 
   if (sortedLeagueUuids.length > 0) {
     const [rankingsResult, matchesResult] = await Promise.all([
-      handlePeekSamsRankingsProjection(sortedLeagueUuids, peekContext),
-      handlePeekSamsMatchesProjection(
+      loadSamsRankingsProjection(sortedLeagueUuids, projectionContext),
+      loadSamsMatchesProjection(
         { range: "past", limit: lastResultCap, season: syncedSeasonUuid },
-        peekContext,
+        projectionContext,
       ),
     ]);
     rankingsByLeagueUuid = Object.fromEntries(
@@ -523,11 +523,11 @@ export async function handleLoadMatchesIndexRouteData() {
   ]);
 
   const seasonUuid = pickSyncedSeasonUuid(samsTeamsResult.items, sportsclubUuids);
-  const peekContext: SamsPeekContext = { seasonUuid, sportsclubUuids };
+  const projectionContext: SamsProjectionLoadContext = { seasonUuid, sportsclubUuids };
 
-  const matches = await handlePeekSamsMatchesProjection(
+  const matches = await loadSamsMatchesProjection(
     { range: "future", season: seasonUuid },
-    peekContext,
+    projectionContext,
   );
   return { matches: matches ?? undefined };
 }

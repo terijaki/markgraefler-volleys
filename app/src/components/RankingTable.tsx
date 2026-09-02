@@ -25,6 +25,8 @@ type RankingTable = {
   linkToTeamPage?: boolean;
   clubsTeams?: Team[];
   currentTeamId?: string; // When set, only highlight this specific team and disable links
+  /** When true, use `initialData` from the route loader without a client refetch. */
+  loaderOnly?: boolean;
 };
 
 export default function RankingTable(props: RankingTable) {
@@ -32,13 +34,19 @@ export default function RankingTable(props: RankingTable) {
     ? new Date(props.initialData.timestamp).getTime()
     : undefined;
   const {
-    data: ranking,
+    data: fetchedRanking,
     isFetching,
     isLoading,
     isError,
-  } = useQuery(
-    samsRankingQuery(props.leagueUuid, { initialData: props.initialData, initialDataUpdatedAt }),
-  );
+  } = useQuery({
+    ...samsRankingQuery(props.leagueUuid, {
+      initialData: props.initialData,
+      initialDataUpdatedAt,
+    }),
+    enabled: !props.loaderOnly && !!props.leagueUuid,
+  });
+
+  const ranking = props.loaderOnly ? props.initialData : fetchedRanking;
 
   // Batch-fetch club logos by sportsclub UUID (fallback to provider logoUrl on each row)
   const sportsclubUuids = [

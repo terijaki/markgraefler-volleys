@@ -30,14 +30,13 @@ import {
   useFileUrls,
   useLocations,
   useMembers,
-  useSamsMatches,
   useSamsRoster,
   useTeamBySlug,
 } from "@/app/src/hooks/dataQueries";
 import {
   listSamsTeamsFn,
-  peekSamsMatchesProjectionFn,
-  peekSamsRankingsProjectionFn,
+  loadSamsMatchesProjectionFn,
+  loadSamsRankingsProjectionFn,
 } from "@/app/src/server/functions/sams";
 import { getTeamBySlugFn } from "@/app/src/server/functions/teams";
 import { getWebcalLinkFn } from "@/app/src/server/functions/webcal";
@@ -67,9 +66,9 @@ export const Route = createFileRoute("/_layout/teams/$slug")({
 
     const [rankings, matches] = await Promise.all([
       samsTeam.leagueUuid
-        ? peekSamsRankingsProjectionFn({ data: { leagueUuids: [samsTeam.leagueUuid] } })
+        ? loadSamsRankingsProjectionFn({ data: { leagueUuids: [samsTeam.leagueUuid] } })
         : Promise.resolve(undefined),
-      peekSamsMatchesProjectionFn({
+      loadSamsMatchesProjectionFn({
         data: { team: samsTeam.uuid, season: samsTeam.seasonUuid },
       }).then((m) => m ?? undefined),
     ]);
@@ -123,6 +122,7 @@ function RouteComponent() {
               leagueUuid={loaderData.samsTeam.leagueUuid}
               initialData={loaderData.rankings?.[0]}
               currentTeamId={loaderData.samsTeam.uuid}
+              loaderOnly
             />
           )}
         </Suspense>
@@ -174,25 +174,11 @@ function TeamMatches({
   loaderSamsTeam: ReturnType<typeof Route.useLoaderData>["samsTeam"];
   loaderMatches?: LeagueMatchesResponse;
 }) {
-  const matchesInitialDataUpdatedAt = loaderMatches?.timestamp
-    ? new Date(loaderMatches.timestamp).getTime()
-    : undefined;
-
-  const { data: matches, isLoading: isLoadingMatches } = useSamsMatches({
-    team: loaderSamsTeam?.uuid,
-    season: loaderSamsTeam?.seasonUuid,
-    initialData: loaderMatches,
-    initialDataUpdatedAt: matchesInitialDataUpdatedAt,
-  });
-
+  const matches = loaderMatches;
   const currentMonth = dayjs().month() + 1;
   const isOffSeason = currentMonth >= 5 && currentMonth <= 9;
 
-  if (isLoadingMatches) {
-    return <CenteredLoader text="Lade Spieltermine..." />;
-  }
-
-  if (!isLoadingMatches && (!loaderSamsTeam || !matches)) {
+  if (!loaderSamsTeam || !matches) {
     return (
       <Card>
         <CardTitle>Keine Spieltermine gefunden</CardTitle>
