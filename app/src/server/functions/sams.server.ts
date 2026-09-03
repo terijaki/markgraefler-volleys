@@ -28,6 +28,7 @@ import {
   getSamsClubByNameSlug,
   getSamsClubBySportsclubUuid,
   getSamsRosterByTeamUuid,
+  getSamsTeamByUuid,
 } from "../queries";
 import { parseServerData } from "../schema-parse";
 import {
@@ -41,6 +42,7 @@ import {
   calculateLastResultCap,
   sortLeagueUuidsByLevels,
 } from "@webapp/utils/ranking";
+import { resolveClubLogoUrl } from "@/utils/sams-club-logo";
 
 const MEDIA_CLOUDFRONT_URL = () => process.env.MEDIA_CLOUDFRONT_URL || "";
 
@@ -139,7 +141,7 @@ export async function resolveSamsMatchesQuery(
   const defaultSportsclubUuids =
     options?.defaultSportsclubUuids ??
     (shouldUseDefaultSportsclubs ? await resolveConfiguredSamsSportsclubUuidsFromStorage() : []);
-  if (shouldUseDefaultSportsclubs && defaultSportsclubUuids.length === 0) {
+  if (shouldUseDefaultSportsclubs && defaultSportsclubUuids.length === 0 && !team) {
     return null;
   }
 
@@ -199,7 +201,7 @@ async function resolveSeasonScopedSamsMatchesQuery(
   };
 }
 
-type SamsPeekContext = {
+type SamsProjectionLoadContext = {
   seasonUuid?: string;
   sportsclubUuids?: readonly string[];
 };
@@ -212,22 +214,38 @@ async function loadMatchesFromProjections({
 }: Pick<SamsMatchesInput, "league" | "season" | "team"> & {
   sportsclubUuids: readonly string[];
 }): Promise<LeagueMatch[]> {
-  if (!season || sportsclubUuids.length === 0) return [];
+  if (!season) return [];
 
-  const projectionMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
-    sportsclubUuids,
-    season,
-  );
+  let matches: LeagueMatch[];
 
-  let matches = projectionMatches;
+  if (team) {
+    matches = await samsScheduleProjectionRepository.listMatchesForTeam(team, season);
+    if (matches.length === 0) {
+      const samsTeam = await getSamsTeamByUuid(team);
+      const fallbackSportsclubUuids = samsTeam?.sportsclubUuid
+        ? [samsTeam.sportsclubUuid]
+        : sportsclubUuids;
+      if (fallbackSportsclubUuids.length === 0) return [];
+
+      const clubMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
+        fallbackSportsclubUuids,
+        season,
+      );
+      matches = clubMatches.filter(
+        (match) => match._embedded?.team1?.uuid === team || match._embedded?.team2?.uuid === team,
+      );
+    }
+  } else if (sportsclubUuids.length === 0) {
+    return [];
+  } else {
+    matches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
+      sportsclubUuids,
+      season,
+    );
+  }
 
   if (league) {
     matches = matches.filter((match) => match.leagueUuid === league);
-  }
-  if (team) {
-    matches = matches.filter(
-      (match) => match._embedded?.team1?.uuid === team || match._embedded?.team2?.uuid === team,
-    );
   }
 
   return dedupeSamsMatchesByUuid(matches);
@@ -241,22 +259,27 @@ export async function loadScheduleMatchesForSamsTeamUuids(
 
   const sportsclubUuids = await resolveConfiguredSamsSportsclubUuidsFromStorage();
   const { items: samsTeams } = await getAllSamsTeams();
-  const seasonUuid = pickSyncedSeasonUuid(samsTeams, sportsclubUuids);
-  if (!seasonUuid || sportsclubUuids.length === 0) return [];
+  const defaultSeasonUuid = pickSyncedSeasonUuid(samsTeams, sportsclubUuids);
+  if (!defaultSeasonUuid) return [];
 
   const teamUuidSet = new Set(teamUuids);
-  const projectionMatches = await samsScheduleProjectionRepository.listMatchesForSportsclubs(
-    sportsclubUuids,
-    seasonUuid,
+  const seasonByTeamUuid = new Map(
+    samsTeams
+      .filter((team) => team.uuid && teamUuidSet.has(team.uuid))
+      .map((team) => [team.uuid, team.seasonUuid]),
   );
 
-  const filtered = projectionMatches.filter((match) => {
-    const team1Uuid = match._embedded?.team1?.uuid;
-    const team2Uuid = match._embedded?.team2?.uuid;
-    return teamUuidSet.has(team1Uuid ?? "") || teamUuidSet.has(team2Uuid ?? "");
-  });
+  const matchesByTeam = await Promise.all(
+    teamUuids.map((teamUuid) =>
+      loadMatchesFromProjections({
+        team: teamUuid,
+        season: seasonByTeamUuid.get(teamUuid) ?? defaultSeasonUuid,
+        sportsclubUuids,
+      }),
+    ),
+  );
 
-  return dedupeSamsMatchesByUuid(filtered);
+  return dedupeSamsMatchesByUuid(matchesByTeam.flat());
 }
 
 function isPastProjectionMatch(
@@ -324,7 +347,7 @@ async function fetchSamsRankingsByLeagueUuid(leagueUuid: string): Promise<Rankin
   );
 }
 
-async function peekRankingProjectionForSeason(
+async function loadRankingProjectionForSeason(
   leagueUuid: string,
   seasonUuid: string,
 ): Promise<RankingResponse | null> {
@@ -386,24 +409,24 @@ export async function handleGetSamsRankingByLeagueUuid(leagueUuid: string) {
   return fetchSamsRankingsByLeagueUuid(leagueUuid);
 }
 
-/** Projection peek for rankings — returns stored data regardless of age. */
-export async function handlePeekSamsRankingsCache(
+/** Load ranking projections for route loaders (null when projection row is missing). */
+export async function loadSamsRankingsProjection(
   leagueUuids: string[],
-  context?: Pick<SamsPeekContext, "seasonUuid">,
+  context?: Pick<SamsProjectionLoadContext, "seasonUuid">,
 ) {
   const seasonUuid = context?.seasonUuid ?? (await resolveSyncedSeasonUuid());
   if (!seasonUuid) return [];
 
   const results = await Promise.all(
-    leagueUuids.map((leagueUuid) => peekRankingProjectionForSeason(leagueUuid, seasonUuid)),
+    leagueUuids.map((leagueUuid) => loadRankingProjectionForSeason(leagueUuid, seasonUuid)),
   );
   return results.filter((result): result is RankingResponse => result !== null);
 }
 
-/** Projection peek for matches — fast route loaders without assembling filters at read time. */
-export async function handlePeekSamsMatchesCache(
+/** Load match projections for route loaders (null when no matches or unresolved query). */
+export async function loadSamsMatchesProjection(
   data?: SamsMatchesInput,
-  context?: SamsPeekContext,
+  context?: SamsProjectionLoadContext,
 ) {
   const resolvedQuery = await resolveSamsMatchesQuery(data, {
     defaultSportsclubUuids: context?.sportsclubUuids,
@@ -466,17 +489,17 @@ export async function handleLoadTabelleRouteData() {
 
   let rankingsByLeagueUuid: Record<string, RankingResponse> = {};
   let matches: LeagueMatchesResponse | undefined;
-  const peekContext: SamsPeekContext = {
+  const projectionContext: SamsProjectionLoadContext = {
     seasonUuid: syncedSeasonUuid,
     sportsclubUuids,
   };
 
   if (sortedLeagueUuids.length > 0) {
     const [rankingsResult, matchesResult] = await Promise.all([
-      handlePeekSamsRankingsCache(sortedLeagueUuids, peekContext),
-      handlePeekSamsMatchesCache(
+      loadSamsRankingsProjection(sortedLeagueUuids, projectionContext),
+      loadSamsMatchesProjection(
         { range: "past", limit: lastResultCap, season: syncedSeasonUuid },
-        peekContext,
+        projectionContext,
       ),
     ]);
     rankingsByLeagueUuid = Object.fromEntries(
@@ -501,11 +524,11 @@ export async function handleLoadMatchesIndexRouteData() {
   ]);
 
   const seasonUuid = pickSyncedSeasonUuid(samsTeamsResult.items, sportsclubUuids);
-  const peekContext: SamsPeekContext = { seasonUuid, sportsclubUuids };
+  const projectionContext: SamsProjectionLoadContext = { seasonUuid, sportsclubUuids };
 
-  const matches = await handlePeekSamsMatchesCache(
+  const matches = await loadSamsMatchesProjection(
     { range: "future", season: seasonUuid },
-    peekContext,
+    projectionContext,
   );
   return { matches: matches ?? undefined };
 }
@@ -555,17 +578,6 @@ export async function handleGetClubLogoUrlsBySportsclubUuids(sportsclubUuids: st
     }),
   );
   return Object.fromEntries(entries) as Record<string, string | null>;
-}
-
-/** Pure helper — resolves a club's effective logo URL from a club record.
- * Exported for unit testing. */
-export function resolveClubLogoUrl(
-  club: { logoS3Key?: string | null; logoImageLink?: string | null } | null,
-  cloudfrontUrl: string,
-): string | null {
-  if (!club) return null;
-  if (club.logoS3Key && cloudfrontUrl) return `${cloudfrontUrl}/${club.logoS3Key}`;
-  return club.logoImageLink ?? null;
 }
 
 // ── SAMS Live Ticker proxy ────────────────────────────────────────────────────

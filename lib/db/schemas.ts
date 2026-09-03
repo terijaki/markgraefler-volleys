@@ -294,6 +294,24 @@ export const samsClubScheduleProjectionSchema = z.object({
 
 export type SamsClubScheduleProjectionInput = z.infer<typeof samsClubScheduleProjectionSchema>;
 
+/** Team schedule projection — matches for one SAMS team in a season (indexed by team UUID). */
+export const samsTeamScheduleProjectionSchema = z.object({
+  teamUuid: z.string().min(1),
+  seasonUuid: z.string().min(1),
+  seasonName: z.string().optional(),
+  sportsclubUuid: z.string().min(1).optional(),
+  type: z.literal("teamSchedule").default("teamSchedule"),
+  matches: z.array(samsProjectionMatchSchema).default([]),
+  snapshotVersion: z.string().min(1),
+  projectedAt: z.iso.datetime().optional(),
+  cachedAt: z.iso.datetime().optional(),
+  isStale: z.boolean().optional(),
+  updatedAt: z.iso.datetime(),
+  ttl: z.number().int().positive(),
+});
+
+export type SamsTeamScheduleProjectionInput = z.infer<typeof samsTeamScheduleProjectionSchema>;
+
 /** League ranking projection row (RankingResponse teams entry shape). */
 export const samsProjectionRankingEntrySchema = z.object({
   uuid: z.string(),

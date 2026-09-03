@@ -10,6 +10,7 @@ export const samsClubPk = (sportsclubUuid: string): string => `club#${sportsclub
 export const samsTeamPk = (uuid: string): string => `team#${uuid}`;
 export const samsRosterPk = (teamUuid: string): string => `roster#${teamUuid}`;
 export const samsSchedulePk = (sportsclubUuid: string): string => `schedule#${sportsclubUuid}`;
+export const samsTeamSchedulePk = (teamUuid: string): string => `schedule#team#${teamUuid}`;
 export const samsSeasonSk = (seasonUuid: string): string => `season#${seasonUuid}`;
 export const samsRankingPk = (leagueUuid: string): string => `ranking#${leagueUuid}`;
 export const samsMatchPk = (matchUuid: string): string => `match#${matchUuid}`;

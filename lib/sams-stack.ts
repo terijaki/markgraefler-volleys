@@ -133,6 +133,7 @@ export class SamsStack extends cdk.Stack {
         ...commonEnvironment,
         SAMS_TABLE_NAME: samsDataTable.tableName,
         MEDIA_BUCKET_NAME: props?.mediaBucketName ?? "",
+        ...(props?.mediaCloudFrontUrl ? { MEDIA_CLOUDFRONT_URL: props.mediaCloudFrontUrl } : {}),
       } satisfies SamsProviderProcessorLambdaEnvironment,
     }).lambdaFunction;
 

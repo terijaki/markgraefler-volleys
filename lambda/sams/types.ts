@@ -9,6 +9,7 @@ import { optionalEnvString, requiredEnvString } from "../utils/env";
 export const SamsProviderProcessorLambdaEnvironmentSchema = z.object({
   SAMS_TABLE_NAME: requiredEnvString,
   MEDIA_BUCKET_NAME: optionalEnvString,
+  MEDIA_CLOUDFRONT_URL: optionalEnvString,
   CDK_ENVIRONMENT: optionalEnvString,
 });
 

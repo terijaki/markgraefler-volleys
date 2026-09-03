@@ -21,8 +21,8 @@ import {
   handleLoadMatchesIndexRouteData,
   handleLoadTabelleRouteData,
   loadScheduleMatchesForSamsTeamUuids,
-  handlePeekSamsMatchesCache,
-  handlePeekSamsRankingsCache,
+  loadSamsMatchesProjection,
+  loadSamsRankingsProjection,
 } from "./sams.server";
 
 const samsMatchesInputSchema = z
@@ -53,7 +53,7 @@ export const getSamsRankingByLeagueUuidFn = createServerFn()
   .validator(z.string())
   .handler(async ({ data }) => handleGetSamsRankingByLeagueUuid(data));
 
-export const peekSamsRankingsCacheFn = createServerFn()
+export const loadSamsRankingsProjectionFn = createServerFn()
   .validator(
     z.object({
       leagueUuids: z.array(z.string()),
@@ -61,12 +61,12 @@ export const peekSamsRankingsCacheFn = createServerFn()
     }),
   )
   .handler(async ({ data }) =>
-    handlePeekSamsRankingsCache(data.leagueUuids, { seasonUuid: data.seasonUuid }),
+    loadSamsRankingsProjection(data.leagueUuids, { seasonUuid: data.seasonUuid }),
   );
 
-export const peekSamsMatchesCacheFn = createServerFn()
+export const loadSamsMatchesProjectionFn = createServerFn()
   .validator(samsMatchesInputSchema)
-  .handler(async ({ data }) => handlePeekSamsMatchesCache(data));
+  .handler(async ({ data }) => loadSamsMatchesProjection(data));
 
 export const loadTabelleRouteDataFn = createServerFn().handler(async () =>
   handleLoadTabelleRouteData(),
