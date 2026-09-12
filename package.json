@@ -120,7 +120,7 @@
     "postcss-simple-vars": "^7.0.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
     "vite-plus": "0.3.0"
   },
   "engines": {
