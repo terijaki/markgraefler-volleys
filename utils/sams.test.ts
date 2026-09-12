@@ -22,11 +22,11 @@ describe("resolveConfiguredSamsSportsclubUuids", () => {
 });
 
 describe("shouldResolveDefaultSamsSportsclubs", () => {
-  it("uses dual-club defaults only when no explicit filter is present", () => {
+  it("uses configured defaults unless an explicit sportsclub filter is set", () => {
     expect(shouldResolveDefaultSamsSportsclubs({})).toBe(true);
+    expect(shouldResolveDefaultSamsSportsclubs({ team: "team-a" })).toBe(true);
+    expect(shouldResolveDefaultSamsSportsclubs({ league: "league-a" })).toBe(true);
     expect(shouldResolveDefaultSamsSportsclubs({ sportsclub: "club-a" })).toBe(false);
-    expect(shouldResolveDefaultSamsSportsclubs({ team: "team-a" })).toBe(false);
-    expect(shouldResolveDefaultSamsSportsclubs({ league: "league-a" })).toBe(false);
   });
 });
 

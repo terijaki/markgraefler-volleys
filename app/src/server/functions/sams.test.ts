@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
+import { resolveClubLogoUrl } from "@/utils/sams-club-logo";
 import {
   buildLiveMatchesFromRaw,
   createSamsMatchesCacheKey,
-  resolveClubLogoUrl,
   resolveEffectiveSamsSportsclubUuids,
 } from "./sams.server";
 
@@ -55,13 +55,14 @@ describe("resolveEffectiveSamsSportsclubUuids", () => {
     ).toEqual(["club-explicit"]);
   });
 
-  it("does not apply defaults when team or league filters are present", () => {
-    expect(resolveEffectiveSamsSportsclubUuids({ team: "team-a" }, ["club-a", "club-b"])).toEqual(
-      [],
-    );
+  it("still applies defaults when team or league filters narrow projection results", () => {
+    expect(resolveEffectiveSamsSportsclubUuids({ team: "team-a" }, ["club-a", "club-b"])).toEqual([
+      "club-a",
+      "club-b",
+    ]);
     expect(
       resolveEffectiveSamsSportsclubUuids({ league: "league-a" }, ["club-a", "club-b"]),
-    ).toEqual([]);
+    ).toEqual(["club-a", "club-b"]);
   });
 });
 

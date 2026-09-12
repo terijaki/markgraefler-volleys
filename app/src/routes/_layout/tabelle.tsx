@@ -1,35 +1,17 @@
-import { Card, CardSection, Loader, SimpleGrid, Stack, Text } from "@mantine/core";
+import { Card, CardSection, SimpleGrid, Stack, Text } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
 import { List } from "lucide-react";
 import CardTitle from "@webapp/components/CardTitle";
 import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
 import RankingTable from "@webapp/components/RankingTable";
-import { useSamsMatches } from "@webapp/hooks/dataQueries";
 import { loadTabelleRouteDataFn } from "@webapp/server/functions/sams";
 import { numToWord } from "num-words-de";
 
 export const Route = createFileRoute("/_layout/tabelle")({
   /**
-   * LOADING STRATEGY — do not change without understanding the full picture.
-   *
-   * Goal: instant navigation (no skeleton), with a small spinner showing when data
-   * is being refreshed in the background.
-   *
-   * How it works:
-   *  1. Loader runs server-side before navigation completes. It must be FAST.
-   *     → Use `loadTabelleRouteDataFn` (single server call that peeks DynamoDB projections).
-   *
-   *  2. The loader passes the projection data as `initialData` + `initialDataUpdatedAt` to
-   *     React Query hooks. React Query compares `initialDataUpdatedAt` against its
-   *     `staleTime` (10 min). If the data is stale, it starts a background refetch
-   *     immediately after render → `isFetching: true` → small spinner in RankingTable.
-   *
-   *  3. The React Query `queryFn` (`getSamsRankingByLeagueUuidFn`) re-reads ranking
-   *     projections from DynamoDB. There is no SAMS REST API fallback.
-   *
-   * Result: users always see projection data instantly. The spinner appears when React Query
-   * decides a refresh is needed. A loading skeleton only appears when no projection exists yet.
+   * LOADING STRATEGY — public route uses loader data only (no client refetch for SAMS tables/matches).
+   * `loadTabelleRouteDataFn` reads ranking and match projections from DynamoDB during SSR.
    */
   loader: async () => loadTabelleRouteDataFn(),
   component: RouteComponent,
@@ -39,26 +21,11 @@ function RouteComponent() {
   const {
     leagueUuids,
     teams,
-    lastResultCap,
     rankingsByLeagueUuid,
     matches: loaderMatches,
   } = Route.useLoaderData();
 
-  const matchesInitialDataUpdatedAt = loaderMatches?.timestamp
-    ? new Date(loaderMatches.timestamp).getTime()
-    : undefined;
-
-  const {
-    data: matchesData,
-    isLoading: isLoadingMatches,
-    isError: isMatchesError,
-  } = useSamsMatches({
-    range: "past",
-    limit: lastResultCap,
-    initialData: loaderMatches,
-    initialDataUpdatedAt: matchesInitialDataUpdatedAt,
-  });
-  const recentMatches = matchesData?.matches ?? [];
+  const recentMatches = loaderMatches?.matches ?? [];
   const lastResultWord =
     recentMatches.length > 1 && numToWord(recentMatches.length, { uppercase: false });
 
@@ -79,13 +46,12 @@ function RouteComponent() {
                 initialData={rankingsByLeagueUuid[leagueUuid]}
                 linkToTeamPage={true}
                 clubsTeams={teams}
+                loaderOnly
               />
             ))}
           </SimpleGrid>
         )}
-        {isLoadingMatches && <MatchesLoadingState />}
-        {!isLoadingMatches && isMatchesError && <MatchesErrorState />}
-        {!isLoadingMatches && !isMatchesError && recentMatches.length > 0 && (
+        {recentMatches.length > 0 && (
           <Card>
             <CardTitle>Unsere letzten {lastResultWord} Spiele</CardTitle>
             <CardSection p={{ base: undefined, sm: "sm" }}>
@@ -95,32 +61,6 @@ function RouteComponent() {
         )}
       </Stack>
     </PageWithHeading>
-  );
-}
-
-function MatchesLoadingState() {
-  return (
-    <Card>
-      <CardTitle>Letzte Spiele</CardTitle>
-      <Stack align="center" py="md" gap="xs">
-        <Loader size="sm" />
-        <Text c="dimmed" size="sm">
-          Lade letzte Spiele...
-        </Text>
-      </Stack>
-    </Card>
-  );
-}
-
-function MatchesErrorState() {
-  return (
-    <Card>
-      <CardTitle>Fehler beim Laden der letzten Spiele</CardTitle>
-      <Text>
-        Die letzten Spielresultate konnten derzeit nicht geladen werden. Bitte versuche es später
-        erneut.
-      </Text>
-    </Card>
   );
 }
 

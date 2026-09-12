@@ -1,9 +1,8 @@
-import { Anchor, Card, Loader, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Card, Stack, Text, Title } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
 import CardTitle from "@webapp/components/CardTitle";
 import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
-import { useSamsMatches } from "@webapp/hooks/dataQueries";
 import { loadMatchesIndexRouteDataFn } from "@webapp/server/functions/sams";
 import { getWebcalLinkFn } from "@webapp/server/functions/webcal";
 import dayjs from "dayjs";
@@ -13,10 +12,8 @@ import type { LeagueMatchesResponse } from "@/lambda/sams/types";
 
 export const Route = createFileRoute("/_layout/matches/")({
   /**
-   * LOADING STRATEGY — mirrors `/tabelle` (see that route for the full rationale).
-   * The loader must stay FAST: it uses `loadMatchesIndexRouteDataFn` (projection peek only).
-   * Freshness is handled client-side by `useSamsMatches`, which re-reads DynamoDB projections.
-   * There is no SAMS REST API fallback.
+   * LOADING STRATEGY — public route uses loader data only (no client refetch).
+   * `loadMatchesIndexRouteDataFn` reads match projections from DynamoDB during SSR.
    */
   loader: async () => {
     const [pageData, webcalLink] = await Promise.all([
@@ -33,20 +30,6 @@ export const Route = createFileRoute("/_layout/matches/")({
 
 function RouteComponent() {
   const { matches: loaderMatches, webcalLink } = Route.useLoaderData();
-
-  const matchesInitialDataUpdatedAt = loaderMatches?.timestamp
-    ? new Date(loaderMatches.timestamp).getTime()
-    : undefined;
-
-  const {
-    data: matches,
-    isLoading,
-    isError,
-  } = useSamsMatches({
-    range: "future",
-    initialData: loaderMatches,
-    initialDataUpdatedAt: matchesInitialDataUpdatedAt,
-  });
 
   return (
     <PageWithHeading
@@ -70,44 +53,15 @@ function RouteComponent() {
             </Text>
           </Stack>
         </Card>
-        {isLoading && <MatchesLoadingState />}
-        {!isLoading && <MatchesContent matches={matches} error={isError} />}
+        <MatchesContent matches={loaderMatches} />
       </Stack>
     </PageWithHeading>
   );
 }
 
-function MatchesLoadingState() {
-  return (
-    <Card>
-      <Stack align="center" py="md" gap="xs">
-        <Loader size="sm" />
-        <Text c="dimmed" size="sm">
-          Lade Ligaspiele...
-        </Text>
-      </Stack>
-    </Card>
-  );
-}
-
-function MatchesContent({
-  matches,
-  error,
-}: {
-  matches: LeagueMatchesResponse | undefined;
-  error: boolean;
-}) {
+function MatchesContent({ matches }: { matches: LeagueMatchesResponse | undefined }) {
   const currentMonth = dayjs().month() + 1;
   const isOffSeason = currentMonth >= 5 && currentMonth <= 9;
-
-  if (error) {
-    return (
-      <Card>
-        <CardTitle>Fehler beim Laden der SBVV Ligaspiele</CardTitle>
-        <Text>Die Ligaspiele konnten nicht geladen werden. Bitte versuche es später erneut.</Text>
-      </Card>
-    );
-  }
 
   if (matches?.matches && matches.matches.length > 0) {
     const timestampDate = matches.timestamp ? new Date(matches.timestamp) : undefined;
@@ -119,7 +73,6 @@ function MatchesContent({
     );
   }
 
-  // Fallback when no matches
   return (
     <Fragment>
       <Card>

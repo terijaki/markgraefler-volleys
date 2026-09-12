@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, it } from "vite-plus/test";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { SamsStack } from "./sams-stack";
 import { SamsTableIndexes } from "./db/table-indexes";
-import { getProviderEventDeliveryRoleArn } from "./sams-provider-env";
+import { getProviderEventDeliveryRoleArn, SAMS_PROVIDER_ACCOUNT_ID } from "./sams-provider-env";
 import { createTestApp } from "./test-helpers";
 
 beforeEach(() => {
@@ -178,7 +178,17 @@ describe("SamsStack", () => {
               Sid: "AllowSamsProviderEventBridgeSendMessage",
               Action: "sqs:SendMessage",
               Principal: {
-                AWS: getProviderEventDeliveryRoleArn(),
+                AWS: Match.objectLike({
+                  "Fn::Join": Match.arrayWith([
+                    "",
+                    Match.arrayWith([`:iam::${SAMS_PROVIDER_ACCOUNT_ID}:root`]),
+                  ]),
+                }),
+              },
+              Condition: {
+                ArnEquals: {
+                  "aws:PrincipalArn": getProviderEventDeliveryRoleArn(),
+                },
               },
             }),
           ]),
