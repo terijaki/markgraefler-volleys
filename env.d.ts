@@ -85,31 +85,31 @@ export type CoercedEnvSchema = {
   
 };
 
-type _CoercedEnvSchema_d8bae827 = CoercedEnvSchema;
+type _CoercedEnvSchema_f3598563 = CoercedEnvSchema;
 
 declare module 'varlock/env' {
-  export interface TypedEnvSchema extends Readonly<_CoercedEnvSchema_d8bae827> {}
-  export interface PublicTypedEnvSchema extends Readonly<Pick<_CoercedEnvSchema_d8bae827, 'BRANCH_NAME' | 'VITE_BRANCH_NAME' | 'CDK_ENVIRONMENT' | 'CDK_BUDGET_ALERT_EMAIL' | 'CDK_MONITORING_ALERT_EMAIL' | 'CDK_DEPLOY_MAIL_INFRA' | 'SENTRY_ENVIRONMENT'>> {}
+  export interface TypedEnvSchema extends Readonly<_CoercedEnvSchema_f3598563> {}
+  export interface PublicTypedEnvSchema extends Readonly<Pick<_CoercedEnvSchema_f3598563, 'BRANCH_NAME' | 'VITE_BRANCH_NAME' | 'CDK_ENVIRONMENT' | 'CDK_BUDGET_ALERT_EMAIL' | 'CDK_MONITORING_ALERT_EMAIL' | 'CDK_DEPLOY_MAIL_INFRA' | 'SENTRY_ENVIRONMENT'>> {}
 }
 
 
 export type EnvSchemaAsStrings = {
   [Property in keyof CoercedEnvSchema]:
-    CoercedEnvSchema[Property] extends string ? CoercedEnvSchema[Property]
-      : (CoercedEnvSchema[Property] extends boolean ? ('true' | 'false') : string)
+    NonNullable<CoercedEnvSchema[Property]> extends string ? NonNullable<CoercedEnvSchema[Property]>
+      : (NonNullable<CoercedEnvSchema[Property]> extends boolean ? ('true' | 'false') : string)
 };
 
-type _EnvSchemaAsStrings_d8bae827 = EnvSchemaAsStrings;
+type _EnvSchemaAsStrings_f3598563 = EnvSchemaAsStrings;
 declare global {
 
   // add types for global import.meta.env
-  interface ImportMetaEnv extends _EnvSchemaAsStrings_d8bae827 {}
+  interface ImportMetaEnv extends _EnvSchemaAsStrings_f3598563 {}
   interface ImportMeta {
     readonly env: ImportMetaEnv;
   }
 
   // add types for global process.env
   namespace NodeJS {
-    interface ProcessEnv extends _EnvSchemaAsStrings_d8bae827 {}
+    interface ProcessEnv extends _EnvSchemaAsStrings_f3598563 {}
   }
 }
