@@ -157,7 +157,7 @@ describe("WebAppStack", () => {
     });
 
     template.hasResourceProperties("AWS::Lambda::Url", {
-      InvokeMode: "RESPONSE_STREAM",
+      InvokeMode: "BUFFERED",
     });
 
     template.hasResourceProperties("AWS::CloudFront::CachePolicy", {

@@ -51,9 +51,10 @@ export default defineConfig({
       localAwsResourceEnvPlugin(),
       nitro({
         preset: "aws-lambda",
-        awsLambda: {
-          streaming: true,
-        },
+        // NOTE: Do not enable `awsLambda.streaming: true` yet. On the Linux CI
+        // build it produced an SSR chunk cycle (router → useNotification →
+        // createSsrRpc) that throws `createSsrRpc is not a function` on every
+        // request. Keep Function URL BUFFERED until that bundling issue is fixed.
         output: {
           publicDir: "app/.output/public",
           serverDir: "app/.output/server",

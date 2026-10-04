@@ -18,7 +18,7 @@ The public homepage avoids blocking the first HTML byte on secondary section rea
 
 - Root `beforeLoad` skips `getSessionFn` when no better-auth session cookie is present.
 - The homepage loader returns Instagram as an unresolved promise rendered with `<Await>` and a section fallback.
-- Nitro uses the AWS Lambda streaming handler; the Function URL uses `RESPONSE_STREAM` (not buffered).
 - Anonymous `GET /` sets `Cache-Control` with `s-maxage=600` and `stale-while-revalidate=86400` so CloudFront can serve HTML between sparse visits. Signed-in homepage requests are `private, no-store`.
+- Lambda Function URL stays **BUFFERED** for now. Enabling Nitro `awsLambda.streaming` + `RESPONSE_STREAM` on the Linux CI build produced an SSR chunk cycle (`createSsrRpc is not a function`) that 500'd every route. Revisit streaming once that bundling issue is fixed.
 
 True Lambda cold starts still take several seconds until boot finishes; the longer homepage edge TTL is what usually avoids invoking a cold origin for idle club traffic.

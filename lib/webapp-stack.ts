@@ -4,7 +4,7 @@
  * Replaces: WebsiteStack + CmsStack + ApiStack
  *
  * Architecture:
- * - Lambda Function URL (streaming) ← Nitro server handler (.output/server/index.mjs)
+ * - Lambda Function URL (buffered) ← Nitro server handler (.output/server/index.mjs)
  * - CloudFront distribution
  *   · Default behavior → Lambda Function URL (all requests: SSR + API routes)
  *   · /assets/* behavior → S3 static assets origin (immutable, long TTL)
@@ -196,10 +196,12 @@ export class WebAppStack extends cdk.Stack {
     );
 
     // Lambda Function URL (NONE auth — CloudFront handles access control).
-    // RESPONSE_STREAM lets Nitro stream deferred SSR sections (<Await>) as they resolve.
+    // Stay BUFFERED until Nitro streaming builds stop producing the Linux CI
+    // SSR chunk cycle (createSsrRpc is not a function). Deferred <Await> still
+    // works for client navigations; anonymous homepage CDN cache covers cold starts.
     const fnUrl = this.webappLambda.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
-      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+      invokeMode: lambda.InvokeMode.BUFFERED,
     });
 
     // ── Cache policies ─────────────────────────────────────────────────────
