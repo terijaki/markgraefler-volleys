@@ -51,6 +51,9 @@ export default defineConfig({
       localAwsResourceEnvPlugin(),
       nitro({
         preset: "aws-lambda",
+        awsLambda: {
+          streaming: true,
+        },
         output: {
           publicDir: "app/.output/public",
           serverDir: "app/.output/server",
@@ -66,10 +69,10 @@ export default defineConfig({
         // Public, non-personalized pages get a short CloudFront edge cache (see
         // `ssrCachePolicy` in lib/webapp-stack.ts) so most traffic is served from the CDN
         // instead of invoking the Lambda on every request. `s-maxage` controls the shared
-        // (CDN) cache; `max-age=0` keeps browsers always revalidating. Admin/auth routes are
-        // explicitly marked `no-store` as a safety net even though they're excluded above.
+        // (CDN) cache; `max-age=0` keeps browsers always revalidating. Homepage `/` Cache-Control
+        // is set at runtime in `app/src/start.ts` (cookie-aware anonymous vs signed-in).
+        // Admin/auth routes are explicitly marked `no-store` as a safety net.
         routeRules: {
-          "/": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/tabelle": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/matches": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/matches/**": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
