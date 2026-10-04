@@ -64,7 +64,7 @@ jobs:
 
       - name: CDK Deploy
         run: |
-          vp exec cdk deploy --require-approval never --all --outputs-file cdk-outputs.json
+          vp exec cdk deploy --require-approval never --all --outputs-file cdk-outputs.json --concurrency 8
 
       - name: Seed SAMS provider mock events
         if: github.ref != 'refs/heads/main'

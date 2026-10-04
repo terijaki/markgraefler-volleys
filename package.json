@@ -25,8 +25,8 @@
     "ci:cdk-deploy-summary": "bun ./scripts/github-actions/write-cdk-deploy-summary.ts cdk-outputs.json",
     "ci:resolve-webapp-url": "bun ./scripts/github-actions/resolve-webapp-url.ts",
     "cdk:deploy": "cdk deploy --require-approval=never",
-    "cdk:deploy:all": "cdk deploy --all --require-approval=never",
-    "cdk:deploy:prod": "CDK_ENVIRONMENT=prod cdk deploy --all",
+    "cdk:deploy:all": "cdk deploy --all --require-approval=never --concurrency 8",
+    "cdk:deploy:prod": "CDK_ENVIRONMENT=prod cdk deploy --all --concurrency 8",
     "cdk:deploy:mail-infra": "CDK_DEPLOY_MAIL_INFRA=true cdk deploy MailInfraStack-Dev --require-approval=never",
     "cdk:deploy:mail-infra:prod": "CDK_ENVIRONMENT=prod CDK_DEPLOY_MAIL_INFRA=true cdk deploy MailInfraStack-Prod --require-approval=never",
     "cdk:deploy:buntime": "CDK_DEPLOY_BUNTIME=true cdk deploy BunTimeStack-Dev --require-approval=never",
@@ -45,7 +45,7 @@
     "cdk:diff:all": "cdk diff --all",
     "cdk:diff:prod": "CDK_ENVIRONMENT=prod cdk diff --all",
     "cdk:destroy": "CDK_DESTROY=true cdk destroy --require-approval=never",
-    "cdk:destroy:all": "CDK_DESTROY=true cdk destroy --all --require-approval=never",
+    "cdk:destroy:all": "CDK_DESTROY=true cdk destroy --all --require-approval=never --concurrency 8",
     "cdk:bootstrap": "cdk bootstrap"
   },
   "dependencies": {
