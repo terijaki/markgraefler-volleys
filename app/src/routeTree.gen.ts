@@ -11,27 +11,27 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
-import { Route as IcsTeamSlugRouteImport } from './routes/ics/$teamSlug'
-import { Route as AdminOtpLoginRouteImport } from './routes/admin/otp-login'
-import { Route as AdminLoginRouteImport } from './routes/admin/login'
-import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
-import { Route as LayoutTeamsRouteImport } from './routes/_layout/teams'
-import { Route as LayoutTabelleRouteImport } from './routes/_layout/tabelle'
-import { Route as LayoutMemberRouteImport } from './routes/_layout/member'
-import { Route as LayoutMatchesRouteImport } from './routes/_layout/matches'
-import { Route as LayoutImpressumRouteImport } from './routes/_layout/impressum'
-import { Route as LayoutDatenschutzRouteImport } from './routes/_layout/datenschutz'
 import { Route as LayoutBrandRouteImport } from './routes/_layout/brand'
-import { Route as AdminLayoutIndexRouteImport } from './routes/admin/_layout/index'
-import { Route as LayoutTeamsIndexRouteImport } from './routes/_layout/teams.index'
+import { Route as LayoutDatenschutzRouteImport } from './routes/_layout/datenschutz'
+import { Route as LayoutImpressumRouteImport } from './routes/_layout/impressum'
+import { Route as LayoutMatchesRouteImport } from './routes/_layout/matches'
+import { Route as LayoutMemberRouteImport } from './routes/_layout/member'
+import { Route as LayoutTabelleRouteImport } from './routes/_layout/tabelle'
+import { Route as LayoutTeamsRouteImport } from './routes/_layout/teams'
+import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminOtpLoginRouteImport } from './routes/admin/otp-login'
+import { Route as IcsTeamSlugRouteImport } from './routes/ics/$teamSlug'
 import { Route as LayoutMatchesIndexRouteImport } from './routes/_layout/matches.index'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AdminLayoutTeamsRouteImport } from './routes/admin/_layout/teams'
-import { Route as AdminLayoutSponsorsRouteImport } from './routes/admin/_layout/sponsors'
-import { Route as AdminLayoutSamsRouteImport } from './routes/admin/_layout/sams'
-import { Route as AdminLayoutMembersRouteImport } from './routes/admin/_layout/members'
-import { Route as AdminLayoutLocationsRouteImport } from './routes/admin/_layout/locations'
+import { Route as LayoutTeamsIndexRouteImport } from './routes/_layout/teams.index'
 import { Route as LayoutTeamsSlugRouteImport } from './routes/_layout/teams.$slug'
+import { Route as AdminLayoutIndexRouteImport } from './routes/admin/_layout/index'
+import { Route as AdminLayoutLocationsRouteImport } from './routes/admin/_layout/locations'
+import { Route as AdminLayoutMembersRouteImport } from './routes/admin/_layout/members'
+import { Route as AdminLayoutSamsRouteImport } from './routes/admin/_layout/sams'
+import { Route as AdminLayoutSponsorsRouteImport } from './routes/admin/_layout/sponsors'
+import { Route as AdminLayoutTeamsRouteImport } from './routes/admin/_layout/teams'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
@@ -42,49 +42,9 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LayoutRoute,
 } as any)
-const IcsTeamSlugRoute = IcsTeamSlugRouteImport.update({
-  id: '/ics/$teamSlug',
-  path: '/ics/$teamSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminOtpLoginRoute = AdminOtpLoginRouteImport.update({
-  id: '/admin/otp-login',
-  path: '/admin/otp-login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin/login',
-  path: '/admin/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLayoutRoute = AdminLayoutRouteImport.update({
-  id: '/admin/_layout',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LayoutTeamsRoute = LayoutTeamsRouteImport.update({
-  id: '/teams',
-  path: '/teams',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutTabelleRoute = LayoutTabelleRouteImport.update({
-  id: '/tabelle',
-  path: '/tabelle',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutMemberRoute = LayoutMemberRouteImport.update({
-  id: '/member',
-  path: '/member',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutMatchesRoute = LayoutMatchesRouteImport.update({
-  id: '/matches',
-  path: '/matches',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutImpressumRoute = LayoutImpressumRouteImport.update({
-  id: '/impressum',
-  path: '/impressum',
+const LayoutBrandRoute = LayoutBrandRouteImport.update({
+  id: '/brand',
+  path: '/brand',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutDatenschutzRoute = LayoutDatenschutzRouteImport.update({
@@ -92,49 +52,69 @@ const LayoutDatenschutzRoute = LayoutDatenschutzRouteImport.update({
   path: '/datenschutz',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutBrandRoute = LayoutBrandRouteImport.update({
-  id: '/brand',
-  path: '/brand',
+const LayoutImpressumRoute = LayoutImpressumRouteImport.update({
+  id: '/impressum',
+  path: '/impressum',
   getParentRoute: () => LayoutRoute,
 } as any)
-const AdminLayoutIndexRoute = AdminLayoutIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminLayoutRoute,
+const LayoutMatchesRoute = LayoutMatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutTeamsIndexRoute = LayoutTeamsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LayoutTeamsRoute,
+const LayoutMemberRoute = LayoutMemberRouteImport.update({
+  id: '/member',
+  path: '/member',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTabelleRoute = LayoutTabelleRouteImport.update({
+  id: '/tabelle',
+  path: '/tabelle',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTeamsRoute = LayoutTeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const AdminLayoutRoute = AdminLayoutRouteImport.update({
+  id: '/admin/_layout',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminOtpLoginRoute = AdminOtpLoginRouteImport.update({
+  id: '/admin/otp-login',
+  path: '/admin/otp-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IcsTeamSlugRoute = IcsTeamSlugRouteImport.update({
+  id: '/ics/$teamSlug',
+  path: '/ics/$teamSlug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutMatchesIndexRoute = LayoutMatchesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LayoutMatchesRoute,
 } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
+const LayoutTeamsIndexRoute = LayoutTeamsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LayoutTeamsRoute,
 } as any)
-const AdminLayoutTeamsRoute = AdminLayoutTeamsRouteImport.update({
-  id: '/teams',
-  path: '/teams',
-  getParentRoute: () => AdminLayoutRoute,
+const LayoutTeamsSlugRoute = LayoutTeamsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => LayoutTeamsRoute,
 } as any)
-const AdminLayoutSponsorsRoute = AdminLayoutSponsorsRouteImport.update({
-  id: '/sponsors',
-  path: '/sponsors',
-  getParentRoute: () => AdminLayoutRoute,
-} as any)
-const AdminLayoutSamsRoute = AdminLayoutSamsRouteImport.update({
-  id: '/sams',
-  path: '/sams',
-  getParentRoute: () => AdminLayoutRoute,
-} as any)
-const AdminLayoutMembersRoute = AdminLayoutMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
+const AdminLayoutIndexRoute = AdminLayoutIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
 const AdminLayoutLocationsRoute = AdminLayoutLocationsRouteImport.update({
@@ -142,10 +122,30 @@ const AdminLayoutLocationsRoute = AdminLayoutLocationsRouteImport.update({
   path: '/locations',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
-const LayoutTeamsSlugRoute = LayoutTeamsSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => LayoutTeamsRoute,
+const AdminLayoutMembersRoute = AdminLayoutMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
+const AdminLayoutSamsRoute = AdminLayoutSamsRouteImport.update({
+  id: '/sams',
+  path: '/sams',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
+const AdminLayoutSponsorsRoute = AdminLayoutSponsorsRouteImport.update({
+  id: '/sponsors',
+  path: '/sponsors',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
+const AdminLayoutTeamsRoute = AdminLayoutTeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -317,67 +317,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/ics/$teamSlug': {
-      id: '/ics/$teamSlug'
-      path: '/ics/$teamSlug'
-      fullPath: '/ics/$teamSlug'
-      preLoaderRoute: typeof IcsTeamSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/otp-login': {
-      id: '/admin/otp-login'
-      path: '/admin/otp-login'
-      fullPath: '/admin/otp-login'
-      preLoaderRoute: typeof AdminOtpLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/login': {
-      id: '/admin/login'
-      path: '/admin/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/_layout': {
-      id: '/admin/_layout'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminLayoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_layout/teams': {
-      id: '/_layout/teams'
-      path: '/teams'
-      fullPath: '/teams'
-      preLoaderRoute: typeof LayoutTeamsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/tabelle': {
-      id: '/_layout/tabelle'
-      path: '/tabelle'
-      fullPath: '/tabelle'
-      preLoaderRoute: typeof LayoutTabelleRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/member': {
-      id: '/_layout/member'
-      path: '/member'
-      fullPath: '/member'
-      preLoaderRoute: typeof LayoutMemberRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/matches': {
-      id: '/_layout/matches'
-      path: '/matches'
-      fullPath: '/matches'
-      preLoaderRoute: typeof LayoutMatchesRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/impressum': {
-      id: '/_layout/impressum'
-      path: '/impressum'
-      fullPath: '/impressum'
-      preLoaderRoute: typeof LayoutImpressumRouteImport
+    '/_layout/brand': {
+      id: '/_layout/brand'
+      path: '/brand'
+      fullPath: '/brand'
+      preLoaderRoute: typeof LayoutBrandRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/datenschutz': {
@@ -387,26 +331,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutDatenschutzRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/brand': {
-      id: '/_layout/brand'
-      path: '/brand'
-      fullPath: '/brand'
-      preLoaderRoute: typeof LayoutBrandRouteImport
+    '/_layout/impressum': {
+      id: '/_layout/impressum'
+      path: '/impressum'
+      fullPath: '/impressum'
+      preLoaderRoute: typeof LayoutImpressumRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/admin/_layout/': {
-      id: '/admin/_layout/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminLayoutIndexRouteImport
-      parentRoute: typeof AdminLayoutRoute
+    '/_layout/matches': {
+      id: '/_layout/matches'
+      path: '/matches'
+      fullPath: '/matches'
+      preLoaderRoute: typeof LayoutMatchesRouteImport
+      parentRoute: typeof LayoutRoute
     }
-    '/_layout/teams/': {
-      id: '/_layout/teams/'
-      path: '/'
-      fullPath: '/teams/'
-      preLoaderRoute: typeof LayoutTeamsIndexRouteImport
-      parentRoute: typeof LayoutTeamsRoute
+    '/_layout/member': {
+      id: '/_layout/member'
+      path: '/member'
+      fullPath: '/member'
+      preLoaderRoute: typeof LayoutMemberRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tabelle': {
+      id: '/_layout/tabelle'
+      path: '/tabelle'
+      fullPath: '/tabelle'
+      preLoaderRoute: typeof LayoutTabelleRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/teams': {
+      id: '/_layout/teams'
+      path: '/teams'
+      fullPath: '/teams'
+      preLoaderRoute: typeof LayoutTeamsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/admin/_layout': {
+      id: '/admin/_layout'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminLayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/otp-login': {
+      id: '/admin/otp-login'
+      path: '/admin/otp-login'
+      fullPath: '/admin/otp-login'
+      preLoaderRoute: typeof AdminOtpLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ics/$teamSlug': {
+      id: '/ics/$teamSlug'
+      path: '/ics/$teamSlug'
+      fullPath: '/ics/$teamSlug'
+      preLoaderRoute: typeof IcsTeamSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_layout/matches/': {
       id: '/_layout/matches/'
@@ -415,39 +401,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutMatchesIndexRouteImport
       parentRoute: typeof LayoutMatchesRoute
     }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_layout/teams/': {
+      id: '/_layout/teams/'
+      path: '/'
+      fullPath: '/teams/'
+      preLoaderRoute: typeof LayoutTeamsIndexRouteImport
+      parentRoute: typeof LayoutTeamsRoute
     }
-    '/admin/_layout/teams': {
-      id: '/admin/_layout/teams'
-      path: '/teams'
-      fullPath: '/admin/teams'
-      preLoaderRoute: typeof AdminLayoutTeamsRouteImport
-      parentRoute: typeof AdminLayoutRoute
+    '/_layout/teams/$slug': {
+      id: '/_layout/teams/$slug'
+      path: '/$slug'
+      fullPath: '/teams/$slug'
+      preLoaderRoute: typeof LayoutTeamsSlugRouteImport
+      parentRoute: typeof LayoutTeamsRoute
     }
-    '/admin/_layout/sponsors': {
-      id: '/admin/_layout/sponsors'
-      path: '/sponsors'
-      fullPath: '/admin/sponsors'
-      preLoaderRoute: typeof AdminLayoutSponsorsRouteImport
-      parentRoute: typeof AdminLayoutRoute
-    }
-    '/admin/_layout/sams': {
-      id: '/admin/_layout/sams'
-      path: '/sams'
-      fullPath: '/admin/sams'
-      preLoaderRoute: typeof AdminLayoutSamsRouteImport
-      parentRoute: typeof AdminLayoutRoute
-    }
-    '/admin/_layout/members': {
-      id: '/admin/_layout/members'
-      path: '/members'
-      fullPath: '/admin/members'
-      preLoaderRoute: typeof AdminLayoutMembersRouteImport
+    '/admin/_layout/': {
+      id: '/admin/_layout/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminLayoutIndexRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
     '/admin/_layout/locations': {
@@ -457,12 +429,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutLocationsRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
-    '/_layout/teams/$slug': {
-      id: '/_layout/teams/$slug'
-      path: '/$slug'
-      fullPath: '/teams/$slug'
-      preLoaderRoute: typeof LayoutTeamsSlugRouteImport
-      parentRoute: typeof LayoutTeamsRoute
+    '/admin/_layout/members': {
+      id: '/admin/_layout/members'
+      path: '/members'
+      fullPath: '/admin/members'
+      preLoaderRoute: typeof AdminLayoutMembersRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
+    '/admin/_layout/sams': {
+      id: '/admin/_layout/sams'
+      path: '/sams'
+      fullPath: '/admin/sams'
+      preLoaderRoute: typeof AdminLayoutSamsRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
+    '/admin/_layout/sponsors': {
+      id: '/admin/_layout/sponsors'
+      path: '/sponsors'
+      fullPath: '/admin/sponsors'
+      preLoaderRoute: typeof AdminLayoutSponsorsRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
+    '/admin/_layout/teams': {
+      id: '/admin/_layout/teams'
+      path: '/teams'
+      fullPath: '/admin/teams'
+      preLoaderRoute: typeof AdminLayoutTeamsRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }

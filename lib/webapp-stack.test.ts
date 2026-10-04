@@ -156,6 +156,10 @@ describe("WebAppStack", () => {
       },
     });
 
+    template.hasResourceProperties("AWS::Lambda::Url", {
+      InvokeMode: "RESPONSE_STREAM",
+    });
+
     template.hasResourceProperties("AWS::CloudFront::CachePolicy", {
       CachePolicyConfig: {
         Comment: "SSR + API: cache duration driven by origin Cache-Control (see Nitro routeRules)",

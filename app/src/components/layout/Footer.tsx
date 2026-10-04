@@ -25,16 +25,14 @@ type FooterRouteLink = FooterLinkBase & {
 
 type FooterLink = FooterHrefLink | FooterRouteLink;
 
-const socialLinks: FooterHrefLink[] = Socials().map(
-  (social): FooterHrefLink => ({
-    kind: "href",
-    name: social.name,
-    href: social.href,
-    icon: social.icon,
-    target: social.target,
-    rel: social.rel,
-  }),
-);
+const socialLinks: FooterHrefLink[] = Socials().map((social): FooterHrefLink => ({
+  kind: "href",
+  name: social.name,
+  href: social.href,
+  icon: social.icon,
+  target: social.target,
+  rel: social.rel,
+}));
 
 const contactLinks = [
   {

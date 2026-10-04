@@ -195,10 +195,11 @@ export class WebAppStack extends cdk.Stack {
       }),
     );
 
-    // Lambda Function URL (NONE auth — CloudFront handles access control)
+    // Lambda Function URL (NONE auth — CloudFront handles access control).
+    // RESPONSE_STREAM lets Nitro stream deferred SSR sections (<Await>) as they resolve.
     const fnUrl = this.webappLambda.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
-      invokeMode: lambda.InvokeMode.BUFFERED,
+      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
     });
 
     // ── Cache policies ─────────────────────────────────────────────────────
