@@ -18,12 +18,12 @@ import { Mail as IconContact } from "lucide-react";
 import type { ReactNode } from "react";
 import { Club } from "@project.config";
 import classes from "./Header.module.css";
-import { navbarLinks } from "../../utils/navbarLinks";
+import { liveNavbarLink, navbarLinks, type NavbarLink } from "../../utils/navbarLinks";
 import Socials from "../layout/Socials";
+import ReservedVisibilitySlot from "./ReservedVisibilitySlot";
+import { useHomeLiveTickerData } from "../../hooks/useHomeLiveTicker";
 
 export const HEADER_HEIGHT = 76;
-
-type NavbarLinkItem = (typeof navbarLinks)[number];
 
 const pillButtonClassName = "mv-focus mv-pressable";
 const pillButtonStyle = { boxShadow: "0 5px 0 rgba(28, 27, 31, 0.2)" } as const;
@@ -78,7 +78,7 @@ function HeaderNavLink({
   onClick,
   mobile = false,
 }: {
-  item: NavbarLinkItem;
+  item: NavbarLink;
   onClick?: () => void;
   mobile?: boolean;
 }) {
@@ -113,6 +113,7 @@ function HeaderNavLink({
 
 export default function Header() {
   const [opened, { toggle, close }] = useDisclosure();
+  const { hasMatchesToday } = useHomeLiveTickerData();
 
   return (
     <AppShell.Header bg="transparent" withBorder={false}>
@@ -165,6 +166,9 @@ export default function Header() {
               </Group>
             </UnstyledButton>
             <Group gap="sm" visibleFrom="sm" wrap="nowrap">
+              <ReservedVisibilitySlot visible={hasMatchesToday}>
+                <HeaderNavLink item={liveNavbarLink} />
+              </ReservedVisibilitySlot>
               {navbarLinks.map((item) => (
                 <HeaderNavLink key={item.name} item={item} />
               ))}
@@ -214,6 +218,9 @@ export default function Header() {
                     rel={socialItem.rel}
                   />
                 ))}
+                <ReservedVisibilitySlot visible={hasMatchesToday}>
+                  <HeaderNavLink item={liveNavbarLink} onClick={close} mobile />
+                </ReservedVisibilitySlot>
               </Stack>
             </Group>
           </Collapse>

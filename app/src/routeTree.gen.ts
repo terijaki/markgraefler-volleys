@@ -14,6 +14,7 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutBrandRouteImport } from './routes/_layout/brand'
 import { Route as LayoutDatenschutzRouteImport } from './routes/_layout/datenschutz'
 import { Route as LayoutImpressumRouteImport } from './routes/_layout/impressum'
+import { Route as LayoutLiveRouteImport } from './routes/_layout/live'
 import { Route as LayoutMatchesRouteImport } from './routes/_layout/matches'
 import { Route as LayoutMemberRouteImport } from './routes/_layout/member'
 import { Route as LayoutTabelleRouteImport } from './routes/_layout/tabelle'
@@ -55,6 +56,11 @@ const LayoutDatenschutzRoute = LayoutDatenschutzRouteImport.update({
 const LayoutImpressumRoute = LayoutImpressumRouteImport.update({
   id: '/impressum',
   path: '/impressum',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutLiveRoute = LayoutLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutMatchesRoute = LayoutMatchesRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/brand': typeof LayoutBrandRoute
   '/datenschutz': typeof LayoutDatenschutzRoute
   '/impressum': typeof LayoutImpressumRoute
+  '/live': typeof LayoutLiveRoute
   '/matches': typeof LayoutMatchesRouteWithChildren
   '/member': typeof LayoutMemberRoute
   '/tabelle': typeof LayoutTabelleRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/brand': typeof LayoutBrandRoute
   '/datenschutz': typeof LayoutDatenschutzRoute
   '/impressum': typeof LayoutImpressumRoute
+  '/live': typeof LayoutLiveRoute
   '/member': typeof LayoutMemberRoute
   '/tabelle': typeof LayoutTabelleRoute
   '/admin/login': typeof AdminLoginRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/_layout/brand': typeof LayoutBrandRoute
   '/_layout/datenschutz': typeof LayoutDatenschutzRoute
   '/_layout/impressum': typeof LayoutImpressumRoute
+  '/_layout/live': typeof LayoutLiveRoute
   '/_layout/matches': typeof LayoutMatchesRouteWithChildren
   '/_layout/member': typeof LayoutMemberRoute
   '/_layout/tabelle': typeof LayoutTabelleRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/brand'
     | '/datenschutz'
     | '/impressum'
+    | '/live'
     | '/matches'
     | '/member'
     | '/tabelle'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/brand'
     | '/datenschutz'
     | '/impressum'
+    | '/live'
     | '/member'
     | '/tabelle'
     | '/admin/login'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/_layout/brand'
     | '/_layout/datenschutz'
     | '/_layout/impressum'
+    | '/_layout/live'
     | '/_layout/matches'
     | '/_layout/member'
     | '/_layout/tabelle'
@@ -336,6 +348,13 @@ declare module '@tanstack/react-router' {
       path: '/impressum'
       fullPath: '/impressum'
       preLoaderRoute: typeof LayoutImpressumRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/live': {
+      id: '/_layout/live'
+      path: '/live'
+      fullPath: '/live'
+      preLoaderRoute: typeof LayoutLiveRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/matches': {
@@ -497,6 +516,7 @@ interface LayoutRouteChildren {
   LayoutBrandRoute: typeof LayoutBrandRoute
   LayoutDatenschutzRoute: typeof LayoutDatenschutzRoute
   LayoutImpressumRoute: typeof LayoutImpressumRoute
+  LayoutLiveRoute: typeof LayoutLiveRoute
   LayoutMatchesRoute: typeof LayoutMatchesRouteWithChildren
   LayoutMemberRoute: typeof LayoutMemberRoute
   LayoutTabelleRoute: typeof LayoutTabelleRoute
@@ -508,6 +528,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutBrandRoute: LayoutBrandRoute,
   LayoutDatenschutzRoute: LayoutDatenschutzRoute,
   LayoutImpressumRoute: LayoutImpressumRoute,
+  LayoutLiveRoute: LayoutLiveRoute,
   LayoutMatchesRoute: LayoutMatchesRouteWithChildren,
   LayoutMemberRoute: LayoutMemberRoute,
   LayoutTabelleRoute: LayoutTabelleRoute,

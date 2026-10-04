@@ -79,6 +79,7 @@ export default defineConfig({
           "/teams": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/teams/**": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/brand": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
+          "/live": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/impressum": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/datenschutz": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
           "/member": { headers: { "cache-control": PUBLIC_PAGE_CACHE_CONTROL } },
