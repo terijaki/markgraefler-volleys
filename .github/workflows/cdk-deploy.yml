@@ -32,7 +32,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - uses: voidzero-dev/setup-vp@v1.21.1
+      - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "26"
           cache: true
@@ -103,7 +103,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - uses: voidzero-dev/setup-vp@v1.21.1
+      - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "26"
           cache: true
@@ -154,7 +154,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - uses: voidzero-dev/setup-vp@v1.21.1
+      - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "26"
           cache: true

@@ -22,7 +22,7 @@ jobs:
         with:
           ref: main # Checkout main to get CDK code
 
-      - uses: voidzero-dev/setup-vp@v1.21.1
+      - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "26"
           cache: true
