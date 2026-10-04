@@ -22,7 +22,7 @@ jobs:
         with:
           ref: main # Checkout main to get CDK code
 
-      - uses: voidzero-dev/setup-vp@v1.21.1
+      - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "26"
           cache: true
@@ -102,7 +102,7 @@ jobs:
           CDK_DESTROY: "true"
         run: |
           echo "Destroying all stacks for branch: ${{ steps.branch.outputs.branch }}"
-          vp exec cdk destroy --all --force
+          vp exec cdk destroy --all --force --concurrency 8
 
       - name: Add destroy summary
         run: |

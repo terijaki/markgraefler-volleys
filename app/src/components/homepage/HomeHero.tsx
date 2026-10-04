@@ -1,7 +1,9 @@
-import { Button, Group, Space, Stack, Text, Title } from "@mantine/core";
+import { Accordion, Button, Group, Space, Stack, Text, Title } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
+import { ChevronDown } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import HomeLiveTicker from "@webapp/components/homepage/HomeLiveTicker";
+import ReservedVisibilitySlot from "@webapp/components/layout/ReservedVisibilitySlot";
 import { useHomeLiveTickerData } from "@webapp/hooks/useHomeLiveTicker";
 
 type HeroLinkButtonProps = {
@@ -24,6 +26,7 @@ export default function HomeHero() {
     { to: "/tabelle", label: "Tabellen" },
     { to: "/matches", label: "Spielplan" },
   ] as const;
+  const tickerHeading = hasOpenMatches ? "Unsere Teams spielen gerade" : "Heute gespielt";
 
   return (
     <Stack
@@ -75,14 +78,37 @@ export default function HomeHero() {
         </Group>
       </Stack>
 
-      {hasMatchesToday && (
-        <Stack gap="sm">
-          <Text fw={800} c="mvGreen.8" size="lg">
-            {hasOpenMatches ? "Unsere Teams spielen gerade" : "Heute gespielt"}
-          </Text>
-          <HomeLiveTicker matches={ourMatches} />
-        </Stack>
-      )}
+      <ReservedVisibilitySlot visible={hasMatchesToday}>
+        <Accordion
+          chevron={<ChevronDown />}
+          styles={{
+            control: {
+              paddingInline: "var(--mantine-spacing-md)",
+              paddingBlock: "var(--mantine-spacing-sm)",
+            },
+            label: { padding: 0 },
+            panel: {
+              paddingInline: 0,
+              paddingBottom: "var(--mantine-spacing-sm)",
+            },
+            content: { padding: 0 },
+            chevron: {
+              color: "var(--mantine-color-mvPurple-6)",
+            },
+          }}
+        >
+          <Accordion.Item value="live-ticker" style={{ border: "none" }}>
+            <Accordion.Control style={{ backgroundColor: "transparent" }}>
+              <Text fw={800} c="mvGreen.8" size="lg">
+                {tickerHeading}
+              </Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <HomeLiveTicker matches={ourMatches} />
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
+      </ReservedVisibilitySlot>
     </Stack>
   );
 }
