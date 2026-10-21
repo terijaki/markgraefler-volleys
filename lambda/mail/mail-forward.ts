@@ -5,14 +5,17 @@
  * Flow:
  *   1. Parse S3 key from EventBridge event.
  *   2. Read raw MIME email from S3.
- *   3. Extract the To address (recipient alias) from MIME headers.
+ *   3. Resolve the envelope recipient for this SES delivery (X-Original-To or
+ *      SES Received `for=`), falling back to To/Cc club aliases when absent.
  *   4. Apply branch plus-address stripping in dev environments.
  *   5. Resolve recipient:
  *      a. Check hardcoded group aliases (trainer@, info@).
  *      b. Fall back to individual proxy email lookup in DynamoDB.
  *   6. Forward raw MIME via SES — rewrite From, add Reply-To.
  *
- * Idempotency: EventBridge fires Object Created exactly once per S3 object.
+ * Idempotency: SES stores one S3 object per envelope recipient, and EventBridge
+ * fires Object Created once per object. Each delivery must forward only that
+ * envelope recipient — the shared To/Cc headers are not a recipient list.
  * The S3 lifecycle policy (14d prod / 3d dev) expires messages automatically.
  * Retries on Lambda throw are handled by the async invocation retry config
  * (retryAttempts: 2) and the EventBridge DLQ. No separate idempotency store
@@ -623,6 +626,93 @@ function extractFromAddress(rawMime: string): string {
   return fromLine || "unknown@example.com";
 }
 
+function isAddressOnRecipientDomain(address: string): boolean {
+  const domain = address.split("@")[1];
+  return domain?.toLowerCase() === RECIPIENT_DOMAIN.toLowerCase();
+}
+
+/**
+ * Envelope recipient from the topmost SES inbound Received header.
+ *
+ * SES stores one S3 object per RCPT TO. Those copies share the same To/Cc
+ * headers; only the SES-prepended Received line's `for <addr>` identifies which
+ * envelope recipient this object was accepted for. X-Original-To is often
+ * absent (Google Workspace → SES does not add it).
+ *
+ * Trust only headers written by inbound-smtp.*.amazonaws.com so spoofed
+ * Received lines cannot redirect forwarding.
+ */
+function extractSesEnvelopeRecipient(rawMime: string): string | null {
+  const headerBlock = splitMimeIntoHeadersAndBody(rawMime)?.headers ?? rawMime;
+  const lines = headerBlock.split(/\r?\n/);
+  const receivedBlocks: string[] = [];
+  let current: string[] | null = null;
+
+  for (const line of lines) {
+    if (/^Received:/i.test(line)) {
+      if (current) receivedBlocks.push(current.join(" "));
+      current = [line.replace(/^Received:\s*/i, "")];
+      continue;
+    }
+    if (current && /^[ \t]/.test(line)) {
+      current.push(line.trim());
+      continue;
+    }
+    if (current) {
+      receivedBlocks.push(current.join(" "));
+      current = null;
+    }
+  }
+  if (current) receivedBlocks.push(current.join(" "));
+
+  for (const flattened of receivedBlocks) {
+    if (!/by\s+inbound-smtp\.[a-z0-9-]+\.amazonaws\.com\b/i.test(flattened)) {
+      continue;
+    }
+
+    const forMatch = flattened.match(/\bfor\s+(?:<([^<>]+@[^<>]+)>|([^\s,;<>]+@[^\s,;<>]+))/i);
+    const address = sanitizeEmailAddress((forMatch?.[1] || forMatch?.[2] || "").toLowerCase());
+    if (address && BASIC_EMAIL_REGEX.test(address)) {
+      return address;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Club proxy addresses that should receive a forward for this inbound message.
+ *
+ * Prefer a single envelope recipient (one forward per SES delivery):
+ *   1. X-Original-To when it matches a To/Cc address
+ *   2. SES Received `for=` (trusted inbound-smtp header) on the recipient domain
+ * Otherwise fall back to all club addresses on To + Cc.
+ */
+function resolveMatchingClubRecipientAddresses(rawMime: string): string[] {
+  const headerToAddresses = extractToAddresses(rawMime);
+  const headerCcAddresses = extractRecipientAddressesFromHeader(rawMime, "cc");
+  const headerRecipientSet = new Set(
+    [...headerToAddresses, ...headerCcAddresses].map((addr) => addr.toLowerCase()),
+  );
+
+  const xOriginalToAddresses = extractRecipientAddressesFromHeader(rawMime, "x-original-to");
+  const validatedXOriginalTo = xOriginalToAddresses.filter((addr) =>
+    headerRecipientSet.has(addr.toLowerCase()),
+  );
+  if (validatedXOriginalTo.length > 0) {
+    return dedupeAddresses(validatedXOriginalTo.filter((addr) => isAddressOnRecipientDomain(addr)));
+  }
+
+  const sesEnvelopeRecipient = extractSesEnvelopeRecipient(rawMime);
+  if (sesEnvelopeRecipient && isAddressOnRecipientDomain(sesEnvelopeRecipient)) {
+    return [sesEnvelopeRecipient];
+  }
+
+  return dedupeAddresses(
+    [...headerToAddresses, ...headerCcAddresses].filter((addr) => isAddressOnRecipientDomain(addr)),
+  );
+}
+
 async function sendForwardedEmail(input: SendForwardedEmailInput): Promise<ForwardSendResult> {
   const { rawMime, originalFrom, newFrom, target, s3Key, errorContext } = input;
   const sanitizedTarget = sanitizeEmailAddress(target);
@@ -816,22 +906,10 @@ const lambdaHandler = async (event: unknown) => {
     };
   }
 
-  const envelopeRecipientAddresses = extractRecipientAddressesFromHeader(rawMime, "x-original-to");
-  const headerToAddresses = extractToAddresses(rawMime);
-  const headerToAddressSet = new Set(headerToAddresses.map((addr) => addr.toLowerCase()));
-  const hasValidatedEnvelopeRecipient = envelopeRecipientAddresses.some((addr) =>
-    headerToAddressSet.has(addr.toLowerCase()),
-  );
-  const toAddresses =
-    envelopeRecipientAddresses.length > 0 && hasValidatedEnvelopeRecipient
-      ? envelopeRecipientAddresses
-      : headerToAddresses;
-  const matchingAddresses = dedupeAddresses(
-    toAddresses.filter((addr) => addr.split("@")[1] === RECIPIENT_DOMAIN),
-  );
+  const matchingAddresses = resolveMatchingClubRecipientAddresses(rawMime);
 
   if (matchingAddresses.length === 0) {
-    logger.warn("No matching To addresses for recipient domain — dropping", { toAddresses, s3Key });
+    logger.warn("No matching club recipients — dropping", { s3Key });
     return { statusCode: 200, body: "dropped: no matching To address" };
   }
 
