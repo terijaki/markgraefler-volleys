@@ -16,6 +16,7 @@ import {
   SAMS_PROJECTION_TTL_DAYS,
   unixTtlSecondsFromNow,
 } from "@/lib/db/repository-utils";
+import { mergeClubScheduleProjectionMatches } from "@/utils/sams-club-schedule-window";
 import { slugify } from "@/utils/slugify";
 import { parseLambdaEnv } from "../utils/env";
 import { createDynamoDocClient, createLambdaResources } from "../utils/resources";
@@ -269,7 +270,10 @@ async function replaceClubSchedule(
   matches: Match[],
   meta: SamsScheduleProjectionMeta,
 ): Promise<void> {
-  if (await shouldSkipProjection(repos, sportsclubUuid, seasonUuid, meta.snapshotVersion)) {
+  const existing = await repos.schedules.get(sportsclubUuid, seasonUuid);
+  const previousMatches = existing?.matches ?? [];
+
+  if (existing?.snapshotVersion === meta.snapshotVersion) {
     logger.info("Skipping unchanged club schedule projection", {
       sportsclubUuid,
       seasonUuid,
@@ -279,12 +283,17 @@ async function replaceClubSchedule(
   }
 
   try {
+    const incomingProjectionMatches = matches.map(mapProviderMatchToProjection);
+    const mergedMatches = mergeClubScheduleProjectionMatches(
+      previousMatches,
+      incomingProjectionMatches,
+    );
     await repos.schedules.replaceClubSchedule(
       {
         sportsclubUuid,
         seasonUuid,
         seasonName,
-        matches: matches.map(mapProviderMatchToProjection),
+        matches: mergedMatches,
         snapshotVersion: meta.snapshotVersion,
         projectedAt: meta.projectedAt,
         cachedAt: meta.cachedAt,
@@ -296,7 +305,8 @@ async function replaceClubSchedule(
     logger.info("Replaced club schedule projection", {
       sportsclubUuid,
       seasonUuid,
-      matchCount: matches.length,
+      incomingMatchCount: incomingProjectionMatches.length,
+      storedMatchCount: mergedMatches.length,
       snapshotVersion: meta.snapshotVersion,
     });
   } catch (error) {
