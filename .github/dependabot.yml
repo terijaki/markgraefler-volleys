@@ -51,7 +51,6 @@ updates:
           - "superjson"
           - "@middy/*"
           - "dayjs"
-          - "num-words-de"
           - "ts-ics"
           - "@behold/*"
           - "sams-provider-events"
