@@ -6,7 +6,7 @@ import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 import Matches from "@webapp/components/Matches";
 import RankingTable from "@webapp/components/RankingTable";
 import { loadTabelleRouteDataFn } from "@webapp/server/functions/sams";
-import { numToWord } from "num-words-de";
+import { numToWordDe } from "@webapp/utils/numToWordDe";
 
 export const Route = createFileRoute("/_layout/tabelle")({
   /**
@@ -27,7 +27,7 @@ function RouteComponent() {
 
   const recentMatches = loaderMatches?.matches ?? [];
   const lastResultWord =
-    recentMatches.length > 1 && numToWord(recentMatches.length, { uppercase: false });
+    recentMatches.length > 1 && numToWordDe(recentMatches.length, { uppercase: false });
 
   return (
     <PageWithHeading

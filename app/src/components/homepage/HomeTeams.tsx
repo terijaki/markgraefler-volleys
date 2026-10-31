@@ -1,5 +1,5 @@
 import { Box, Center, Container, Group, Skeleton, Stack, Text } from "@mantine/core";
-import * as numToWordsDe from "num-words-de";
+import { numToWordDe } from "@webapp/utils/numToWordDe";
 import { useTeams } from "../../hooks/dataQueries";
 import SectionHeading from "../layout/SectionHeading";
 import HomeTeamGrid from "./HomeTeamGrid";
@@ -11,7 +11,7 @@ export default function HomeTeams() {
 
   const numberOfTeams = teams?.length || 0;
   // turn number to equivalent word, eg. 2 = zwei
-  const teamNumber = numToWordsDe.numToWord(numberOfTeams, {
+  const teamNumber = numToWordDe(numberOfTeams, {
     uppercase: false,
     indefinite_eine: true,
   });
