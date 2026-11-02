@@ -1,6 +1,6 @@
 import "varlock/auto-load";
 import { ENV } from "varlock/env";
-import { shouldDeployAccountOpsStacks } from "@utils/cdk-deploy";
+import { resolveDlqAlertEmail, shouldDeployAccountOpsStacks } from "@utils/cdk-deploy";
 import { getSanitizedBranch } from "@utils/deploy-branch";
 import { getCdkNaming } from "@utils/cdk-naming";
 import * as cdk from "aws-cdk-lib";
@@ -101,12 +101,22 @@ if (deployMailInfra) {
     cloudFrontCertificate: dnsStack.cloudFrontCertificate,
   });
 
+  // Budget monitoring - requires email for alerts
+  const budgetEmail = ENV.CDK_BUDGET_ALERT_EMAIL;
+  const monitoringEmail = ENV.CDK_MONITORING_ALERT_EMAIL || budgetEmail;
+  // Feature branches keep CloudWatch DLQ alarms but skip SNS email subscriptions
+  // (each new topic would require a fresh confirmation email).
+  const dlqAlertEmail = resolveDlqAlertEmail({
+    deployAccountOpsStacks,
+    alertEmail: monitoringEmail,
+  });
+
   new SamsStack(app, samsStackName, {
     ...commonStackProps,
     description: `SAMS provider consumer (${envLabel})`,
     mediaBucketName: mediaStack.bucketName,
     mediaCloudFrontUrl: mediaStack.cloudFrontUrl,
-    alertEmail: ENV.CDK_MONITORING_ALERT_EMAIL || ENV.CDK_BUDGET_ALERT_EMAIL,
+    alertEmail: dlqAlertEmail,
   });
 
   // Social Media Stack with Behold sync
@@ -127,15 +137,12 @@ if (deployMailInfra) {
     imageProcessorFunctionName: mediaStack.imageProcessorFunctionName,
   });
 
-  // Budget monitoring - requires email for alerts
-  const budgetEmail = ENV.CDK_BUDGET_ALERT_EMAIL;
-
   // Mail forwarding stack — branch-scoped Lambda/EventBridge/DLQ/alarms
   new MailStack(app, mailStackName, {
     ...commonStackProps,
     description: `Inbound Mail Forwarding (${envLabel})`,
     contentTableName: contentDbStack.contentTableName,
-    alertEmail: ENV.CDK_MONITORING_ALERT_EMAIL || budgetEmail,
+    alertEmail: dlqAlertEmail,
   });
   if (deployAccountOpsStacks) {
     if (budgetEmail) {
@@ -161,7 +168,6 @@ if (deployMailInfra) {
   }
 
   // Monitoring stack - setup alerts and dashboards
-  const monitoringEmail = ENV.CDK_MONITORING_ALERT_EMAIL || budgetEmail;
   if (deployAccountOpsStacks) {
     if (monitoringEmail) {
       new MonitoringStack(app, monitoringStackName, {
