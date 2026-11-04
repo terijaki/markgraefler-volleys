@@ -59,6 +59,7 @@ type AuthUserView = {
   id?: string;
   email?: string;
   emailVerified?: boolean;
+  authRole?: string;
   role?: string;
   name?: string;
   privateEmail?: string;
@@ -150,7 +151,7 @@ describe("findOne — user model", () => {
     expect(admin.emailVerified).toBe(true);
   });
 
-  it("finds a member by proxyEmail alias when privateEmail lookup fails, and still exposes privateEmail as email", async () => {
+  it("finds a member by proxyEmail alias when privateEmail lookup fails, and returns the proxy input as email", async () => {
     mockGetByPrivateEmail.mockResolvedValueOnce(null);
 
     const result = requireAuthUser(
@@ -161,7 +162,9 @@ describe("findOne — user model", () => {
     );
 
     expect(result.id).toBe("m-admin");
-    expect(result.email).toBe("admin@example.com");
+    // better-auth 1.7.16+ requires normalize(result.email) === normalize(input)
+    expect(result.email).toBe("public-admin@proxy.example.com");
+    expect(result.emailVerified).toBe(true);
   });
 
   it("returns null when no member has that email", async () => {
@@ -254,5 +257,43 @@ describe("findOne — non-user models return null", () => {
       where: [{ field: "userId", value: "m-admin" }],
     });
     expect(result).toBeNull();
+  });
+});
+
+describe("better-auth findUserByEmail via member adapter", () => {
+  beforeEach(() => {
+    mockGetByPrivateEmail.mockImplementation(async (email: string) => {
+      const members = [ADMIN_MEMBER, MODERATOR_MEMBER, MEMBER_NO_ROLE];
+      return members.find((member) => member.privateEmail === email) ?? null;
+    });
+    mockGetByProxyEmail.mockImplementation(async (email: string) => {
+      const members = [ADMIN_MEMBER, MODERATOR_MEMBER];
+      return members.find((member) => member.proxyEmail === email) ?? null;
+    });
+  });
+
+  it("resolves both private-email and proxy-email inputs under 1.7.16 equality checks", async () => {
+    const { betterAuth } = await import("better-auth");
+    const { memberAuthAdapter } = await import("./auth-member-adapter");
+
+    const auth = betterAuth({
+      secret: "x".repeat(32),
+      baseURL: "http://localhost:3000",
+      database: memberAuthAdapter,
+      user: {
+        additionalFields: {
+          authRole: { type: "string", required: true },
+        },
+      },
+    });
+
+    const ctx = await auth.$context;
+    const byPrivate = await ctx.internalAdapter.findUserByEmail("admin@example.com");
+    const byProxy = await ctx.internalAdapter.findUserByEmail("public-admin@proxy.example.com");
+
+    expect(byPrivate?.user.id).toBe("m-admin");
+    expect(byPrivate?.user.email).toBe("admin@example.com");
+    expect(byProxy?.user.id).toBe("m-admin");
+    expect(byProxy?.user.email).toBe("public-admin@proxy.example.com");
   });
 });

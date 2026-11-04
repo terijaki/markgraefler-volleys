@@ -4,6 +4,7 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
 
@@ -104,5 +105,62 @@ describe("delete", () => {
       sk: "auth-storage",
     });
     expect(calls[0].args[0].input.TableName).toBe("test-content-table");
+  });
+});
+
+describe("getAndDelete", () => {
+  it("returns null when no item exists", async () => {
+    ddbMock.on(DeleteCommand).resolves({ Attributes: undefined });
+
+    const result = await storage.getAndDelete("missing-key");
+
+    expect(result).toBeNull();
+  });
+
+  it("returns the prior value and deletes with the correct key scheme", async () => {
+    ddbMock.on(DeleteCommand).resolves({
+      Attributes: { pk: "auth-storage#otp-key", sk: "auth-storage", value: "123456" },
+    });
+
+    const result = await storage.getAndDelete("otp-key");
+
+    expect(result).toBe("123456");
+    const calls = ddbMock.commandCalls(DeleteCommand);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].args[0].input).toMatchObject({
+      TableName: "test-content-table",
+      Key: { pk: "auth-storage#otp-key", sk: "auth-storage" },
+      ReturnValues: "ALL_OLD",
+    });
+  });
+});
+
+describe("increment", () => {
+  it("returns the updated counter and sets TTL only on create", async () => {
+    ddbMock.on(UpdateCommand).resolves({ Attributes: { value: 2 } });
+    const before = Math.floor(Date.now() / 1000);
+
+    const result = await storage.increment("rate-key", 60);
+
+    const after = Math.floor(Date.now() / 1000);
+    expect(result).toBe(2);
+    const calls = ddbMock.commandCalls(UpdateCommand);
+    expect(calls).toHaveLength(1);
+    const input = calls[0].args[0].input;
+    expect(input.TableName).toBe("test-content-table");
+    expect(input.Key).toEqual({ pk: "auth-storage#rate-key", sk: "auth-storage" });
+    expect(input.UpdateExpression).toBe("ADD #value :one SET #ttl = if_not_exists(#ttl, :ttl)");
+    expect(input.ExpressionAttributeValues?.[":one"]).toBe(1);
+    const ttl = input.ExpressionAttributeValues?.[":ttl"] as number;
+    expect(ttl).toBeGreaterThanOrEqual(before + 60);
+    expect(ttl).toBeLessThanOrEqual(after + 60);
+  });
+
+  it("defaults to 1 when Attributes are missing", async () => {
+    ddbMock.on(UpdateCommand).resolves({ Attributes: undefined });
+
+    const result = await storage.increment("rate-key", 30);
+
+    expect(result).toBe(1);
   });
 });

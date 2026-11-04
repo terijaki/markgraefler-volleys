@@ -6,7 +6,14 @@ type AuthMemberView = Record<string, unknown>;
 
 /**
  * Converts a member DynamoDB item to the "auth view" better-auth expects:
- * exposes `privateEmail` as `email` (canonical auth identity).
+ * exposes `privateEmail` as `email` (canonical auth identity) for id and
+ * private-email lookups.
+ *
+ * Proxy-alias lookups override `email` with the looked-up input address so
+ * better-auth 1.7.16+ `findUserByEmail` NFC/lowercase equality passes. OTP
+ * delivery still targets `privateEmail` via `getMemberByProxyEmail` in
+ * `sendVerificationOTP`. Session `user.email` is display-only (admin menu);
+ * authz uses `id` / `authRole`.
  *
  * `emailVerified` is always set to `true` because members with Admin/Moderator
  * authRole are pre-configured by admins, and OTP delivery proves email ownership.
@@ -55,7 +62,12 @@ export const memberAuthAdapter = createAdapterFactory({
 
         const proxyMatch = await membersRepository.getByProxyEmail(inputEmail);
         if (proxyMatch && isAdminEligible(proxyMatch)) {
-          return applySelect(toAuthView(proxyMatch), select) as ReturnType<typeof Object.assign>;
+          // Return the looked-up input (proxy) as email so findUserByEmail's
+          // normalize(result.email) === normalize(input) check succeeds.
+          return applySelect(
+            { ...toAuthView(proxyMatch), email: inputEmail },
+            select,
+          ) as ReturnType<typeof Object.assign>;
         }
 
         return null;
