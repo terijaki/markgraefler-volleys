@@ -581,14 +581,62 @@ export async function handleGetClubLogoUrlsBySportsclubUuids(sportsclubUuids: st
   return Object.fromEntries(entries) as Record<string, string | null>;
 }
 
+/** Prefer the first non-empty logoUrl for teamUuid across ranking team lists. */
+export function findTeamLogoUrlInRankingTeams(
+  teamUuid: string,
+  rankingTeamLists: ReadonlyArray<ReadonlyArray<{ uuid: string; logoUrl?: string }>>,
+): string | null {
+  for (const teams of rankingTeamLists) {
+    for (const team of teams) {
+      if (team.uuid === teamUuid && team.logoUrl) {
+        return team.logoUrl;
+      }
+    }
+  }
+  return null;
+}
+
 /**
- * Resolve a team logo URL from the ranking-backed team logo index.
- * Returns null when the projection/index has no entry (distinct from a stored URL
- * whose upstream image later returns 403/404 — that is handled in ClubLogo onError).
+ * Resolve a team logo URL for live ticker cards.
+ *
+ * Order:
+ * 1. Team logo index (hydrated on ranking sync)
+ * 2. Owned-club CDN path via SamsTeam → sportsclub (preserves pre-index own logos)
+ * 3. logoUrl already stored on ranking projections for leagues of owned teams
+ *
+ * Returns null when no projection/index/club data exists (ClubLogo fallback).
+ * Upstream image 403/404 for a returned URL is handled in ClubLogo onError.
  */
 export async function handleGetTeamLogoUrl(teamUuid: string): Promise<string | null> {
-  const logo = await samsTeamLogoRepository.get(teamUuid);
-  return logo?.logoUrl ?? null;
+  const indexed = await samsTeamLogoRepository.get(teamUuid);
+  if (indexed?.logoUrl) return indexed.logoUrl;
+
+  const ownedTeam = await getSamsTeamByUuid(teamUuid);
+  if (ownedTeam?.sportsclubUuid) {
+    const clubLogoUrl = await handleGetClubLogoUrl({ clubUuid: ownedTeam.sportsclubUuid });
+    if (clubLogoUrl) return clubLogoUrl;
+  }
+
+  return findTeamLogoUrlInOwnedLeagueRankings(teamUuid);
+}
+
+async function findTeamLogoUrlInOwnedLeagueRankings(teamUuid: string): Promise<string | null> {
+  const seasonUuid = await resolveSyncedSeasonUuid();
+  if (!seasonUuid) return null;
+
+  const { items: ownedTeams } = await getAllSamsTeams();
+  const leagueUuids = [
+    ...new Set(ownedTeams.map((team) => team.leagueUuid).filter((uuid) => uuid.length > 0)),
+  ];
+  if (leagueUuids.length === 0) return null;
+
+  const projections = await Promise.all(
+    leagueUuids.map((leagueUuid) => samsRankingProjectionRepository.get(leagueUuid, seasonUuid)),
+  );
+  return findTeamLogoUrlInRankingTeams(
+    teamUuid,
+    projections.map((projection) => projection?.teams ?? []),
+  );
 }
 
 // ── SAMS Live Ticker proxy ────────────────────────────────────────────────────

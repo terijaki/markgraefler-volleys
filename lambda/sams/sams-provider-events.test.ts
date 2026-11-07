@@ -229,6 +229,46 @@ describe("processSamsProviderEvent", () => {
     expect(teamLogoUpserts.every((entry) => entry.teamUuid && entry.logoUrl)).toBe(true);
   });
 
+  it("writes team logos before ranking snapshot so a logo failure leaves retry eligible", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.leagueRankingUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    vi.mocked(uploadClubLogoToS3).mockImplementation(async (_bucket, sportsclubUuid) => {
+      return `sams-logos/${sportsclubUuid}.png`;
+    });
+    repos.teamLogos.upsert = vi.fn().mockRejectedValue(new Error("logo write failed"));
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    await expect(processSamsProviderEvent(event, repos)).rejects.toThrow("logo write failed");
+
+    expect(repos.teamLogos.upsert).toHaveBeenCalled();
+    expect(repos.rankings.replace).not.toHaveBeenCalled();
+  });
+
+  it("retries logo index hydration after a prior logo failure when snapshot is still uncommitted", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.leagueRankingUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    vi.mocked(uploadClubLogoToS3).mockImplementation(async (_bucket, sportsclubUuid) => {
+      return `sams-logos/${sportsclubUuid}.png`;
+    });
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    repos.teamLogos.upsert = vi.fn().mockRejectedValueOnce(new Error("logo write failed"));
+    await expect(processSamsProviderEvent(event, repos)).rejects.toThrow("logo write failed");
+    expect(repos.rankings.replace).not.toHaveBeenCalled();
+
+    repos.teamLogos.upsert = vi.fn().mockResolvedValue(undefined);
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.teamLogos.upsert).toHaveBeenCalled();
+    expect(repos.rankings.replace).toHaveBeenCalledOnce();
+  });
+
   it("merges club schedule updates and keeps matches outside the provider window", async () => {
     const fixture = samsProviderEventFixtures.find(
       (entry) => entry.type === SamsEventType.clubMatchScheduleUpdated,

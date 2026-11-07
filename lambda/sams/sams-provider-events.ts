@@ -436,25 +436,27 @@ export async function processSamsProviderEvent(
       const teamsWithLogo = teams.filter(
         (team): team is typeof team & { logoUrl: string } => !!team.logoUrl,
       );
-      await Promise.all([
-        repos.rankings.replace({
-          leagueUuid,
-          seasonUuid,
-          seasonName,
-          leagueName,
-          teams,
-          snapshotVersion: event.snapshotVersion,
-          cachedAt,
-          isStale,
-          ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
-        }),
-        ...teamsWithLogo.map((team) =>
+      // Write team logo index before committing the ranking snapshot. If logos fail,
+      // shouldSkipRanking stays false on SQS retry so the index can be repaired.
+      await Promise.all(
+        teamsWithLogo.map((team) =>
           repos.teamLogos.upsert({
             teamUuid: team.uuid,
             logoUrl: team.logoUrl,
           }),
         ),
-      ]);
+      );
+      await repos.rankings.replace({
+        leagueUuid,
+        seasonUuid,
+        seasonName,
+        leagueName,
+        teams,
+        snapshotVersion: event.snapshotVersion,
+        cachedAt,
+        isStale,
+        ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
+      });
       return;
     }
 
