@@ -5,6 +5,7 @@ import {
   memberSchema,
   samsClubSchema,
   samsRosterSchema,
+  samsTeamLogoSchema,
   samsTeamSchema,
   sponsorSchema,
   teamSchema,
@@ -16,6 +17,7 @@ import {
   SamsClubEntity,
   SamsRosterEntity,
   SamsTeamEntity,
+  SamsTeamLogoEntity,
   SponsorEntity,
   TeamEntity,
 } from "./index";
@@ -26,6 +28,7 @@ import {
   memberPk,
   samsClubPk,
   samsRosterPk,
+  samsTeamLogoPk,
   samsTeamPk,
   SK_METADATA,
   sponsorPk,
@@ -282,6 +285,34 @@ describe("Zod ↔ Toolbox contract suite", () => {
       _et: "SamsTeam",
       gsi1pk: "team",
       gsi1sk: "mv-herren",
+    });
+  });
+
+  it("SamsTeamLogo entity", () => {
+    const minimal = {
+      teamUuid: SAMS_TEAM_UUID,
+      type: "teamlogo" as const,
+      logoUrl: "https://cdn.example.com/sams-logos/opp.png",
+      updatedAt: iso,
+      ttl: 1_700_000_000,
+    };
+    const maximal = { ...minimal };
+    assertZodToolboxContract({
+      entityName: "SamsTeamLogo",
+      zodSchema: samsTeamLogoSchema,
+      entity: SamsTeamLogoEntity,
+      minimalFixture: minimal,
+      maximalFixture: maximal,
+      keyFields: ["teamUuid", "type"],
+      keyIsolationVariant: {
+        ...maximal,
+        logoUrl: "https://cdn.example.com/sams-logos/other.png",
+      },
+    });
+    assertKeyEncoding(SamsTeamLogoEntity, maximal, {
+      pk: samsTeamLogoPk(SAMS_TEAM_UUID),
+      sk: SK_METADATA,
+      _et: "SamsTeamLogo",
     });
   });
 

@@ -433,6 +433,19 @@ export async function processSamsProviderEvent(
         MEDIA_CLOUDFRONT_URL,
       );
 
+      const teamsWithLogo = teams.filter(
+        (team): team is typeof team & { logoUrl: string } => !!team.logoUrl,
+      );
+      // Write team logo index before committing the ranking snapshot. If logos fail,
+      // shouldSkipRanking stays false on SQS retry so the index can be repaired.
+      await Promise.all(
+        teamsWithLogo.map((team) =>
+          repos.teamLogos.upsert({
+            teamUuid: team.uuid,
+            logoUrl: team.logoUrl,
+          }),
+        ),
+      );
       await repos.rankings.replace({
         leagueUuid,
         seasonUuid,

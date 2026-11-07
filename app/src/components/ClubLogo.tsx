@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Flex, Image } from "@mantine/core";
 import { Volleyball } from "lucide-react";
-import { useClubLogoUrl } from "../hooks/dataQueries";
+import { useClubLogoUrl, useTeamLogoUrl } from "../hooks/dataQueries";
 
 type ClubLogoProps = (
-  | { clubUuid: string; clubSlug?: never; logoUrl?: never }
-  | { clubSlug: string; clubUuid?: never; logoUrl?: never }
-  | { logoUrl: string | null | undefined; clubUuid?: never; clubSlug?: never }
+  | { clubUuid: string; clubSlug?: never; teamUuid?: never; logoUrl?: never }
+  | { clubSlug: string; clubUuid?: never; teamUuid?: never; logoUrl?: never }
+  | { teamUuid: string; clubUuid?: never; clubSlug?: never; logoUrl?: never }
+  | { logoUrl: string | null | undefined; clubUuid?: never; clubSlug?: never; teamUuid?: never }
 ) & {
   label?: string;
   size?: number;
@@ -14,23 +16,37 @@ type ClubLogoProps = (
 export default function ClubLogo({
   clubUuid,
   clubSlug,
+  teamUuid,
   logoUrl: proppedLogoUrl,
   label,
   size = 24,
 }: ClubLogoProps) {
-  const useHook = !!(clubUuid || clubSlug);
-  const { data: fetchedLogoUrl } = useClubLogoUrl({ clubUuid, clubSlug });
-  const logoUrl = useHook ? fetchedLogoUrl : proppedLogoUrl;
+  const useClubHook = !!(clubUuid || clubSlug);
+  const useTeamHook = !!teamUuid;
+  const { data: fetchedClubLogoUrl } = useClubLogoUrl({ clubUuid, clubSlug });
+  const { data: fetchedTeamLogoUrl } = useTeamLogoUrl(teamUuid);
+  const resolvedLogoUrl = useClubHook
+    ? fetchedClubLogoUrl
+    : useTeamHook
+      ? fetchedTeamLogoUrl
+      : proppedLogoUrl;
 
-  if (!logoUrl) {
+  // Absent projection/index data → null URL → fallback.
+  // Upstream image 403/404 → URL present but Image onError → fallback.
+  // Track the failed URL so a new resolved URL automatically clears the error.
+  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
+  const imageFailed = !!resolvedLogoUrl && failedLogoUrl === resolvedLogoUrl;
+
+  if (!resolvedLogoUrl || imageFailed) {
     return <ClubLogoFallback size={size} />;
   }
 
   return (
     <Flex justify="center" align="center" w={size} h={size} style={{ flexShrink: 0 }}>
       <Image
-        src={logoUrl}
+        src={resolvedLogoUrl}
         alt={`Logo: ${label || "Vereinlogo"}`}
+        onError={() => setFailedLogoUrl(resolvedLogoUrl)}
         style={{
           width: "100%",
           height: "100%",

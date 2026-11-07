@@ -146,6 +146,19 @@ exports[`Zod ↔ Toolbox contract suite > SamsTeam entity > SamsTeam-saved-item 
 }
 `;
 
+exports[`Zod ↔ Toolbox contract suite > SamsTeamLogo entity > SamsTeamLogo-saved-item 1`] = `
+{
+  "_et": "SamsTeamLogo",
+  "logoUrl": "https://cdn.example.com/sams-logos/opp.png",
+  "pk": "teamlogo#bb0e8400-e29b-41d4-a716-446655440006",
+  "sk": "METADATA",
+  "teamUuid": "bb0e8400-e29b-41d4-a716-446655440006",
+  "ttl": 1700000000,
+  "type": "teamlogo",
+  "updatedAt": "2024-06-15T10:30:00.000Z",
+}
+`;
+
 exports[`Zod ↔ Toolbox contract suite > Sponsor entity > Sponsor-saved-item 1`] = `
 {
   "_et": "Sponsor",

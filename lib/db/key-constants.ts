@@ -8,6 +8,7 @@ export const locationPk = (id: string): string => `location#${id}`;
 export const mediaPk = (id: string): string => `media#${id}`;
 export const samsClubPk = (sportsclubUuid: string): string => `club#${sportsclubUuid}`;
 export const samsTeamPk = (uuid: string): string => `team#${uuid}`;
+export const samsTeamLogoPk = (teamUuid: string): string => `teamlogo#${teamUuid}`;
 export const samsRosterPk = (teamUuid: string): string => `roster#${teamUuid}`;
 export const samsSchedulePk = (sportsclubUuid: string): string => `schedule#${sportsclubUuid}`;
 export const samsTeamSchedulePk = (teamUuid: string): string => `schedule#team#${teamUuid}`;

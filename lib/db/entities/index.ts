@@ -6,9 +6,10 @@ import { TeamEntity } from "./content/team";
 import { SamsClubEntity } from "./sams/club";
 import { SamsRosterEntity } from "./sams/roster";
 import { SamsTeamEntity } from "./sams/team";
+import { SamsTeamLogoEntity } from "./sams/team-logo";
 
 export { LocationEntity, MediaEntity, MemberEntity, SponsorEntity, TeamEntity };
-export { SamsClubEntity, SamsRosterEntity, SamsTeamEntity };
+export { SamsClubEntity, SamsRosterEntity, SamsTeamEntity, SamsTeamLogoEntity };
 
 export const ContentEntities = {
   team: TeamEntity,
@@ -21,6 +22,7 @@ export const ContentEntities = {
 export const SamsEntities = {
   club: SamsClubEntity,
   team: SamsTeamEntity,
+  teamLogo: SamsTeamLogoEntity,
   roster: SamsRosterEntity,
 } as const;
 

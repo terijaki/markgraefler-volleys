@@ -16,6 +16,7 @@ import {
   handleGetSamsRankingsByLeagueUuids,
   handleGetSamsRosterByTeamUuid,
   handleGetSamsTicker,
+  handleGetTeamLogoUrl,
   handleListSamsClubs,
   handleListSamsTeams,
   handleLoadMatchesIndexRouteData,
@@ -95,5 +96,9 @@ export const getClubLogoUrlFn = createServerFn()
 export const getClubLogoUrlsBySportsclubUuidsFn = createServerFn()
   .validator(z.object({ sportsclubUuids: z.array(z.string().min(1)) }))
   .handler(async ({ data }) => handleGetClubLogoUrlsBySportsclubUuids(data.sportsclubUuids));
+
+export const getTeamLogoUrlFn = createServerFn()
+  .validator(z.object({ teamUuid: z.string().min(1) }))
+  .handler(async ({ data }) => handleGetTeamLogoUrl(data.teamUuid));
 
 export const getSamsTickerFn = createServerFn().handler(async () => handleGetSamsTicker());
