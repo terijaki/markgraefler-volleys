@@ -433,17 +433,28 @@ export async function processSamsProviderEvent(
         MEDIA_CLOUDFRONT_URL,
       );
 
-      await repos.rankings.replace({
-        leagueUuid,
-        seasonUuid,
-        seasonName,
-        leagueName,
-        teams,
-        snapshotVersion: event.snapshotVersion,
-        cachedAt,
-        isStale,
-        ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
-      });
+      const teamsWithLogo = teams.filter(
+        (team): team is typeof team & { logoUrl: string } => !!team.logoUrl,
+      );
+      await Promise.all([
+        repos.rankings.replace({
+          leagueUuid,
+          seasonUuid,
+          seasonName,
+          leagueName,
+          teams,
+          snapshotVersion: event.snapshotVersion,
+          cachedAt,
+          isStale,
+          ttl: unixTtlSecondsFromNow(SAMS_PROJECTION_TTL_DAYS),
+        }),
+        ...teamsWithLogo.map((team) =>
+          repos.teamLogos.upsert({
+            teamUuid: team.uuid,
+            logoUrl: team.logoUrl,
+          }),
+        ),
+      ]);
       return;
     }
 

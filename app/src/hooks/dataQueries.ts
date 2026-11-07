@@ -16,6 +16,7 @@ import {
   getSamsRankingByLeagueUuidFn,
   getSamsRosterByTeamUuidFn,
   getSamsTickerFn,
+  getTeamLogoUrlFn,
   listSamsTeamsFn,
 } from "../server/functions/sams";
 import { listSponsorsFn } from "../server/functions/sponsors";
@@ -146,6 +147,19 @@ export const useClubLogoUrl = ({
       throw new Error("Either clubUuid or clubSlug is required");
     },
     enabled: !!identifier,
+  });
+};
+
+export const useTeamLogoUrl = (teamUuid?: string) => {
+  return useQuery({
+    queryKey: ["teamLogoUrl", teamUuid],
+    queryFn: () => {
+      if (!teamUuid) {
+        throw new Error("teamUuid is required");
+      }
+      return getTeamLogoUrlFn({ data: { teamUuid } });
+    },
+    enabled: !!teamUuid,
   });
 };
 

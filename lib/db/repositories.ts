@@ -40,6 +40,12 @@ export {
 } from "./repositories/sams-teams-repository";
 export type { SamsTeamUpsertInput } from "./repositories/sams-teams-repository";
 export {
+  createSamsTeamLogoRepository,
+  samsTeamLogoRepository,
+  SamsTeamLogoRepository,
+} from "./repositories/sams-team-logo-repository";
+export type { SamsTeamLogoUpsertInput } from "./repositories/sams-team-logo-repository";
+export {
   createSamsRostersRepository,
   samsRostersRepository,
   SamsRostersRepository,

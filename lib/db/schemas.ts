@@ -162,6 +162,20 @@ export const samsTeamSchema = z.object({
 export type SamsClubInput = z.infer<typeof samsClubSchema>;
 export type SamsTeamInput = z.infer<typeof samsTeamSchema>;
 
+/** Team logo index — CDN URL keyed by SAMS team UUID (from ranking sync). */
+export const samsTeamLogoSchema = z.object({
+  teamUuid: z.string().min(1),
+  type: z
+    .literal("teamlogo")
+    .default("teamlogo")
+    .describe("Entity type discriminator for team logo index rows"),
+  logoUrl: z.string().min(1).describe("HTTPS CDN or provider logo URL from ranking entries"),
+  updatedAt: z.iso.datetime(),
+  ttl: z.number().int().positive().describe("Unix timestamp for DynamoDB TTL (1-year expiry)"),
+});
+
+export type SamsTeamLogoInput = z.infer<typeof samsTeamLogoSchema>;
+
 /**
  * A player entry within a SAMS team roster.
  * uuid and name are always present from provider roster events.

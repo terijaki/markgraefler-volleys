@@ -57,6 +57,10 @@ function createMockRepos(): SamsRepositories {
       get: vi.fn().mockResolvedValue(null),
       replace: vi.fn().mockResolvedValue(undefined),
     },
+    teamLogos: {
+      get: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn().mockResolvedValue(undefined),
+    },
     ops: {
       upsert: vi.fn().mockResolvedValue(undefined),
     },
@@ -207,6 +211,24 @@ describe("processSamsProviderEvent", () => {
     ).toBe(true);
   });
 
+  it("upserts team logo index entries keyed by ranking team UUID", async () => {
+    const fixture = samsProviderEventFixtures.find(
+      (entry) => entry.type === SamsEventType.leagueRankingUpdated,
+    );
+    expect(fixture).toBeDefined();
+
+    vi.mocked(uploadClubLogoToS3).mockImplementation(async (_bucket, sportsclubUuid) => {
+      return `sams-logos/${sportsclubUuid}.png`;
+    });
+
+    const event = parseSamsEventFromSqsBody(buildMockSamsProviderSqsBody(fixture!));
+    await processSamsProviderEvent(event, repos);
+
+    expect(repos.teamLogos.upsert).toHaveBeenCalled();
+    const teamLogoUpserts = vi.mocked(repos.teamLogos.upsert).mock.calls.map((call) => call[0]);
+    expect(teamLogoUpserts.every((entry) => entry.teamUuid && entry.logoUrl)).toBe(true);
+  });
+
   it("merges club schedule updates and keeps matches outside the provider window", async () => {
     const fixture = samsProviderEventFixtures.find(
       (entry) => entry.type === SamsEventType.clubMatchScheduleUpdated,
@@ -354,5 +376,6 @@ describe("processSamsProviderEvent", () => {
     await processSamsProviderEvent(event, repos);
 
     expect(repos.rankings.replace).not.toHaveBeenCalled();
+    expect(repos.teamLogos.upsert).not.toHaveBeenCalled();
   });
 });

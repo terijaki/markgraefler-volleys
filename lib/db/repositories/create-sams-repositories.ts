@@ -13,6 +13,10 @@ import {
   createSamsScheduleProjectionRepository,
   type SamsScheduleProjectionRepository,
 } from "./sams-schedule-projection-repository";
+import {
+  createSamsTeamLogoRepository,
+  type SamsTeamLogoRepository,
+} from "./sams-team-logo-repository";
 import { createSamsTeamsRepository, type SamsTeamsRepository } from "./sams-teams-repository";
 
 /** Public methods only — class private fields are not part of the processor port. */
@@ -21,6 +25,7 @@ type PublicInstance<T> = { [K in keyof T]: T[K] };
 export type SamsRepositories = {
   clubs: PublicInstance<SamsClubsRepository>;
   teams: PublicInstance<SamsTeamsRepository>;
+  teamLogos: PublicInstance<SamsTeamLogoRepository>;
   rosters: PublicInstance<SamsRostersRepository>;
   schedules: PublicInstance<SamsScheduleProjectionRepository>;
   rankings: PublicInstance<SamsRankingProjectionRepository>;
@@ -34,6 +39,7 @@ export function createSamsRepositories(
   return {
     clubs: createSamsClubsRepository(client, tableName),
     teams: createSamsTeamsRepository(client, tableName),
+    teamLogos: createSamsTeamLogoRepository(client, tableName),
     rosters: createSamsRostersRepository(client, tableName),
     schedules: createSamsScheduleProjectionRepository(client, tableName),
     rankings: createSamsRankingProjectionRepository(client, tableName),

@@ -21,6 +21,7 @@ import {
 import {
   samsRankingProjectionRepository,
   samsScheduleProjectionRepository,
+  samsTeamLogoRepository,
 } from "@/lib/db/repositories";
 import {
   getAllSamsClubs,
@@ -578,6 +579,16 @@ export async function handleGetClubLogoUrlsBySportsclubUuids(sportsclubUuids: st
     }),
   );
   return Object.fromEntries(entries) as Record<string, string | null>;
+}
+
+/**
+ * Resolve a team logo URL from the ranking-backed team logo index.
+ * Returns null when the projection/index has no entry (distinct from a stored URL
+ * whose upstream image later returns 403/404 — that is handled in ClubLogo onError).
+ */
+export async function handleGetTeamLogoUrl(teamUuid: string): Promise<string | null> {
+  const logo = await samsTeamLogoRepository.get(teamUuid);
+  return logo?.logoUrl ?? null;
 }
 
 // ── SAMS Live Ticker proxy ────────────────────────────────────────────────────
