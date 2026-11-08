@@ -3,7 +3,7 @@ import {
   Box,
   Button,
   Card,
-  Group,
+  Divider,
   Image,
   SimpleGrid,
   Stack,
@@ -17,6 +17,24 @@ import PageWithHeading from "@webapp/components/layout/PageWithHeading";
 export const Route = createFileRoute("/_layout/brand")({
   component: RouteComponent,
 });
+
+const colors = {
+  primary: {
+    name: "Violett",
+    hex: "#7A58A4",
+    rgb: "rgb(122,88,164)",
+  },
+  complementary1: {
+    name: "Olive",
+    hex: "#2F5D1E",
+    rgb: "rgb(47,93,30)",
+  },
+  complementary2: {
+    name: "Beige",
+    hex: "#BCAF9D",
+    rgb: "rgb(188,175,157)",
+  },
+};
 
 function RouteComponent() {
   return (
@@ -33,33 +51,50 @@ function RouteComponent() {
               Unsere Farben werden hier auf der Webseite verwendet und sollten wenn möglich auch in
               anderem Kontext verwendet werden.
             </Text>
-            <SimpleGrid cols={3} c="white" spacing={{ base: 4, xs: "xs" }}>
+            <Stack hiddenFrom="sm" gap="xs">
+              <Stack bg="mvPurple" p="xs" gap={0} bdrs="xs" c="white">
+                <Text fw="bold">{colors.primary.name}</Text>
+                <Text>{colors.primary.hex}</Text>
+                <Text>{colors.primary.rgb}</Text>
+              </Stack>
+              <Stack bg="mvGreen" p="xs" gap={0} bdrs="xs" c="white">
+                <Text fw="bold">{colors.complementary1.name}</Text>
+                <Text>{colors.complementary1.hex}</Text>
+                <Text>{colors.complementary1.rgb}</Text>
+              </Stack>
+              <Stack bg="mvSand" p="xs" gap={0} bdrs="xs">
+                <Text fw="bold">{colors.complementary2.name}</Text>
+                <Text>{colors.complementary2.hex}</Text>
+                <Text>{colors.complementary2.rgb}</Text>
+              </Stack>
+            </Stack>
+            <SimpleGrid cols={3} c="white" spacing={{ base: 4, xs: "xs" }} visibleFrom="sm">
               <Text p="xs" bg="mvPurple" fw="bold">
-                Primarfarbe
+                {colors.primary.name}
               </Text>
               <Text p="xs" bg="mvPurple">
-                #7A58A4
+                {colors.primary.hex}
               </Text>
               <Text p="xs" bg="mvPurple">
-                rgb(122,88,164)
+                {colors.primary.rgb}
               </Text>
               <Text p="xs" bg="mvGreen" fw="bold">
-                Komplementarfarbe 1
+                {colors.complementary1.name}
               </Text>
               <Text p="xs" bg="mvGreen">
-                #2F5D1E
+                {colors.complementary1.hex}
               </Text>
               <Text p="xs" bg="mvGreen">
-                rgb(47,93,30)
+                {colors.complementary1.rgb}
               </Text>
               <Text p="xs" bg="mvSand" fw="bold" c="black">
-                Komplementarfarbe 2
+                {colors.complementary2.name}
               </Text>
               <Text p="xs" bg="mvSand" c="black">
-                #BCAF9D
+                {colors.complementary2.hex}
               </Text>
               <Text p="xs" bg="mvSand" c="black">
-                rgb(188,175,157)
+                {colors.complementary2.rgb}
               </Text>
             </SimpleGrid>
           </Stack>
@@ -74,59 +109,62 @@ function RouteComponent() {
                 die Beflockung von Trikots.
               </Text>
               <Stack align="center">
-                <Box pos="relative" w="100%" maw={505} style={{ aspectRatio: "505 / 288" }}>
+                <Box pos="relative" w="100%" maw={505}>
                   <Image src="/assets/logos/logo.svg" alt="Logo" />
                 </Box>
-                <Group>
-                  <DownloadButton href="/assets/logos/logo.svg">Download SVG</DownloadButton>
-                  <DownloadButton href="/assets/logos/logo.pdf">Download PDF</DownloadButton>
-                </Group>
+                <SimpleGrid cols={{ base: 1, xs: 3 }} spacing="md">
+                  <DownloadButton href="/assets/logos/logo.svg">Farbig</DownloadButton>
+                  <DownloadButton href="/assets/logos/logo-black.svg">Schwarz</DownloadButton>
+                  <DownloadButton href="/assets/logos/logo-white.svg">Weiß</DownloadButton>
+                </SimpleGrid>
               </Stack>
             </Stack>
+            <Divider m="lg" />
             <Stack>
               <CardTitle>Rastergrafik</CardTitle>
               <Text>
                 Rastergrafiken haben eine feste Auflösung und das Dateiformat PNG hat eine hohe
                 Kompatibilität. Diese Dateien eignen sich daher für die meisten digitalen Zwecke.
               </Text>
-              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
-                <Stack>
-                  <Box pos="relative" w="100%" style={{ aspectRatio: "505 / 288" }}>
-                    <Image src="/assets/logos/logo.png" alt="Logo" />
-                  </Box>
-                  <DownloadButton href="/assets/logos/logo.png">Download (Farbig)</DownloadButton>
-                </Stack>
-                {/* <Stack>
-                  <Box pos="relative" w="100%" bg="gray" style={{ aspectRatio: "505 / 288" }}>
-                    <Image src="/assets/logos/logo-schwarz.png" alt="Logo Weiß" />
-                  </Box>
-                  <DownloadButton href="/assets/logos/logo-schwarz.png">
-                    Download (Schwarz)
-                  </DownloadButton>
-                </Stack> */}
-              </SimpleGrid>
+
+              <Stack align="center">
+                <Box pos="relative" w="100%" maw={505}>
+                  <Image src="/assets/logos/logo.png" alt="Logo" />
+                </Box>
+                <DownloadButton href="/assets/logos/logo.png">Download PNG</DownloadButton>
+              </Stack>
             </Stack>
             <Stack>
               <CardTitle>Rastergrafik mit Hintergrund</CardTitle>
-              <Text>Fertige Bilddateien mit weißem Logo auf farbigem Hintergrund.</Text>
-              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-                <Stack>
-                  <Box pos="relative" w="100%" style={{ aspectRatio: "1 / 1" }}>
-                    <Image src="/assets/logos/white-on-purple.png" alt="Logo Flieder" />
-                  </Box>
-                  <DownloadButton href="/assets/logos/white-on-purple.png">
-                    Download (Flieder)
-                  </DownloadButton>
-                </Stack>
-                <Stack>
-                  <Box pos="relative" w="100%" style={{ aspectRatio: "1 / 1" }}>
-                    <Image src="/assets/logos/white-on-taupe.png" alt="Logo Grün" />
-                  </Box>
-                  <DownloadButton href="/assets/logos/white-on-taupe.png">
-                    Download (Grün)
-                  </DownloadButton>
-                </Stack>
-              </SimpleGrid>
+              <Text>Fertige Bilddateien mit Logo auf farbigem Hintergrund.</Text>
+              <Stack align="center">
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+                  <Stack maw={505}>
+                    <Box pos="relative" w="100%">
+                      <Image src="/assets/logos/white-on-purple.png" alt="Logo Flieder" />
+                    </Box>
+                    <DownloadButton href="/assets/logos/white-on-purple.png">
+                      Download (Violett)
+                    </DownloadButton>
+                  </Stack>
+                  <Stack maw={505}>
+                    <Box pos="relative" w="100%">
+                      <Image src="/assets/logos/white-on-olive.png" alt="Logo Olive" />
+                    </Box>
+                    <DownloadButton href="/assets/logos/white-on-olive.png">
+                      Download (Olivgrün)
+                    </DownloadButton>
+                  </Stack>
+                  {/* <Stack maw={505}>
+                    <Box pos="relative" w="100%" >
+                      <Image src="/assets/logos/black-on-beige.png" alt="Logo Farbig" />
+                    </Box>
+                    <DownloadButton href="/assets/logos/black-on-beige.png">
+                      Download (Beige)
+                    </DownloadButton>
+                  </Stack> */}
+                </SimpleGrid>
+              </Stack>
             </Stack>
           </Stack>
         </Card>
