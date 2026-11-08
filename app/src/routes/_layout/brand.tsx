@@ -1,4 +1,14 @@
-import { AspectRatio, Box, Button, Card, Image, SimpleGrid, Stack, Text } from "@mantine/core";
+import {
+  AspectRatio,
+  Box,
+  Button,
+  Card,
+  Group,
+  Image,
+  SimpleGrid,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
 import { Palette } from "lucide-react";
 import CardTitle from "@webapp/components/CardTitle";
@@ -63,11 +73,6 @@ function RouteComponent() {
                 Vektorgrafiken skalieren dynamisch und eigenen sich daher perfekt für den Druck oder
                 die Beflockung von Trikots.
               </Text>
-              <Text fw="bolder">- Folgt in Kürze! -</Text>
-              {/* <Text>
-                Vektorgrafiken skalieren dynamisch und eigenen sich daher perfekt für den Druck oder
-                die Beflockung von Trikots.
-              </Text>
               <Stack align="center">
                 <Box pos="relative" w="100%" maw={505} style={{ aspectRatio: "505 / 288" }}>
                   <Image src="/assets/logos/logo.svg" alt="Logo" />
@@ -76,7 +81,7 @@ function RouteComponent() {
                   <DownloadButton href="/assets/logos/logo.svg">Download SVG</DownloadButton>
                   <DownloadButton href="/assets/logos/logo.pdf">Download PDF</DownloadButton>
                 </Group>
-              </Stack> */}
+              </Stack>
             </Stack>
             <Stack>
               <CardTitle>Rastergrafik</CardTitle>
@@ -101,28 +106,28 @@ function RouteComponent() {
                 </Stack> */}
               </SimpleGrid>
             </Stack>
-            {/* <Stack>
+            <Stack>
               <CardTitle>Rastergrafik mit Hintergrund</CardTitle>
               <Text>Fertige Bilddateien mit weißem Logo auf farbigem Hintergrund.</Text>
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
                 <Stack>
                   <Box pos="relative" w="100%" style={{ aspectRatio: "1 / 1" }}>
-                    <Image src="/assets/logos/logo-flieder.png" alt="Logo Flieder" />
+                    <Image src="/assets/logos/white-on-purple.png" alt="Logo Flieder" />
                   </Box>
-                  <DownloadButton href="/assets/logos/logo-flieder.png">
+                  <DownloadButton href="/assets/logos/white-on-purple.png">
                     Download (Flieder)
                   </DownloadButton>
                 </Stack>
                 <Stack>
                   <Box pos="relative" w="100%" style={{ aspectRatio: "1 / 1" }}>
-                    <Image src="/assets/logos/logo-gruen.png" alt="Logo Grün" />
+                    <Image src="/assets/logos/white-on-taupe.png" alt="Logo Grün" />
                   </Box>
-                  <DownloadButton href="/assets/logos/logo-gruen.png">
+                  <DownloadButton href="/assets/logos/white-on-taupe.png">
                     Download (Grün)
                   </DownloadButton>
                 </Stack>
               </SimpleGrid>
-            </Stack> */}
+            </Stack>
           </Stack>
         </Card>
         {/* jerseys */}
