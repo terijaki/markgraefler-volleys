@@ -71,7 +71,7 @@ describe("buildSamsProviderSeedFixtures", () => {
     );
   });
 
-  it("seeds league rankings with picsum logo urls", () => {
+  it("seeds league rankings with in-repo fixture logo urls", () => {
     const fixtures = buildSamsProviderSeedFixtures({
       variationSeed: TEST_VARIATION_SEED,
       now: new Date("2026-08-27T12:00:00.000Z"),
@@ -85,9 +85,7 @@ describe("buildSamsProviderSeedFixtures", () => {
     const firstRanking = rankings[0];
     const entries = firstRanking.payload.entries as Array<{ logoUrl: string }>;
     expect(entries.length).toBe(8);
-    expect(entries.every((entry) => entry.logoUrl.startsWith("https://picsum.photos/seed/"))).toBe(
-      true,
-    );
+    expect(entries.every((entry) => entry.logoUrl.startsWith("mv-fixture://clubs/"))).toBe(true);
   });
 
   it("varies opponent teams and stats between leagues", () => {

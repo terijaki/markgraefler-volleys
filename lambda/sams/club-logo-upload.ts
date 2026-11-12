@@ -1,6 +1,23 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { fetchSeedImageBytes } from "@/fixtures/seed-images/fetch-seed-image";
 
 const s3Client = new S3Client({});
+
+function extensionForContentType(contentType: string): string {
+  if (contentType.includes("jpeg")) {
+    return "jpg";
+  }
+  if (contentType.includes("gif")) {
+    return "gif";
+  }
+  if (contentType.includes("webp")) {
+    return "webp";
+  }
+  if (contentType.includes("svg")) {
+    return "svg";
+  }
+  return "png";
+}
 
 /**
  * Downloads a logo from a URL and uploads it to S3.
@@ -14,24 +31,12 @@ export async function uploadClubLogoToS3(
   if (!bucketName) return undefined;
 
   try {
-    const response = await fetch(logoUrl, {
+    const { body, contentType } = await fetchSeedImageBytes(logoUrl, {
       signal: AbortSignal.timeout(15_000),
       headers: { "User-Agent": "MV ClubSync/1.0" },
     });
-    if (!response.ok) {
-      console.warn(`Logo fetch failed for ${sportsclubUuid}: HTTP ${response.status}`);
-      return undefined;
-    }
-    const contentType = response.headers.get("content-type") ?? "image/png";
-    const ext = contentType.includes("jpeg")
-      ? "jpg"
-      : contentType.includes("gif")
-        ? "gif"
-        : contentType.includes("webp")
-          ? "webp"
-          : "png";
+    const ext = extensionForContentType(contentType);
     const s3Key = `sams-logos/${sportsclubUuid}.${ext}`;
-    const body = Buffer.from(await response.arrayBuffer());
     await s3Client.send(
       new PutObjectCommand({
         Bucket: bucketName,

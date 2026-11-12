@@ -18,7 +18,7 @@ export {
   SEED_OPPONENT_CLUBS,
   SEED_SEASON,
 } from "./ids";
-export { picsumImageUrl } from "./picsum";
+export { fixtureImageUrl, isFixtureImageUrl } from "@/fixtures/seed-images/fixture-image";
 
 /** Stable fixtures for processor unit tests. */
 export const samsProviderEventFixtures = buildTestSamsProviderFixtures();
