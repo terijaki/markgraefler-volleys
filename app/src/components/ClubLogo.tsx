@@ -51,7 +51,6 @@ export default function ClubLogo({
           width: "100%",
           height: "100%",
           objectFit: "contain",
-          borderRadius: "50%",
         }}
       />
     </Flex>

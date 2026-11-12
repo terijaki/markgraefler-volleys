@@ -130,26 +130,15 @@ export default function Header() {
           <Group justify="space-between" h={58} px="md" wrap="nowrap" className={classes.headerRow}>
             <UnstyledButton component={Link} to="/" onClick={close} className={classes.brandButton}>
               <Group gap="xs" wrap="nowrap" className={classes.brandGroup}>
-                <Card
+                <Image
                   className={classes.logoBadge}
-                  p={0}
-                  bdrs={12}
+                  src="/assets/logos/logo.svg"
+                  alt="Markgräfler Volleys Logo"
                   w={36}
                   h={36}
-                  bg="white"
-                  style={{
-                    placeItems: "center",
-                    boxShadow: "0 4px 0 rgba(28, 27, 31, 0.28)",
-                  }}
-                >
-                  <Image
-                    src="/assets/logos/logo.png"
-                    alt="Markgräfler Volleys Logo"
-                    w={24}
-                    h={24}
-                    fit="contain"
-                  />
-                </Card>
+                  fit="contain"
+                  style={{ flexShrink: 0 }}
+                />
                 <Title
                   order={1}
                   size="h3"

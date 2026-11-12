@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import de from "dayjs/locale/de";
 import weekday from "dayjs/plugin/weekday";
 import { CalendarDays, ChevronDown, Clock, Mail, User, Users } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import type { Team } from "@/lib/db/types";
 import { useLocations, useMembers } from "../hooks/dataQueries";
 import { ButtonLink } from "./CustomLink";
@@ -53,14 +53,18 @@ export default function TeamCard(props: TeamCardProps) {
   const isMatching = Boolean(!isEmptyBoth && isMatchingLeague && isMatchingGender);
 
   const [isOpen, setIsOpen] = useState(isMatching);
+  const [accordionSyncKey, setAccordionSyncKey] = useState({
+    disableAccordion,
+    isMatching,
+  });
 
-  useEffect(() => {
-    if (disableAccordion) {
-      setIsOpen(true);
-      return;
-    }
-    setIsOpen(isMatching);
-  }, [disableAccordion, isMatching]);
+  if (
+    accordionSyncKey.disableAccordion !== disableAccordion ||
+    accordionSyncKey.isMatching !== isMatching
+  ) {
+    setAccordionSyncKey({ disableAccordion, isMatching });
+    setIsOpen(disableAccordion ? true : isMatching);
+  }
 
   const emailAddresses = new Map<string, string>();
 

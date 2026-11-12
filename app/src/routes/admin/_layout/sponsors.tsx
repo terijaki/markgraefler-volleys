@@ -358,7 +358,7 @@ function SponsorsPage() {
         createMutation.mutate(
           Object.fromEntries(
             Object.entries(cleanedData).filter(
-              ([_, value]) => value !== null && value !== undefined && value !== "",
+              (entry) => entry[1] !== null && entry[1] !== undefined && entry[1] !== "",
             ),
           ) as SponsorInput,
         );
