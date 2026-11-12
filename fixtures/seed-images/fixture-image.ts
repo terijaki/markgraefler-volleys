@@ -8,8 +8,14 @@ export const FIXTURE_IMAGE_SCHEME = "mv-fixture:";
 
 /** Resolves the directory that contains `clubs/`, `portraits/`, etc. */
 export function resolveSeedImagesRoot(): string {
+  const candidates: string[] = [];
+  const lambdaTaskRoot = process.env.LAMBDA_TASK_ROOT;
+  if (lambdaTaskRoot) {
+    candidates.push(resolve(lambdaTaskRoot, "fixtures/seed-images"));
+  }
+
   const moduleDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [moduleDir, resolve(moduleDir, "fixtures/seed-images")];
+  candidates.push(moduleDir, resolve(moduleDir, "fixtures/seed-images"));
 
   for (const root of candidates) {
     if (existsSync(resolve(root, "clubs"))) {
@@ -17,10 +23,15 @@ export function resolveSeedImagesRoot(): string {
     }
   }
 
-  return resolve(moduleDir, "fixtures/seed-images");
+  return candidates[0] ?? resolve(moduleDir, "fixtures/seed-images");
 }
 
-const SEED_IMAGES_ROOT = resolveSeedImagesRoot();
+let cachedSeedImagesRoot: string | undefined;
+
+function seedImagesRoot(): string {
+  cachedSeedImagesRoot ??= resolveSeedImagesRoot();
+  return cachedSeedImagesRoot;
+}
 
 export function fixtureImageUrl(relativePath: string): string {
   const normalized = relativePath.replace(/^\/+/, "");
@@ -65,8 +76,9 @@ export async function loadFixtureImage(
     return null;
   }
 
-  const absolutePath = resolve(SEED_IMAGES_ROOT, relativePath);
-  if (!absolutePath.startsWith(SEED_IMAGES_ROOT)) {
+  const root = seedImagesRoot();
+  const absolutePath = resolve(root, relativePath);
+  if (!absolutePath.startsWith(root)) {
     return null;
   }
 

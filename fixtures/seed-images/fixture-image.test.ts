@@ -13,6 +13,21 @@ describe("fixture-image", () => {
     expect(root.endsWith("fixtures/seed-images") || root.includes("seed-images")).toBe(true);
   });
 
+  it("prefers LAMBDA_TASK_ROOT when clubs exist there", () => {
+    const previous = process.env.LAMBDA_TASK_ROOT;
+    const resolved = resolveSeedImagesRoot();
+    process.env.LAMBDA_TASK_ROOT = resolved.replace(/\/fixtures\/seed-images$/, "");
+    try {
+      expect(resolveSeedImagesRoot()).toBe(resolved);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.LAMBDA_TASK_ROOT;
+      } else {
+        process.env.LAMBDA_TASK_ROOT = previous;
+      }
+    }
+  });
+
   it("builds and parses mv-fixture URLs", () => {
     const url = fixtureImageUrl("clubs/club-markgraefler-volleys.jpg");
     expect(isFixtureImageUrl(url)).toBe(true);
