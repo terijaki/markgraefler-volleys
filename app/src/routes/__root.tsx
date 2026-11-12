@@ -15,8 +15,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/de";
 import { useEffect } from "react";
 import type { RouterContext } from "../router";
-import { resolveBrowserRootSession } from "../lib/root-session";
-import { getSessionFn } from "../server/functions/session";
+import { resolveRootSession } from "../lib/root-session";
 import type { AdminSessionUser } from "../server/functions/session-utils";
 import { theme } from "../lib/theme";
 
@@ -27,13 +26,7 @@ const DEFAULT_DESCRIPTION =
 const DEFAULT_IMAGE = `${Club.url}/assets/logos/logo-366273-500.png`;
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  beforeLoad: async (): Promise<{ session: AdminSessionUser | null }> => {
-    if (import.meta.env.SSR) {
-      const { resolveRootSession } = await import("../lib/root-session.server");
-      return resolveRootSession();
-    }
-    return resolveBrowserRootSession(getSessionFn);
-  },
+  beforeLoad: async (): Promise<{ session: AdminSessionUser | null }> => resolveRootSession(),
   head: () => ({
     title: Club.name,
     meta: [
