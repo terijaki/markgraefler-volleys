@@ -129,6 +129,8 @@ export default defineConfig({
       JSII_DEPRECATED: "quiet",
       CONTENT_TABLE_NAME: "test-content-table",
       SAMS_TABLE_NAME: "test-sams-table",
+      MEDIA_BUCKET_NAME: "test-media-bucket",
+      MEDIA_CLOUDFRONT_URL: "https://media.test.markgraefler-volleys.de",
       APP_BASE_URL: "https://test.markgraefler-volleys.de",
     },
   },
