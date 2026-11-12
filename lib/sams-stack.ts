@@ -14,6 +14,7 @@ import type { SamsProviderProcessorLambdaEnvironment } from "@/lambda/sams/types
 import { computeSamsDataTableName } from "./db/env";
 import { SamsTableIndexes } from "./db/table-indexes";
 import { MvNodejsFunction } from "./construct/mv-nodejs-function";
+import { copySeedImagesBundlingHooks } from "./lambda-bundling";
 import {
   computeSamsProviderEventsDlqName,
   computeSamsProviderEventsQueueName,
@@ -135,6 +136,9 @@ export class SamsStack extends cdk.Stack {
         MEDIA_BUCKET_NAME: props?.mediaBucketName ?? "",
         ...(props?.mediaCloudFrontUrl ? { MEDIA_CLOUDFRONT_URL: props.mediaCloudFrontUrl } : {}),
       } satisfies SamsProviderProcessorLambdaEnvironment,
+      bundling: {
+        commandHooks: copySeedImagesBundlingHooks,
+      },
     }).lambdaFunction;
 
     samsDataTable.grantReadWriteData(processor);

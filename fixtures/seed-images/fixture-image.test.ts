@@ -4,9 +4,15 @@ import {
   isFixtureImageUrl,
   loadFixtureImage,
   parseFixtureImagePath,
+  resolveSeedImagesRoot,
 } from "./fixture-image";
 
 describe("fixture-image", () => {
+  it("resolves seed images root next to club logos", () => {
+    const root = resolveSeedImagesRoot();
+    expect(root.endsWith("fixtures/seed-images") || root.includes("seed-images")).toBe(true);
+  });
+
   it("builds and parses mv-fixture URLs", () => {
     const url = fixtureImageUrl("clubs/club-markgraefler-volleys.jpg");
     expect(isFixtureImageUrl(url)).toBe(true);

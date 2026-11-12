@@ -1,10 +1,26 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** Scheme for seed images shipped in-repo (no external HTTP). */
 export const FIXTURE_IMAGE_SCHEME = "mv-fixture:";
 
-const SEED_IMAGES_ROOT = resolve(import.meta.dirname);
+/** Resolves the directory that contains `clubs/`, `portraits/`, etc. */
+export function resolveSeedImagesRoot(): string {
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [moduleDir, resolve(moduleDir, "fixtures/seed-images")];
+
+  for (const root of candidates) {
+    if (existsSync(resolve(root, "clubs"))) {
+      return root;
+    }
+  }
+
+  return resolve(moduleDir, "fixtures/seed-images");
+}
+
+const SEED_IMAGES_ROOT = resolveSeedImagesRoot();
 
 export function fixtureImageUrl(relativePath: string): string {
   const normalized = relativePath.replace(/^\/+/, "");
@@ -54,6 +70,18 @@ export async function loadFixtureImage(
     return null;
   }
 
-  const body = Buffer.from(await readFile(absolutePath));
-  return { body, contentType: contentTypeForPath(relativePath) };
+  try {
+    const body = Buffer.from(await readFile(absolutePath));
+    return { body, contentType: contentTypeForPath(relativePath) };
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      return null;
+    }
+    throw error;
+  }
 }

@@ -19,3 +19,5 @@ Committed **JPEG** assets for local dev and CI seeding. Referenced via `mv-fixtu
 ## Regenerating
 
 Assets are checked into git so CI does not call an image API. When regenerating, **do not use one portrait as the reference for another** — that tends to clone the same face with recolored clothes. Describe each character separately (age, gender, hair, face shape). Then run `vp test fixtures/seed-images/fixture-image.test.ts`.
+
+The SAMS provider Lambda copies this folder into its bundle (`lib/lambda-bundling.ts`) so `mv-fixture://` logos work in AWS.
