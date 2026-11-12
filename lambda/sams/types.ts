@@ -43,7 +43,7 @@ const BaseClubItemSchema = z.object({
  */
 export const ClubItemSchema = BaseClubItemSchema.transform((data) => {
   // Remove undefined values to save DynamoDB storage
-  return Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+  return Object.fromEntries(Object.entries(data).filter((entry) => entry[1] !== undefined));
 });
 
 export type ClubItem = z.infer<typeof ClubItemSchema>;
@@ -112,7 +112,7 @@ const BaseTeamItemSchema = z.object({
  */
 export const TeamItemSchema = BaseTeamItemSchema.transform((data) => {
   // Remove undefined values to save DynamoDB storage
-  return Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+  return Object.fromEntries(Object.entries(data).filter((entry) => entry[1] !== undefined));
 });
 
 export type TeamItem = z.infer<typeof TeamItemSchema>;
@@ -185,7 +185,7 @@ const BaseRosterItemSchema = z.object({
  */
 export const RosterItemSchema = BaseRosterItemSchema.transform((data) => {
   // Remove undefined values to save DynamoDB storage
-  return Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+  return Object.fromEntries(Object.entries(data).filter((entry) => entry[1] !== undefined));
 });
 
 export type RosterItem = z.infer<typeof RosterItemSchema>;

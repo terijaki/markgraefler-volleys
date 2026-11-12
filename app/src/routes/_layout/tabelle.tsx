@@ -13,7 +13,10 @@ export const Route = createFileRoute("/_layout/tabelle")({
    * LOADING STRATEGY — public route uses loader data only (no client refetch for SAMS tables/matches).
    * `loadTabelleRouteDataFn` reads ranking and match projections from DynamoDB during SSR.
    */
-  loader: async () => loadTabelleRouteDataFn(),
+  loader: async () => {
+    const data = await loadTabelleRouteDataFn();
+    return { ...data, currentMonth: new Date().getMonth() + 1 };
+  },
   component: RouteComponent,
 });
 
@@ -23,6 +26,7 @@ function RouteComponent() {
     teams,
     rankingsByLeagueUuid,
     matches: loaderMatches,
+    currentMonth,
   } = Route.useLoaderData();
 
   const recentMatches = loaderMatches?.matches ?? [];
@@ -36,7 +40,7 @@ function RouteComponent() {
       icon={List}
     >
       <Stack>
-        {leagueUuids.length === 0 && <NoRankingsData />}
+        {leagueUuids.length === 0 && <NoRankingsData currentMonth={currentMonth} />}
         {leagueUuids.length > 0 && (
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
             {leagueUuids.map((leagueUuid) => (
@@ -64,8 +68,7 @@ function RouteComponent() {
   );
 }
 
-function NoRankingsData() {
-  const currentMonth = new Date().getMonth() + 1;
+function NoRankingsData({ currentMonth }: { currentMonth: number }) {
   return (
     <>
       <Card>

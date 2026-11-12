@@ -25,7 +25,8 @@ import dayjs from "dayjs";
 import de from "dayjs/locale/de";
 import weekday from "dayjs/plugin/weekday";
 import { Megaphone as IconSubscribe, Users } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
+import type { PublicMember } from "@webapp/server/functions/members";
 import {
   useFileUrls,
   useLocations,
@@ -280,6 +281,60 @@ function TeamSchedule({ team }: { team: NonNullable<ReturnType<typeof useTeamByS
   );
 }
 
+function TeamMemberRow({ member, avatarUrl }: { member: PublicMember; avatarUrl?: string }) {
+  const content = (
+    <Group align="center">
+      <Avatar src={avatarUrl} name={member.name} />
+      <Stack gap={0}>
+        <Text fw="bold" c="mvGreen">
+          {member.name}
+        </Text>
+        {member.proxyEmail && (
+          <Text c="dimmed" size="xs">
+            {member.proxyEmail}
+          </Text>
+        )}
+      </Stack>
+    </Group>
+  );
+
+  if (member.proxyEmail) {
+    return (
+      <Anchor href={`mailto:${member.proxyEmail}`} underline="never">
+        {content}
+      </Anchor>
+    );
+  }
+
+  return content;
+}
+
+function TeamMemberList({
+  title,
+  memberList,
+  avatarUrlByS3Key,
+}: {
+  title: string;
+  memberList?: PublicMember[];
+  avatarUrlByS3Key?: Map<string, string>;
+}) {
+  if (!memberList || memberList.length === 0) return null;
+
+  return (
+    <Stack>
+      <CardTitle>{title}</CardTitle>
+      <Flex wrap="wrap" gap="xl">
+        {memberList.map((member) => {
+          const avatarUrl = member.avatarS3Key
+            ? avatarUrlByS3Key?.get(member.avatarS3Key)
+            : undefined;
+          return <TeamMemberRow key={member.id} member={member} avatarUrl={avatarUrl} />;
+        })}
+      </Flex>
+    </Stack>
+  );
+}
+
 function TeamTrainers({ team }: { team: NonNullable<ReturnType<typeof useTeamBySlug>["data"]> }) {
   const { data: members } = useMembers();
 
@@ -290,10 +345,25 @@ function TeamTrainers({ team }: { team: NonNullable<ReturnType<typeof useTeamByS
     ?.map((id) => members?.items.find((m) => m.id === id))
     .filter((x): x is NonNullable<typeof x> => x != null);
 
-  const { data: avatarUrls } = useFileUrls([
-    ...(trainers?.map((t) => t.avatarS3Key).filter(Boolean) || []),
-    ...(contacts?.map((c) => c.avatarS3Key).filter(Boolean) || []),
-  ] as string[]);
+  const avatarS3Keys = useMemo(
+    () =>
+      [
+        ...(trainers?.map((t) => t.avatarS3Key).filter(Boolean) || []),
+        ...(contacts?.map((c) => c.avatarS3Key).filter(Boolean) || []),
+      ] as string[],
+    [trainers, contacts],
+  );
+
+  const { data: avatarUrls } = useFileUrls(avatarS3Keys);
+
+  const avatarUrlByS3Key = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const [index, s3Key] of avatarS3Keys.entries()) {
+      const url = avatarUrls?.[index];
+      if (url) map.set(s3Key, url);
+    }
+    return map;
+  }, [avatarS3Keys, avatarUrls]);
 
   if (!trainers?.length && !contacts?.length) {
     return (
@@ -306,54 +376,14 @@ function TeamTrainers({ team }: { team: NonNullable<ReturnType<typeof useTeamByS
     );
   }
 
-  function MemberList({ title, memberList }: { title: string; memberList: typeof trainers }) {
-    if (!memberList || memberList.length === 0) return null;
-
-    return (
-      <Stack>
-        <CardTitle>{title}</CardTitle>
-        <Flex wrap="wrap" gap="xl">
-          {memberList.map((member) => {
-            const avatarUrl = member.avatarS3Key
-              ? avatarUrls?.[memberList.indexOf(member)]
-              : undefined;
-            const Person = () => (
-              <Group key={member.id} align="center">
-                <Avatar src={avatarUrl} name={member.name} />
-                <Stack gap={0}>
-                  <Text fw="bold" c="mvGreen">
-                    {member.name}
-                  </Text>
-                  {member.proxyEmail && (
-                    <Text c="dimmed" size="xs">
-                      {member.proxyEmail}
-                    </Text>
-                  )}
-                </Stack>
-              </Group>
-            );
-
-            if (member.proxyEmail) {
-              return (
-                <Anchor key={member.id} href={`mailto:${member.proxyEmail}`} underline="never">
-                  <Person />
-                </Anchor>
-              );
-            }
-            return <Person key={member.id} />;
-          })}
-        </Flex>
-      </Stack>
-    );
-  }
-
   return (
     <Card>
       <Flex wrap="wrap" columnGap="xl" rowGap="md">
-        <MemberList title="Trainer" memberList={trainers} />
-        <MemberList
+        <TeamMemberList title="Trainer" memberList={trainers} avatarUrlByS3Key={avatarUrlByS3Key} />
+        <TeamMemberList
           title={contacts && contacts.length > 1 ? "Ansprechpersonen" : "Ansprechperson"}
           memberList={contacts}
+          avatarUrlByS3Key={avatarUrlByS3Key}
         />
       </Flex>
     </Card>

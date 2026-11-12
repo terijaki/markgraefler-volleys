@@ -19,6 +19,8 @@ import CardTitle from "./CardTitle";
 import ClubLogo from "./ClubLogo";
 import RankingTableItem from "./RankingTableItem";
 
+const OWN_TEAM_LOGO_ON_PURPLE = "/assets/logos/logo-white.svg";
+
 type RankingTable = {
   leagueUuid: string;
   initialData?: RankingResponse;
@@ -135,7 +137,7 @@ export default function RankingTable(props: RankingTable) {
               // Enable links only when linkToTeamPage is true (tabelle page) and team has a slug
               const teamLink =
                 props.linkToTeamPage && isClubsTeam?.slug ? `/teams/${isClubsTeam.slug}` : null;
-              const logoUrl = team.logoUrl;
+              const logoUrl = shouldHighlight ? OWN_TEAM_LOGO_ON_PURPLE : team.logoUrl;
               return (
                 <RankingTableItem
                   key={team.uuid}

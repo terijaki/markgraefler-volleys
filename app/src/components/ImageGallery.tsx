@@ -1,17 +1,25 @@
 import { AspectRatio, Card, Group, Image } from "@mantine/core";
 import { useMemo, useState } from "react";
 
+/** Deterministic Fisher–Yates shuffle so gallery order stays stable across re-renders. */
+function shuffleImageUrls(urls: string[]): string[] {
+  const shuffled = [...urls];
+  let seed = urls.reduce((hash, url) => hash + url.length, 0);
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    seed = (seed * 1_664_525 + 1_013_904_223) % 2 ** 32;
+    const j = seed % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function ImageGallery({ images }: { images?: string[] }) {
   const [isHovered, setIsHovered] = useState<string | null>(null);
 
-  const shuffledGallery = useMemo(() => {
-    const shuffled = images ? [...images] : [];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }, [images]);
+  const shuffledGallery = useMemo(
+    () => (images && images.length > 0 ? shuffleImageUrls(images) : []),
+    [images],
+  );
 
   if (!images || images.length === 0) return null;
 
