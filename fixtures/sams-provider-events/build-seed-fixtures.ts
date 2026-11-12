@@ -10,7 +10,7 @@ import {
   SEED_OPPONENT_CLUBS,
   SEED_SEASON,
 } from "./ids";
-import { picsumImageUrl } from "./picsum";
+import { fixtureImageUrl } from "@/fixtures/seed-images/fixture-image";
 
 export type SamsProviderFixture = {
   type: string;
@@ -61,7 +61,7 @@ function clubProjection(club: typeof SEED_MV_CLUB | (typeof SEED_OPPONENT_CLUBS)
     slug: club.slug,
     associationUuid: SEED_MV_CLUB.associationUuid,
     associationName: SEED_MV_CLUB.associationName,
-    logoUrl: picsumImageUrl(club.picsumSeed, 128, 128),
+    logoUrl: fixtureImageUrl(`clubs/${club.fixtureImageKey}.jpg`),
   };
 }
 
@@ -139,7 +139,7 @@ function buildOpponentRankingEntries(
         teamUuid: mvTeam.uuid,
         teamName: mvTeamDisplayName(mvTeam, variationSeed),
         sportsclubUuid: SEED_MV_CLUB.uuid,
-        logoUrl: picsumImageUrl(SEED_MV_CLUB.picsumSeed, 128, 128),
+        logoUrl: fixtureImageUrl(`clubs/${SEED_MV_CLUB.fixtureImageKey}.jpg`),
         ...stats,
       });
       continue;
@@ -158,7 +158,7 @@ function buildOpponentRankingEntries(
       teamUuid,
       teamName: opponentTeamDisplayName(opponentClub, opponentIndex + leagueIndex * 2),
       sportsclubUuid: opponentClub.uuid,
-      logoUrl: picsumImageUrl(opponentClub.picsumSeed, 128, 128),
+      logoUrl: fixtureImageUrl(`clubs/${opponentClub.fixtureImageKey}.jpg`),
       ...stats,
     });
     opponentIndex++;
@@ -308,7 +308,7 @@ function buildRosterForTeam(mvTeam: (typeof SEED_MV_TEAMS)[number]) {
       name: `Player ${jersey} (${mvTeam.slug})`,
       jerseyNumber: jersey,
       position: index % 2 === 0 ? "OH" : "MB",
-      portraitUrl: picsumImageUrl(`player-${mvTeam.uuid}-${jersey}`, 200, 200),
+      portraitUrl: fixtureImageUrl(`portraits/jersey-${jersey}.jpg`),
     };
   });
 

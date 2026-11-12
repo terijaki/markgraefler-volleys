@@ -35,6 +35,8 @@ import {
 import { invokeImageProcessorAsync } from "@/lib/media/image-processing";
 import type { Location, Member, Team } from "@/lib/db/types";
 import { Club } from "@/project.config";
+import { fetchSeedImageBytes } from "@/fixtures/seed-images/fetch-seed-image";
+import { fixtureImageUrl, isFixtureImageUrl } from "@/fixtures/seed-images/fixture-image";
 import { getSanitizedBranch } from "@/utils/deploy-branch";
 
 // Check environment
@@ -82,6 +84,22 @@ const S3_BUCKET = `${Club.slug}-media-${CDK_ENVIRONMENT}${branchSuffix}`;
  * Download image from URL and upload to S3
  */
 async function uploadImageToS3(imageUrl: string, s3Key: string): Promise<string> {
+  if (isFixtureImageUrl(imageUrl)) {
+    const { body: imageBuffer, contentType } = await fetchSeedImageBytes(imageUrl);
+    if (imageBuffer.length === 0) {
+      throw new Error("Fixture image is empty");
+    }
+    const command = new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: imageBuffer,
+      ContentType: contentType,
+    });
+    await s3Client.send(command);
+    console.log(`  ✓ Uploaded image to s3://${S3_BUCKET}/${s3Key} (${imageBuffer.length} bytes)`);
+    return s3Key;
+  }
+
   return new Promise((resolve, reject) => {
     https
       .get(imageUrl, async (response) => {
@@ -373,12 +391,8 @@ async function seedMembersData() {
     },
   ];
 
-  const avatarUrls = [
-    "https://picsum.photos/400/400?random=30",
-    "https://picsum.photos/400/400?random=31",
-    "https://picsum.photos/400/400?random=32",
-    "https://picsum.photos/400/400?random=33",
-  ];
+  // avatar-1..4: distinct trainers (Max, Sarah, Julia, Anna-Maria) — see fixtures/seed-images/README.md
+  const avatarUrls = [1, 2, 3, 4].map((index) => fixtureImageUrl(`members/avatar-${index}.jpg`));
 
   console.log("  Downloading and uploading member avatars...");
   let avatarIndex = 0;
@@ -490,8 +504,8 @@ async function seedTeamsData() {
   ];
 
   const teamPictureUrls = [
-    ["https://picsum.photos/1200/800?random=40"],
-    ["https://picsum.photos/1200/800?random=41"],
+    [fixtureImageUrl("teams/team-photo-1.jpg")],
+    [fixtureImageUrl("teams/team-photo-2.jpg")],
   ];
 
   console.log("  Downloading and uploading team pictures...");
@@ -568,12 +582,7 @@ async function seedSponsorsData() {
     },
   ];
 
-  const logoUrls = [
-    "https://picsum.photos/400/200?random=30",
-    "https://picsum.photos/400/200?random=31",
-    "https://picsum.photos/400/200?random=32",
-    "https://picsum.photos/400/200?random=33",
-  ];
+  const logoUrls = [1, 2, 3, 4].map((index) => fixtureImageUrl(`sponsors/sponsor-${index}.jpg`));
 
   console.log("  Downloading and uploading sponsor logos...");
   for (let i = 0; i < sponsors.length; i++) {
