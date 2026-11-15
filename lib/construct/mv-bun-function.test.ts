@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import * as cdk from "aws-cdk-lib";
 import { Template } from "aws-cdk-lib/assertions";
 import { createTestApp } from "../test-helpers";
+import { BUN_LAMBDA_WRITABLE_ENV } from "../buntime/lambda-writable-env";
 import { MvBunFunction } from "./mv-bun-function";
 
 function createTemplate(props?: Partial<ConstructorParameters<typeof MvBunFunction>[2]>) {
@@ -56,9 +57,26 @@ describe("MvBunFunction", () => {
     template.hasResourceProperties("AWS::Lambda::Function", {
       Environment: {
         Variables: {
-          TMPDIR: "/tmp",
-          HOME: "/tmp",
-          BUN_RUNTIME_TRANSPILER_CACHE_PATH: "/tmp",
+          ...BUN_LAMBDA_WRITABLE_ENV,
+        },
+      },
+    });
+  });
+
+  it("does not let caller environment override writable Bun paths", () => {
+    const template = createTemplate({
+      environment: {
+        HOME: "/var/task",
+        TMPDIR: "/var/task",
+        BUN_RUNTIME_TRANSPILER_CACHE_PATH: "/var/task",
+        CUSTOM_FLAG: "1",
+      },
+    });
+    template.hasResourceProperties("AWS::Lambda::Function", {
+      Environment: {
+        Variables: {
+          ...BUN_LAMBDA_WRITABLE_ENV,
+          CUSTOM_FLAG: "1",
         },
       },
     });
